@@ -5,21 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Calculadora de Grade - Farmácia</title>
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#d97706"> <script src="https://cdn.tailwindcss.com"></script>
+    <meta name="theme-color" content="#10b981">
+
+    <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
             darkMode: 'class',
             theme: {
                 extend: {
                     colors: {
-                        yellowTheme: { 
-                            300: '#fde047', 
-                            400: '#facc15', 
-                            500: '#eab308', 
-                            600: '#ca8a04', 
-                            700: '#a16207',
-                            800: '#854d0e'
-                        },
+                        emerald: { 600: '#10b981', 700: '#059669' },
                         darkBg: '#121212',
                         darkCard: '#1e1e1e',
                         darkBorder: '#333'
@@ -33,23 +28,38 @@
         body { transition: background-color 0.3s, color 0.3s; }
         details > summary { list-style: none; }
         details > summary::-webkit-details-marker { display: none; }
-        .subject-card { transition: all 0.2s ease; user-select: none; }
+        
+        /* Destaque adicionado nos balões das disciplinas */
+        .subject-card { 
+            transition: all 0.2s ease; 
+            user-select: none; 
+            box-shadow: 0 4px 6px rgba(0,0,0,0.07); 
+            border: 1px solid #e5e7eb;
+            margin-bottom: 0.75rem;
+        }
+        .dark .subject-card {
+            border-color: #334155;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.25);
+        }
 
-        /* Esconder placeholder no focus */
-        input:focus::placeholder { color: transparent; }
-
-        /* Cores de status após o cálculo (Light/Dark) adaptadas para harmonia */
+        /* Cores de status após o cálculo (Light/Dark) */
         .status-passed { border-left: 5px solid #3b82f6 !important; background-color: #eff6ff; }
-        .dark .status-passed { background-color: rgba(59, 130, 246, 0.15); border-color: #60a5fa !important; }
+        .dark .status-passed { background-color: rgba(59, 130, 246, 0.15); color: #93c5fd; }
 
-        .status-eligible { border-left: 5px solid #eab308 !important; background-color: #fefce8; }
-        .dark .status-eligible { background-color: rgba(234, 179, 8, 0.15); border-color: #fde047 !important; }
+        /* Nova cor verde vibrante para "Pode Fazer" */
+        .status-eligible { border-left: 5px solid #22c55e !important; background-color: #f0fdf4; }
+        .dark .status-eligible { background-color: rgba(34, 197, 94, 0.15); color: #86efac; }
 
         .status-blocked { border-left: 5px solid #ef4444 !important; background-color: #fef2f2; }
-        .dark .status-blocked { background-color: rgba(239, 68, 68, 0.15); border-color: #fca5a5 !important; }
+        .dark .status-blocked { background-color: rgba(239, 68, 68, 0.15); color: #fca5a5; }
 
-        .status-default { border-left: 5px solid #d1d5db; background-color: #f9fafb; }
+        .status-default { border-left: 5px solid #d1d5db; background-color: #ffffff; }
         .dark .status-default { border-left: 5px solid #4b5563; background-color: #1e1e1e; }
+
+        /* Filtro CSS para colorir ícone JPG para Verde Escuro */
+        .icon-green-tint {
+            filter: invert(48%) sepia(79%) saturate(2476%) hue-rotate(86deg) brightness(118%) contrast(119%);
+        }
 
         /* Modais */
         .modal-overlay { display: none; backdrop-filter: blur(4px); }
@@ -58,85 +68,56 @@
         /* Esconder barra de rolagem */
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #facc15; border-radius: 4px; }
-        .dark ::-webkit-scrollbar-thumb { background: #a16207; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .dark ::-webkit-scrollbar-thumb { background: #475569; }
     </style>
 </head>
-<body class="bg-gray-50 text-yellowTheme-700 dark:bg-darkBg dark:text-yellowTheme-300 font-sans antialiased pb-28">
+<body class="bg-gray-50 text-gray-800 dark:bg-darkBg dark:text-gray-200 font-sans antialiased pb-24">
 
-    <header class="bg-yellowTheme-600 dark:bg-yellowTheme-800 text-white p-6 shadow-md rounded-b-2xl mb-6 relative flex flex-col items-center">
-        
-        <div class="absolute top-4 left-4 flex items-center gap-3">
-            <button onclick="openInfoModal()" class="text-white hover:scale-110 transition-transform">
-                <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
-                </svg>
-            </button>
-            
-            <div id="theme-toggle" class="w-14 h-7 bg-white/20 dark:bg-black/40 rounded-full cursor-pointer flex items-center p-1 transition-colors border border-white/30 ml-2">
-                <div id="theme-thumb" class="w-5 h-5 rounded-full bg-white shadow-md transform transition-transform duration-300 flex justify-center items-center">
-                    <svg id="icon-sun" class="w-3.5 h-3.5 text-[#FFD700]" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clip-rule="evenodd"></path></svg>
-                    <svg id="icon-moon" class="w-3.5 h-3.5 text-[#89CFF0] hidden" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path></svg>
-                </div>
-            </div>
-        </div>
-
-        <h1 class="text-2xl font-bold text-center mt-8 md:mt-2 text-white">Calculadora de Grade</h1>
-        <p class="text-center text-yellow-100 text-sm mt-1">Farmácia - UFRJ</p>
+    <header class="bg-emerald-600 dark:bg-emerald-800 text-white p-6 shadow-md rounded-b-2xl mb-6 relative">
+        <button id="theme-toggle" class="absolute top-4 right-4 p-2 bg-emerald-700 dark:bg-emerald-900 rounded-full shadow-lg transition-transform hover:scale-110">
+            <svg id="theme-icon-sun" class="w-6 h-6 hidden" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clip-rule="evenodd"></path></svg>
+            <svg id="theme-icon-moon" class="w-6 h-6 hidden" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path></svg>
+        </button>
+        <h1 class="text-2xl font-bold text-center mt-2">Calculadora de Grade</h1>
+        <p class="text-center text-emerald-100 dark:text-emerald-200 text-sm mt-1">Farmácia - UFRJ</p>
     </header>
 
     <main class="max-w-3xl mx-auto px-4">
-        
-        <div class="relative mb-6">
-            <input type="text" id="search-input" placeholder="Pesquise por disciplina ou número de período" class="w-full px-4 py-3 text-center border rounded-xl dark:bg-darkCard dark:border-darkBorder text-yellowTheme-700 dark:text-yellowTheme-300 font-medium focus:outline-none focus:border-yellowTheme-500 focus:ring-2 focus:ring-yellowTheme-200 transition shadow-sm placeholder-yellowTheme-600/50 dark:placeholder-yellowTheme-400/50">
-        </div>
+        <div class="bg-white dark:bg-darkCard p-5 rounded-xl shadow-sm border border-gray-100 dark:border-darkBorder mb-6">
 
-        <div class="bg-white dark:bg-darkCard p-5 rounded-xl shadow-sm border border-yellowTheme-200 dark:border-darkBorder mb-6">
-            
-            <div class="grid grid-cols-2 gap-4 mb-5 text-center text-sm font-bold border-b border-yellowTheme-100 dark:border-darkBorder pb-4">
-                <div>
-                    <p class="text-yellowTheme-600 dark:text-yellowTheme-400 text-xs uppercase tracking-wide">Créditos Possuídos</p>
-                    <p class="text-lg"><span id="total-creditos">0</span> / 161</p>
-                </div>
-                <div>
-                    <p class="text-yellowTheme-600 dark:text-yellowTheme-400 text-xs uppercase tracking-wide">Carga Horária Possuída</p>
-                    <p class="text-lg"><span id="total-horas">0</span> / 3250</p>
-                </div>
+            <div class="relative mb-4">
+                <input type="text" id="search-input" placeholder="Pesquise por matéria ou período..." class="w-full pl-11 pr-4 py-3 border rounded-lg dark:bg-darkBg dark:border-darkBorder dark:text-white focus:outline-none focus:border-emerald-500 transition shadow-inner">
+                <img src="56240.png" class="w-5 h-5 absolute left-3 top-3.5 opacity-60 dark:invert pointer-events-none" alt="Lupa">
             </div>
 
-            <div class="mb-4">
-                <div class="flex justify-between text-sm font-semibold mb-1">
-                    <span>Obrigatórias (<span id="count-obrig-feitas">0</span> feitas / <span id="count-obrig-faltam">0</span> faltam)</span>
+            <div class="mb-3">
+                <div class="flex justify-between text-sm font-semibold mb-1 dark:text-gray-300">
+                    <span>Obrigatórias (<span id="count-obrig">0</span>/<span id="total-obrig">0</span>)</span>
                     <span id="percent-obrig">0%</span>
                 </div>
-                <div class="w-full bg-yellow-100 dark:bg-gray-700 rounded-full h-2.5">
-                    <div id="bar-obrig" class="bg-yellowTheme-500 h-2.5 rounded-full transition-all duration-500" style="width: 0%"></div>
+                <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+                    <div id="bar-obrig" class="bg-emerald-500 h-2.5 rounded-full transition-all duration-500" style="width: 0%"></div>
                 </div>
             </div>
 
-            <div class="mb-5 relative">
-                <div class="flex justify-between text-sm font-semibold mb-1">
-                    <span>Escolha Cond. (<span id="count-cond-feitas">0</span> feitas / <span id="count-cond-faltam">--</span> faltam)</span>
-                    <span id="text-cond-meta" class="text-xs text-yellowTheme-600 dark:text-yellowTheme-400">Meta: 12 cr / 180h</span>
+            <div class="mb-5">
+                <div class="flex justify-between items-center text-sm font-semibold mb-1 dark:text-gray-300">
+                    <span>Escolhas Condicionadas</span>
+                    <span id="count-cond-wrapper"><span id="count-cond">0 concluídas</span></span>
                 </div>
-                <div class="w-full bg-yellow-100 dark:bg-gray-700 rounded-full h-2.5 flex items-center">
+                <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
                     <div id="bar-cond" class="bg-blue-500 h-2.5 rounded-full transition-all duration-500" style="width: 0%"></div>
-                    <div id="icon-cond-done" class="hidden absolute right-0 -top-1 cursor-pointer group">
-                        <svg class="w-6 h-6 text-green-500 bg-white dark:bg-darkBg rounded-full" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path></svg>
-                        <div class="absolute right-0 bottom-full mb-2 w-48 p-2 bg-black text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 text-center">
-                            Obrigação concluída, mas você ainda pode cursar mais se desejar!
-                        </div>
-                    </div>
                 </div>
             </div>
 
-            <button onclick="openCRModal()" class="w-full bg-yellowTheme-600 hover:bg-yellowTheme-700 text-white font-bold py-2.5 px-4 rounded-lg transition-colors shadow-sm">
-                Calcular CR
+            <button onclick="openCRModal()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition-colors shadow">
+                Calcular CR / CRA
             </button>
         </div>
 
-        <div class="flex justify-center gap-4 text-xs font-bold mb-6 flex-wrap">
-            <div class="flex items-center"><span class="w-3 h-3 rounded-full bg-yellowTheme-500 mr-1"></span> Pode Fazer</div>
+        <div class="flex justify-center gap-4 text-xs font-semibold mb-6 flex-wrap dark:text-gray-300">
+            <div class="flex items-center"><span class="w-3 h-3 rounded-full bg-green-500 mr-1"></span> Pode Fazer</div>
             <div class="flex items-center"><span class="w-3 h-3 rounded-full bg-red-500 mr-1"></span> Bloqueada</div>
             <div class="flex items-center"><span class="w-3 h-3 rounded-full bg-blue-500 mr-1"></span> Concluída</div>
         </div>
@@ -145,100 +126,81 @@
     </main>
 
     <div class="fixed bottom-0 left-0 right-0 p-4 bg-white dark:bg-darkCard shadow-[0_-4px_15px_-3px_rgba(0,0,0,0.1)] flex justify-center z-40 border-t dark:border-darkBorder">
-        <button id="btn-calcular" class="bg-yellowTheme-600 hover:bg-yellowTheme-700 text-white font-bold py-3 px-8 rounded-full shadow-lg transition-transform transform active:scale-95 w-full max-w-md text-lg">
-            Concluir e Calcular Grade
+        <button id="btn-calcular" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-8 rounded-full shadow-lg transition-transform transform active:scale-95 w-full max-w-md text-lg">
+            Verificar Pré-requisitos
         </button>
     </div>
 
-    <footer class="text-center text-xs text-yellowTheme-600/60 dark:text-yellowTheme-400/50 mt-12 mb-28 px-4">
-        Projeto independente, feito de aluno para aluno, sem vínculo oficial com a UFRJ. Site de caráter auxiliar, seu uso não substitui a consulta do BOA.
-    </footer>
-
-    <div id="modal-info" class="fixed inset-0 bg-black/70 modal-overlay justify-center items-center z-50">
-        <div class="bg-white dark:bg-darkCard w-11/12 max-w-sm rounded-2xl p-6 shadow-2xl relative border border-yellowTheme-500 text-center">
-            <button onclick="closeModal('modal-info')" class="absolute top-4 right-4 text-yellowTheme-700 dark:text-yellowTheme-300 hover:text-red-500 text-2xl font-bold">&times;</button>
-            <h3 class="text-xl font-bold text-yellowTheme-600 dark:text-yellowTheme-400 mb-6">Instruções</h3>
-            <div class="space-y-4 font-medium">
-                <p class="bg-yellow-50 dark:bg-gray-800 p-3 rounded-lg">Marque as disciplinas que você já fez e clique em <strong>"Concluir e Calcular Grade"</strong>.</p>
-                <p class="bg-yellow-50 dark:bg-gray-800 p-3 rounded-lg">Clique e segure no nome das disciplinas para mais informações.</p>
+    <div id="modal-details" class="fixed inset-0 bg-black/60 modal-overlay justify-center items-center z-50">
+        <div class="bg-white dark:bg-darkCard w-11/12 max-w-md rounded-2xl p-6 shadow-2xl relative border border-emerald-500">
+            <button onclick="closeModal('modal-details')" class="absolute top-4 right-4 text-gray-500 dark:text-gray-300 hover:text-red-500 text-xl font-bold">&times;</button>
+            <h3 id="det-nome" class="text-xl font-bold text-emerald-600 dark:text-emerald-400 mb-4 pr-6"></h3>
+            <div class="space-y-2 text-sm dark:text-gray-300">
+                <p><strong>Código:</strong> <span id="det-cod"></span></p>
+                <p><strong>Período:</strong> <span id="det-per"></span></p>
+                <p><strong>Pré-requisitos:</strong> <span id="det-pre" class="text-red-500 dark:text-red-400 font-semibold"></span></p>
+                <p><strong>Correquisitos:</strong> <span id="det-co" class="text-orange-500 dark:text-orange-400 font-semibold"></span></p>
             </div>
+            <p class="text-xs text-gray-400 text-center mt-6">Dica: Segure em uma matéria na grade para ver esta tela.</p>
         </div>
     </div>
 
-    <div id="modal-details" class="fixed inset-0 bg-black/70 modal-overlay justify-center items-center z-50">
-        <div class="bg-white dark:bg-darkCard w-11/12 max-w-md rounded-2xl p-6 shadow-2xl relative border border-yellowTheme-500">
-            <button onclick="closeModal('modal-details')" class="absolute top-4 right-4 text-yellowTheme-700 dark:text-yellowTheme-300 hover:text-red-500 text-2xl font-bold">&times;</button>
-            <h3 id="det-nome" class="text-xl font-bold text-yellowTheme-600 dark:text-yellowTheme-400 mb-4 pr-6 leading-tight"></h3>
-            <div class="space-y-3 text-sm font-medium">
-                <p><strong>Código:</strong> <span id="det-cod" class="text-gray-600 dark:text-gray-300"></span></p>
-                <p><strong>Período:</strong> <span id="det-per" class="text-gray-600 dark:text-gray-300"></span></p>
-                <p><strong>Pré-requisitos:</strong> <br><span id="det-pre" class="text-red-600 dark:text-red-400"></span></p>
-                <p><strong>Correquisitos:</strong> <br><span id="det-co" class="text-blue-600 dark:text-blue-400"></span></p>
-            </div>
-            </div>
-    </div>
-
-    <div id="modal-cr" class="fixed inset-0 bg-black/70 modal-overlay justify-center items-center z-50">
+    <div id="modal-cr" class="fixed inset-0 bg-black/60 modal-overlay justify-center items-center z-50">
         <div class="bg-white dark:bg-darkCard w-11/12 max-w-md rounded-2xl p-6 shadow-2xl relative max-h-[85vh] flex flex-col">
-            <button onclick="closeModal('modal-cr')" class="absolute top-4 right-4 text-yellowTheme-700 dark:text-yellowTheme-300 hover:text-red-500 text-2xl font-bold">&times;</button>
-            <h3 class="text-xl font-bold text-yellowTheme-600 dark:text-yellowTheme-400 mb-2">Calcular CR</h3>
-            <p class="text-xs text-yellowTheme-700/80 dark:text-yellowTheme-300/80 mb-4 font-medium">
-                Insira a nota e ajuste os créditos das matérias concluídas (padrão assumido: 4). O CR é a soma de (Nota × Créditos) dividida pela soma dos Créditos.
-            </p>
-
-            <div class="flex text-xs font-bold mb-2 px-1 text-yellowTheme-600 dark:text-yellowTheme-400">
-                <div class="flex-1">Disciplina</div>
-                <div class="w-16 text-center mr-2">Nota</div>
-                <div class="w-16 text-center">Créd.</div>
-            </div>
+            <button onclick="closeModal('modal-cr')" class="absolute top-4 right-4 text-gray-500 dark:text-gray-300 hover:text-red-500 text-xl font-bold">&times;</button>
+            <h3 class="text-xl font-bold text-blue-600 dark:text-blue-400 mb-2">Calculadora de CR</h3>
+            <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Insira a nota final das matérias concluídas. (Matérias sem créditos exatos usam peso padrão). CR ignora notas zero. CRA inclui todas.</p>
 
             <div id="cr-inputs" class="flex-1 overflow-y-auto space-y-3 mb-4 pr-2">
                 </div>
 
             <div class="flex gap-2">
-                <button onclick="calcularCRValue()" class="w-full bg-yellowTheme-600 hover:bg-yellowTheme-700 text-white py-3 rounded-lg font-bold transition">Calcular Meu CR</button>
+                <button onclick="calcularCRValue(false)" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded-lg font-bold">Gerar CR</button>
+                <button onclick="calcularCRValue(true)" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-bold">Gerar CRA</button>
             </div>
-            <div id="cr-result" class="mt-4 text-center text-xl font-bold text-yellowTheme-700 dark:text-yellowTheme-300 hidden p-4 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg border border-yellowTheme-300 dark:border-yellowTheme-700"></div>
+            <div id="cr-result" class="mt-4 text-center text-lg font-bold text-emerald-600 dark:text-emerald-400 hidden p-3 bg-emerald-50 dark:bg-darkBg rounded-lg border border-emerald-200 dark:border-emerald-800"></div>
+        </div>
+    </div>
+
+    <div id="modal-meta" class="fixed inset-0 bg-black/60 modal-overlay justify-center items-center z-50">
+        <div class="bg-white dark:bg-darkCard w-11/12 max-w-md rounded-2xl p-6 shadow-2xl relative border border-green-500 text-center">
+            <button onclick="closeModal('modal-meta')" class="absolute top-4 right-4 text-gray-500 dark:text-gray-300 hover:text-red-500 text-xl font-bold">&times;</button>
+            <h3 class="text-2xl font-bold text-green-600 dark:text-green-400 mb-4">Meta Alcançada!</h3>
+            <p class="text-gray-700 dark:text-gray-300">Parabéns! Sua meta de 12 créditos e 180h dessas matérias foi oficialmente batida, porém nada te impede de continuar cursando mais delas!</p>
+        </div>
+    </div>
+
+    <div id="modal-info-cond" class="fixed inset-0 bg-black/60 modal-overlay justify-center items-center z-50">
+        <div class="bg-white dark:bg-darkCard w-11/12 max-w-md rounded-2xl p-6 shadow-2xl relative border border-emerald-500">
+            <button onclick="closeModal('modal-info-cond')" class="absolute top-4 right-4 text-gray-500 dark:text-gray-300 hover:text-red-500 text-xl font-bold">&times;</button>
+            <h3 class="text-xl font-bold text-emerald-600 dark:text-emerald-400 mb-4 pr-6">Escolhas Condicionadas</h3>
+            <p class="text-sm text-gray-700 dark:text-gray-300 text-justify leading-relaxed">
+                Disciplinas de Escolha Condicionada: são matérias que o aluno deve escolher dentro de um grupo de opções definido pelo curso, seguindo determinados critérios. Basicamente, você deve 12 créditos e 180 horas dessas matérias para a faculdade. Por sorte, esse site faz esse cálculo para você não ter trabalho (via a segunda barra de progresso).<br><br>
+                A consulta desse site não substitui a consulta oficial do BOA no aplicativo "Portal Aluno UFRJ" ou no site do SIGA, que também informa quantos créditos e horas você já tem e quantos ainda falta concluir.
+            </p>
         </div>
     </div>
 
     <script>
-        // --- DADOS ORIGINAIS MANTIDOS ---
+        // Dados Originais
         const disciplinas = [{"periodo": "1", "codigo": "BMW103", "nome": "Bases Morfológicas Aplicadas à Farmácia", "pre": "", "co": ""}, {"periodo": "1", "codigo": "BQM101", "nome": "Bioquímica I", "pre": "", "co": ""}, {"periodo": "1", "codigo": "FFW111", "nome": "Farmacêutico e Sociedade", "pre": "", "co": ""}, {"periodo": "1", "codigo": "IQG114", "nome": "Química Geral I", "pre": "", "co": ""}, {"periodo": "1", "codigo": "MAC108", "nome": "Cálculo para Farmácia", "pre": "", "co": ""}, {"periodo": "2", "codigo": "BQM103", "nome": "Bioquímica II", "pre": "BQM101", "co": ""}, {"periodo": "2", "codigo": "IQF235", "nome": "Físico-Química I", "pre": "MAC108; IQG114", "co": ""}, {"periodo": "2", "codigo": "CFF122", "nome": "Fisiologia Humana", "pre": "BMW103; BQM101", "co": ""}, {"periodo": "2", "codigo": "FFW121", "nome": "Políticas e Planejamento em Saúde Pública", "pre": "FFW111", "co": ""}, {"periodo": "2", "codigo": "IQG122", "nome": "Química Inorgânica Estrutural FF", "pre": "IQG114", "co": ""}, {"periodo": "2", "codigo": "IQO120", "nome": "Química Orgânica I", "pre": "IQG114", "co": ""}, {"periodo": "3", "codigo": "BMF310", "nome": "Farmacocinética e Farmacodinâmica Fundamental", "pre": "CFF122", "co": ""}, {"periodo": "3", "codigo": "FFW231", "nome": "Farmácia Clínica", "pre": "FFW111; CFF122", "co": ""}, {"periodo": "3", "codigo": "FFW232", "nome": "Diagnóstico Laboratorial no Cuidado Farmacêutico", "pre": "BQM103; CFF122", "co": ""}, {"periodo": "3", "codigo": "IQA123", "nome": "Química Analítica Farmacêutica I", "pre": "IQG114", "co": ""}, {"periodo": "3", "codigo": "IQF232", "nome": "Físico-Química II", "pre": "IQF235", "co": ""}, {"periodo": "3", "codigo": "IQO220", "nome": "Métodos Espectrométricos", "pre": "IQO120", "co": ""}, {"periodo": "3", "codigo": "IQO230", "nome": "Química Orgânica II", "pre": "IQO120", "co": ""}, {"periodo": "4", "codigo": "FFW241", "nome": "Produção e Controle de Qualidade de Produtos Farmacêuticos I (PCQ I)", "pre": "IQA123; IQO220", "co": ""}, {"periodo": "4", "codigo": "FFW243", "nome": "Métodos Computacionais Aplicados às Ciências Farmacêuticas (MACF)", "pre": "BMF310; IQO230", "co": "FFW242"}, {"periodo": "4", "codigo": "FFW242", "nome": "Química Farmacêutica e Medicinal I", "pre": "BMF310; IQO230", "co": ""}, {"periodo": "4", "codigo": "IQA240", "nome": "Química Analítica Farmacêutica Experimental", "pre": "IQA123", "co": "IQA233"}, {"periodo": "4", "codigo": "IQA233", "nome": "Química Analítica Farmacêutica II", "pre": "IQA123", "co": ""}, {"periodo": "4", "codigo": "IQG241", "nome": "Química de Coordenações", "pre": "IQG122", "co": ""}, {"periodo": "4", "codigo": "IQO242", "nome": "Química Orgânica Experimental FF", "pre": "IQO230; IQO220", "co": ""}, {"periodo": "5", "codigo": "FFW353", "nome": "Gestão e Planejamento da Assistência Farmacêutica", "pre": "FFW121", "co": ""}, {"periodo": "5", "codigo": "FFW351", "nome": "Toxicologia Geral", "pre": "FFW242", "co": ""}, {"periodo": "5", "codigo": "FFW352", "nome": "Química Farmacêutica II & Toxicológica", "pre": "FFW242; FFW243", "co": "FFW351"}, {"periodo": "5", "codigo": "IMW360", "nome": "Microbiologia e Imunologia Fundamental", "pre": "CFF122; BQM103", "co": ""}, {"periodo": "5", "codigo": "FFW354", "nome": "Produção e Controle de Qualidade de Produtos Farmacêuticos II", "pre": "FFW241", "co": ""}, {"periodo": "5", "codigo": "FFW355", "nome": "Hematologia F", "pre": "FFW232; BMF310", "co": ""}, {"periodo": "6", "codigo": "FFW361", "nome": "Cuidado Integrado em Farmácia I", "pre": "IMW360; FFW242; FFW231; FFW232", "co": ""}, {"periodo": "6", "codigo": "FFW363", "nome": "Farmacobotânica", "pre": "BMW103", "co": ""}, {"periodo": "6", "codigo": "FFW362", "nome": "Cuidado Integrado em Farmácia II", "pre": "IMW360; FFW231; FFW232; FFW242", "co": ""}, {"periodo": "6", "codigo": "FFW364", "nome": "Gestão Farmacêutica", "pre": "FFW121", "co": ""}, {"periodo": "6", "codigo": "FFW365", "nome": "Produção e Controle de Qualidade de Produtos Farmacêuticos III", "pre": "FFW241", "co": ""}, {"periodo": "7", "codigo": "FFW471", "nome": "Cuidado Integrado em Farmácia III", "pre": "FFW242; FFW231; FFW232", "co": ""}, {"periodo": "7", "codigo": "FFW472", "nome": "Cuidado Integrado em Farmácia IV", "pre": "FFW242; FFW231; FFW232", "co": ""}, {"periodo": "7", "codigo": "FFW473", "nome": "Farmacognosia", "pre": "IQO242; FFW363", "co": ""}, {"periodo": "7", "codigo": "FFW474", "nome": "Produção e Controle de Qualidade de Produtos Farmacêuticos IV", "pre": "FFW354; FFW365", "co": ""}, {"periodo": "8", "codigo": "FFW481", "nome": "Cuidado Integrado em Farmácia V", "pre": "FFW242; FFW231; FFW232", "co": ""}, {"periodo": "8", "codigo": "FFW482", "nome": "Farmacoepidemiologia e Bioestatística Aplicada", "pre": "FFW121", "co": ""}, {"periodo": "8", "codigo": "FFW483", "nome": "Produção e Controle de Qualidade de Produtos Farmacêuticos V", "pre": "FFW354; FFW365", "co": ""}, {"periodo": "8", "codigo": "FFW484", "nome": "Genética e Biologia Molecular Aplicadas", "pre": "BMW103; BQM103", "co": ""}, {"periodo": "8", "codigo": "FFW485", "nome": "Biotecnologia Farmacêutica", "pre": "IMW360", "co": ""}, {"periodo": "8", "codigo": "FFW486", "nome": "Metodologia Científica", "pre": "", "co": ""}, {"periodo": "9", "codigo": "FFW591", "nome": "Cuidado Integrado em Farmácia VI", "pre": "FFW242; FFW231; FFW232", "co": ""}, {"periodo": "9", "codigo": "FFW592", "nome": "Processamento e Controle de Qualidade de Alimentos", "pre": "IQA233; BQM103", "co": ""}, {"periodo": "9", "codigo": "FFW593", "nome": "Produção e Controle de Qualidade de Produtos Farmacêuticos VI", "pre": "FFW483", "co": ""}, {"periodo": "9", "codigo": "IEE326", "nome": "Economia e Administração de Empresas", "pre": "", "co": ""}, {"periodo": "9", "codigo": "FFWK03", "nome": "Trabalho de Conclusão de Curso (TCC)", "pre": "FFW486", "co": ""}, {"periodo": "10", "codigo": "FFW501", "nome": "Farmacoterapia no Cuidado Farmacêutico", "pre": "FFW361; FFW362; FFW471; FFW472; FFW481; FFW591", "co": ""}, {"periodo": "10", "codigo": "FFW502", "nome": "Cuidado Integrado em Farmácia VII", "pre": "FFW242; FFW231; FFW232", "co": ""}, {"periodo": "10", "codigo": "FFW503", "nome": "Produção e Controle de Qualidade em Farmácia VII", "pre": "FFW473; FFW483", "co": ""}, {"periodo": "Escolhas Condicionadas", "codigo": "FFM010", "nome": "Análise Proteo Apli Diag Terap", "pre": "BMW103; BQM103", "co": ""}, {"periodo": "Escolhas Condicionadas", "codigo": "FFC501", "nome": "Bioquímica Clin Experimental", "pre": "FFW232", "co": ""}, {"periodo": "Escolhas Condicionadas", "codigo": "FFC008", "nome": "Citopatologia Clinica Aplicada", "pre": "FFW232", "co": ""}, {"periodo": "Escolhas Condicionadas", "codigo": "FFC005", "nome": "Hematologia Clínica", "pre": "FFW355", "co": ""}, {"periodo": "Escolhas Condicionadas", "codigo": "FFC009", "nome": "Micologia Médica", "pre": "FFW591", "co": ""}, {"periodo": "Escolhas Condicionadas", "codigo": "FFC007", "nome": "Microbiologia Clínica Aplicada", "pre": "FFW361", "co": ""}, {"periodo": "Escolhas Condicionadas", "codigo": "FFC004", "nome": "Parasitologia Clínica Avançada", "pre": "FFW472", "co": ""}, {"periodo": "Escolhas Condicionadas", "codigo": "FFC003", "nome": "Toxico Aplic Análises Clínicas", "pre": "IMW360", "co": ""}, {"periodo": "Escolhas Condicionadas", "codigo": "FFM009", "nome": "Bases da Terapêutica Racional", "pre": "FFW471", "co": "FFW482"}, {"periodo": "Escolhas Condicionadas", "codigo": "FFI005", "nome": "Bases Mol Doenças Metabólicas", "pre": "", "co": ""}, {"periodo": "Escolhas Condicionadas", "codigo": "FFW003", "nome": "Diabetes", "pre": "CFF122; BQM103", "co": ""}, {"periodo": "Escolhas Condicionadas", "codigo": "FFM024", "nome": "Farmácia Estética", "pre": "FFW483", "co": ""}, {"periodo": "Escolhas Condicionadas", "codigo": "BMF001", "nome": "Farmacologia Clínica", "pre": "FFW471", "co": ""}, {"periodo": "Escolhas Condicionadas", "codigo": "FFM012", "nome": "Farmacometria Lab Clínico", "pre": "BMF310", "co": ""}, {"periodo": "Escolhas Condicionadas", "codigo": "FFI019", "nome": "Metabol Lipídeos e Obesidade", "pre": "BQM103", "co": ""}, {"periodo": "Escolhas Condicionadas", "codigo": "FFP002", "nome": "Téc Aplicações de Injetáveis", "pre": "", "co": ""}, {"periodo": "Escolhas Condicionadas", "codigo": "FFP001", "nome": "Técnicas de Socorrismo", "pre": "", "co": ""}, {"periodo": "Escolhas Condicionadas", "codigo": "FFP015", "nome": "Bases da Fitoterapia", "pre": "FFW473", "co": ""}, {"periodo": "Escolhas Condicionadas", "codigo": "FFP007", "nome": "Botânica Aplicada", "pre": "FFW363", "co": ""}, {"periodo": "Escolhas Condicionadas", "codigo": "FFM413", "nome": "Farmacotécnica Homeopática", "pre": "FFW354", "co": ""}, {"periodo": "Escolhas Condicionadas", "codigo": "FFP304", "nome": "Introd à Quím de Prod Naturais", "pre": "IQO230", "co": ""}, {"periodo": "Escolhas Condicionadas", "codigo": "FFP004", "nome": "Ctrl Micr. Drogas e Alim Orig Veg", "pre": "FFW363", "co": ""}, {"periodo": "Escolhas Condicionadas", "codigo": "FFP016", "nome": "Tópicos Especiais em Produtos Naturais", "pre": "FFW473", "co": ""}, {"periodo": "Escolhas Condicionadas", "codigo": "FFI013", "nome": "Biocatal Processos Industriais", "pre": "BQM103; IQO230", "co": "FFI013"}, {"periodo": "Escolhas Condicionadas", "codigo": "FFM027", "nome": "Cosmetologia", "pre": "FFW483", "co": ""}, {"periodo": "Escolhas Condicionadas", "codigo": "FFM022", "nome": "Química Industr Farmacêutica", "pre": "IQO230", "co": ""}, {"periodo": "Escolhas Condicionadas", "codigo": "FFM018", "nome": "Téc de Purificação na Ind Farm", "pre": "BQM103", "co": "FFM018"}, {"periodo": "Escolhas Condicionadas", "codigo": "FFM415", "nome": "Tecnologia Farmacêutica", "pre": "FFW354", "co": ""}, {"periodo": "Escolhas Condicionadas", "codigo": "FFM026", "nome": "Tópicos Especiais em Cromatografia na Indústria Farmacêutica", "pre": "FFW241", "co": ""}, {"periodo": "Escolhas Condicionadas", "codigo": "FFW006", "nome": "Tec Prod Hemocomp Hemoderiv", "pre": "FFW355", "co": ""}, {"periodo": "Escolhas Condicionadas", "codigo": "PNN015", "nome": "Cromatografia", "pre": "IQO230", "co": ""}, {"periodo": "Escolhas Condicionadas", "codigo": "FFC015", "nome": "Análises Forenses", "pre": "", "co": ""}, {"periodo": "Escolhas Condicionadas", "codigo": "FFP008", "nome": "Botânica Forense", "pre": "FFW353", "co": ""}, {"periodo": "Escolhas Condicionadas", "codigo": "FFM006", "nome": "Téc Mod de Proteína Ap C Farmacêuticas", "pre": "IQG114", "co": ""}, {"periodo": "Escolhas Condicionadas", "codigo": "FFI021", "nome": "Empreendedorismo Ciênc Farmac", "pre": "", "co": ""}, {"periodo": "Escolhas Condicionadas", "codigo": "FFW007", "nome": "Gestão de Proj e Comport Organiz", "pre": "", "co": ""}, {"periodo": "Escolhas Condicionadas", "codigo": "FFW008", "nome": "Gestão Farmacêutica Aplicada", "pre": "", "co": ""}, {"periodo": "Escolhas Condicionadas", "codigo": "FFI010", "nome": "Inovação Ciênc Farmacêuticas", "pre": "", "co": ""}, {"periodo": "Escolhas Condicionadas", "codigo": "FFM025", "nome": "Patentes Farmacêuticas e Farmoquímicas", "pre": "", "co": ""}, {"periodo": "Escolhas Condicionadas", "codigo": "FFW005", "nome": "História Descoberta Fármacos", "pre": "", "co": ""}, {"periodo": "Escolhas Condicionadas", "codigo": "LEB599", "nome": "Líng Bras de Sinais", "pre": "", "co": ""}, {"periodo": "Escolhas Condicionadas", "codigo": "NEP148", "nome": "Direitos Humanos e Racismo", "pre": "", "co": ""}, {"periodo": "Escolhas Condicionadas", "codigo": "NEP149", "nome": "Direitos Humanos e Meio Ambiente", "pre": "", "co": ""}];
 
-        // --- DICIONÁRIOS INJETADOS (Para não alterar os dados brutos) ---
-        const cifAjustes = {
-            "FFW361": " (Agentes infecciosos)",
-            "FFW362": " (Imunologia)",
-            "FFW471": " (Cardio / Renal)",
-            "FFW472": " (Endócrino)",
-            "FFW481": " (Neurologia)",
-            "FFW591": " (Parasitologia)",
-            "FFW502": " (Oncologia)"
-        };
-
-        let notasCR = JSON.parse(localStorage.getItem('farma_notasCR_v2') || '{}');
+        let notasCR = JSON.parse(localStorage.getItem('farma_notasCR') || '{}');
         let timerLongPress;
 
-        // Dark Mode Setup com Animação do Botão
+        // Dark Mode Setup
         const html = document.documentElement;
         const btnTheme = document.getElementById('theme-toggle');
-        const thumb = document.getElementById('theme-thumb');
-        const iconSun = document.getElementById('icon-sun');
-        const iconMoon = document.getElementById('icon-moon');
+        const iconSun = document.getElementById('theme-icon-sun');
+        const iconMoon = document.getElementById('theme-icon-moon');
 
-        function updateThemeUI() {
-            const isDark = html.classList.contains('dark');
-            if (isDark) {
-                thumb.classList.add('translate-x-7', 'bg-gray-800');
-                thumb.classList.remove('bg-white');
-                iconSun.classList.add('hidden');
-                iconMoon.classList.remove('hidden');
-            } else {
-                thumb.classList.remove('translate-x-7', 'bg-gray-800');
-                thumb.classList.add('bg-white');
-                iconMoon.classList.add('hidden');
+        function updateThemeIcon() {
+            if (html.classList.contains('dark')) {
                 iconSun.classList.remove('hidden');
+                iconMoon.classList.add('hidden');
+            } else {
+                iconMoon.classList.remove('hidden');
+                iconSun.classList.add('hidden');
             }
         }
 
@@ -247,38 +209,13 @@
         } else {
             html.classList.remove('dark');
         }
-        updateThemeUI();
+        updateThemeIcon();
 
         btnTheme.addEventListener('click', () => {
             html.classList.toggle('dark');
             localStorage.theme = html.classList.contains('dark') ? 'dark' : 'light';
-            updateThemeUI();
+            updateThemeIcon();
         });
-
-        // Funções Úteis
-        function formatName(mat) {
-            let nome = mat.nome;
-            if(cifAjustes[mat.codigo]) nome += cifAjustes[mat.codigo];
-            return nome;
-        }
-
-        const normalizeStr = (s) => s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, '').toLowerCase();
-
-        function extractCodes(str) { return str ? (str.match(/[A-Z]{3}[A-Z0-9]{3}/g) || []) : []; }
-
-        function resolveReqs(reqStr) {
-            if(!reqStr) return "Nenhum";
-            const codes = extractCodes(reqStr);
-            return codes.map(c => {
-                const m = disciplinas.find(d => d.codigo === c);
-                if(m) {
-                    let text = formatName(m);
-                    if(m.periodo !== "Escolhas Condicionadas") text += ` (${m.periodo}º período)`;
-                    return text;
-                }
-                return c;
-            }).join(" <br> ");
-        }
 
         // Setup DOM e Lógica principal
         const periodosMap = {};
@@ -294,7 +231,7 @@
             else totalObrig++;
         });
 
-        document.getElementById('count-obrig-faltam').textContent = totalObrig;
+        document.getElementById('total-obrig').textContent = totalObrig;
 
         const container = document.getElementById('accordions-container');
         const periodosKeys = Object.keys(periodosMap).sort((a, b) => {
@@ -305,34 +242,40 @@
 
         // Gerar Sanfonas
         periodosKeys.forEach((periodo, index) => {
-            const titulo = periodo === 'Escolhas Condicionadas' ? periodo : `${periodo}º Período`;
+            let tituloHtml = periodo === 'Escolhas Condicionadas' ? periodo : `${periodo}º Período`;
+            
+            // Adiciona o Ícone 1 (Lupa) ao lado do título da Escolha Condicionada
+            if (periodo === 'Escolhas Condicionadas') {
+                tituloHtml += ` <img src="56240.png" class="w-5 h-5 ml-2 inline-block cursor-pointer opacity-70 hover:opacity-100 transition-opacity dark:invert" onclick="event.preventDefault(); openInfoModal();" alt="Informações sobre Escolhas Condicionadas">`;
+            }
+
             const div = document.createElement('div');
-            div.className = 'mb-4 bg-white dark:bg-darkCard rounded-xl shadow-sm border border-yellowTheme-200 dark:border-darkBorder overflow-hidden';
+            div.className = 'mb-4 bg-white dark:bg-darkCard rounded-xl shadow-sm border border-gray-100 dark:border-darkBorder overflow-hidden';
 
             let materiasHtml = periodosMap[periodo].map(m => `
-                <label id="card-${m.codigo}" data-periodo="${periodo}" data-nome="${normalizeStr(formatName(m))}" class="subject-card status-default flex items-center p-4 mb-2 rounded-lg cursor-pointer hover:bg-yellow-50 dark:hover:bg-gray-800" 
+                <label id="card-${m.codigo}" class="subject-card status-default flex items-center p-4 mb-2 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800" 
                        onmousedown="startLongPress('${m.codigo}')" onmouseup="cancelLongPress()" onmouseleave="cancelLongPress()"
                        ontouchstart="startLongPress('${m.codigo}')" ontouchend="cancelLongPress()">
-                    <input type="checkbox" class="form-checkbox h-5 w-5 text-yellowTheme-600 rounded mr-4 focus:ring-yellowTheme-500" value="${m.codigo}" data-periodo="${periodo}" onchange="updateDashboard()">
+                    <input type="checkbox" class="form-checkbox h-5 w-5 text-emerald-600 rounded mr-4" value="${m.codigo}" data-periodo="${periodo}" onchange="updateDashboard()">
                     <div class="flex-1">
-                        <div class="font-bold text-yellowTheme-700 dark:text-yellowTheme-300">${m.codigo}</div>
-                        <div class="text-sm font-medium text-yellowTheme-800 dark:text-yellowTheme-400">${formatName(m)}</div>
+                        <div class="font-bold search-target">${m.codigo}</div>
+                        <div class="text-sm text-gray-600 dark:text-gray-400 search-target">${m.nome}</div>
                     </div>
                 </label>
             `).join('');
 
             div.innerHTML = `
                 <details class="group" ${index === 0 ? 'open' : ''}>
-                    <summary class="flex justify-between items-center font-bold cursor-pointer list-none p-5 text-lg bg-yellow-50/50 dark:bg-darkBg hover:bg-yellow-100 dark:hover:bg-gray-800 transition-colors">
-                        <span>${titulo}</span>
+                    <summary class="flex justify-between items-center font-medium cursor-pointer list-none p-5 text-lg bg-gray-50 dark:bg-darkBg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                        <span class="flex items-center">${tituloHtml}</span>
                         <span class="transition group-open:rotate-180">
                             <svg fill="none" height="24" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" viewBox="0 0 24 24" width="24"><polyline points="6 9 12 15 18 9"/></svg>
                         </span>
                     </summary>
-                    <div class="p-5 border-t border-yellowTheme-100 dark:border-darkBorder">
+                    <div class="p-5 border-t border-gray-100 dark:border-darkBorder">
                         <div class="flex gap-2 mb-4">
-                            <button onclick="marcarTudo('${periodo}')" class="flex-1 bg-yellowTheme-100 dark:bg-yellowTheme-900/40 text-yellowTheme-700 dark:text-yellowTheme-300 py-2 rounded-lg text-sm font-bold hover:bg-yellowTheme-200 dark:hover:bg-yellowTheme-800/60 transition">Marcar Tudo</button>
-                            <button onclick="limparTudo('${periodo}')" class="flex-1 bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 py-2 rounded-lg text-sm font-bold hover:bg-red-200 dark:hover:bg-red-800/60 transition">Limpar Tudo</button>
+                            <button onclick="marcarTudo('${periodo}')" class="flex-1 bg-emerald-100 dark:bg-emerald-900 text-emerald-700 dark:text-emerald-200 py-2 rounded-lg text-sm font-semibold hover:bg-emerald-200 dark:hover:bg-emerald-800 transition shadow-sm">Marcar Tudo</button>
+                            <button onclick="limparTudo('${periodo}')" class="flex-1 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-200 py-2 rounded-lg text-sm font-semibold hover:bg-red-200 dark:hover:bg-red-800 transition shadow-sm">Limpar Tudo</button>
                         </div>
                         ${materiasHtml}
                     </div>
@@ -341,93 +284,87 @@
             container.appendChild(div);
         });
 
+        // Modais extras
+        function openMetaModal() { document.getElementById('modal-meta').classList.add('active'); }
+        function openInfoModal() { document.getElementById('modal-info-cond').classList.add('active'); }
+
         // Long Press para ver detalhes
         function startLongPress(cod) {
             timerLongPress = setTimeout(() => {
                 const mat = disciplinas.find(d => d.codigo === cod);
                 if(mat) {
-                    document.getElementById('det-nome').innerText = formatName(mat);
+                    document.getElementById('det-nome').innerText = mat.nome;
                     document.getElementById('det-cod').innerText = mat.codigo;
-                    document.getElementById('det-per').innerText = mat.periodo === "Escolhas Condicionadas" ? mat.periodo : `${mat.periodo}º Período`;
-                    document.getElementById('det-pre').innerHTML = resolveReqs(mat.pre);
-                    document.getElementById('det-co').innerHTML = resolveReqs(mat.co);
+                    document.getElementById('det-per').innerText = mat.periodo;
+                    document.getElementById('det-pre').innerText = mat.pre || "Nenhum";
+                    document.getElementById('det-co').innerText = mat.co || "Nenhum";
                     document.getElementById('modal-details').classList.add('active');
                 }
-            }, 600);
+            }, 600); // 600ms press
         }
         function cancelLongPress() { clearTimeout(timerLongPress); }
         function closeModal(id) { document.getElementById(id).classList.remove('active'); }
-        function openInfoModal() { document.getElementById('modal-info').classList.add('active'); }
 
         // Ações Rápidas
         function marcarTudo(periodo) { document.querySelectorAll(`input[data-periodo="${periodo}"]`).forEach(cb => cb.checked = true); updateDashboard(); }
         function limparTudo(periodo) { document.querySelectorAll(`input[data-periodo="${periodo}"]`).forEach(cb => cb.checked = false); updateDashboard(); resetColors(); }
-        function resetColors() { document.querySelectorAll('.subject-card').forEach(card => card.className = "subject-card status-default flex items-center p-4 mb-2 rounded-lg cursor-pointer hover:bg-yellow-50 dark:hover:bg-gray-800"); }
+        function resetColors() { document.querySelectorAll('.subject-card').forEach(card => card.className = "subject-card status-default flex items-center p-4 mb-2 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800"); }
 
         // Atualizar Dashboard
         function updateDashboard() {
             const checks = document.querySelectorAll('input[type="checkbox"]:checked');
             let doneObrig = 0; let doneCond = 0;
-            
-            // Lógica padronizada para créditos (4) e horas (60) por matéria feita, 
-            // ajustável pela realidade se a pessoa editar no CR
-            let totalCred = 0;
-            let totalHr = 0;
+            checks.forEach(c => { if(c.dataset.periodo === 'Escolhas Condicionadas') doneCond++; else doneObrig++; });
 
-            checks.forEach(c => { 
-                if(c.dataset.periodo === 'Escolhas Condicionadas') doneCond++; 
-                else doneObrig++; 
-                
-                // Pega crédito customizado ou usa 4 padrão. Horas = cred * 15.
-                let cred = (notasCR[c.value] && notasCR[c.value].cred) ? parseFloat(notasCR[c.value].cred) : 4;
-                totalCred += cred;
-                totalHr += cred * 15; // 4 créditos = 60h, logo 1 cred = 15h em média
-            });
-
-            // Status Obrigatórias
-            document.getElementById('count-obrig-feitas').textContent = doneObrig;
-            document.getElementById('count-obrig-faltam').textContent = totalObrig - doneObrig;
+            document.getElementById('count-obrig').textContent = doneObrig;
             const pctObrig = Math.round((doneObrig / totalObrig) * 100);
             document.getElementById('percent-obrig').textContent = pctObrig + "%";
             document.getElementById('bar-obrig').style.width = pctObrig + "%";
 
-            // Status Escolhas Cond.
-            document.getElementById('count-cond-feitas').textContent = doneCond;
-            document.getElementById('count-cond-faltam').textContent = totalCond - doneCond;
+            // Lógica Meta
+            const pctCond = Math.min(100, (doneCond / 3) * 100); 
             
-            // Lógica de meta Escolha Condicionada: 12 creditos (aprox 3 disciplinas)
-            const metaCond = 3; 
-            const pctCond = Math.min(100, (doneCond / metaCond) * 100);
-            document.getElementById('bar-cond').style.width = pctCond + "%";
-            
-            if(doneCond >= metaCond) {
-                document.getElementById('icon-cond-done').classList.remove('hidden');
-                document.getElementById('text-cond-meta').innerText = "Meta Atingida!";
-                document.getElementById('text-cond-meta').classList.add('text-green-600', 'dark:text-green-400');
+            if (pctCond >= 100) {
+                // Ícone imagem 2 com classe para esverdear
+                document.getElementById('count-cond-wrapper').innerHTML = `<img src="56242.jpg" class="w-6 h-6 cursor-pointer icon-green-tint" onclick="openMetaModal()" alt="Meta Concluída" title="Meta Concluída">`;
             } else {
-                document.getElementById('icon-cond-done').classList.add('hidden');
-                document.getElementById('text-cond-meta').innerText = "Meta: 12 cr / 180h";
-                document.getElementById('text-cond-meta').classList.remove('text-green-600', 'dark:text-green-400');
+                document.getElementById('count-cond-wrapper').innerHTML = `<span id="count-cond">${doneCond} concluídas</span>`;
             }
-
-            // Totais
-            document.getElementById('total-creditos').textContent = totalCred;
-            document.getElementById('total-horas').textContent = totalHr;
+            
+            document.getElementById('bar-cond').style.width = pctCond + "%";
         }
 
-        // Pesquisa Super Avançada
+        // Nova Lógica de Pesquisa Avançada
         document.getElementById('search-input').addEventListener('input', (e) => {
-            const val = normalizeStr(e.target.value);
-            document.querySelectorAll('.subject-card').forEach(card => {
-                const p = card.dataset.periodo;
-                const n = card.dataset.nome;
-                
-                // Checa se bate com número do período OU nome da matéria ignorando acentos/espaços
-                if (val === p || n.includes(val) || val === '') {
-                    card.style.display = 'flex';
-                } else {
-                    card.style.display = 'none';
+            let val = e.target.value.toLowerCase().trim();
+            
+            // 1. Converter números arábicos para algarismos romanos para compatibilidade
+            const romanMap = {'1': 'i', '2': 'ii', '3': 'iii', '4': 'iv', '5': 'v', '6': 'vi', '7': 'vii', '8': 'viii'};
+            val = val.replace(/\b([1-8])\b/g, (match, p1) => romanMap[p1]);
+            
+            // 2. Mapear apelidos para os termos originais encontrados na base de dados
+            const aliases = [
+                { from: 'cif', to: 'cuidado integrado em farmácia' },
+                { from: 'pcq', to: 'produção e controle de qualidade' },
+                { from: 'bqm', to: 'bioquímica' },
+                { from: 'qfm', to: 'química farmacêutica' },
+                { from: 'fisqui', to: 'físico-química' }
+            ];
+            
+            aliases.forEach(alias => {
+                if (val.includes(alias.from)) {
+                    val = val.replace(new RegExp(alias.from, 'g'), alias.to);
                 }
+            });
+
+            // 3. Dividir todos os termos da busca e realizar uma lógica de interseção (AND)
+            const searchTerms = val.split(' ').filter(w => w !== '');
+
+            document.querySelectorAll('.subject-card').forEach(card => {
+                const text = card.innerText.toLowerCase();
+                // A disciplina só aparece se contiver TODOS os termos procurados
+                const matches = searchTerms.every(term => text.includes(term));
+                card.style.display = matches ? 'flex' : 'none';
             });
         });
 
@@ -439,23 +376,15 @@
 
             const checks = document.querySelectorAll('input[type="checkbox"]:checked');
             if(checks.length === 0) {
-                container.innerHTML = `<p class="text-center text-gray-500 font-bold mt-6">Nenhuma matéria marcada como concluída.</p>`;
+                container.innerHTML = `<p class="text-center text-gray-500">Nenhuma matéria marcada como concluída.</p>`;
             } else {
                 checks.forEach(c => {
                     const mat = disciplinas.find(d => d.codigo === c.value);
-                    const saved = notasCR[c.value] || { nota: '', cred: 4 }; // default 4 cred
-                    
+                    const val = notasCR[c.value] !== undefined ? notasCR[c.value] : '';
                     container.innerHTML += `
-                        <div class="flex justify-between items-center bg-yellow-50 dark:bg-darkBg p-3 rounded border border-yellowTheme-200 dark:border-darkBorder">
-                            <span class="text-sm font-bold truncate flex-1 text-yellowTheme-800 dark:text-yellowTheme-300 pr-2">${formatName(mat)}</span>
-                            
-                            <input type="number" min="0" max="10" step="0.1" 
-                                   class="w-16 p-1 mr-2 border rounded text-center dark:bg-darkCard dark:text-white border-yellowTheme-300 focus:outline-none" 
-                                   value="${saved.nota}" onchange="salvarCR('${c.value}', this.value, 'nota')" placeholder="Nota">
-                                   
-                            <input type="number" min="1" max="20" step="1" 
-                                   class="w-14 p-1 border rounded text-center dark:bg-darkCard dark:text-white border-yellowTheme-300 focus:outline-none" 
-                                   value="${saved.cred}" onchange="salvarCR('${c.value}', this.value, 'cred')" placeholder="Créd">
+                        <div class="flex justify-between items-center bg-gray-50 dark:bg-darkBg p-3 rounded border dark:border-darkBorder">
+                            <span class="text-sm font-semibold truncate w-3/4">${mat.nome}</span>
+                            <input type="number" min="0" max="10" step="0.1" class="w-16 p-1 border rounded text-center dark:bg-darkCard dark:text-white dark:border-gray-600" value="${val}" onchange="salvarNota('${c.value}', this.value)" placeholder="--">
                         </div>
                     `;
                 });
@@ -463,36 +392,34 @@
             document.getElementById('modal-cr').classList.add('active');
         }
 
-        function salvarCR(cod, val, tipo) {
-            if(!notasCR[cod]) notasCR[cod] = { nota: '', cred: 4 };
-            notasCR[cod][tipo] = val !== '' ? parseFloat(val) : '';
-            localStorage.setItem('farma_notasCR_v2', JSON.stringify(notasCR));
-            updateDashboard(); // Atualiza horas/creditos na home em tempo real
+        function salvarNota(cod, val) {
+            if(val === '' || isNaN(val)) delete notasCR[cod];
+            else notasCR[cod] = parseFloat(val);
+            localStorage.setItem('farma_notasCR', JSON.stringify(notasCR));
         }
 
-        function calcularCRValue() {
-            let totalPonderado = 0; 
-            let divisor = 0;
+        function calcularCRValue(isCRA) {
+            let total = 0; let divisor = 0;
             const checks = document.querySelectorAll('input[type="checkbox"]:checked');
 
             checks.forEach(c => {
-                const data = notasCR[c.value];
-                if(data && data.nota !== '' && !isNaN(data.nota)) {
-                    const nota = parseFloat(data.nota);
-                    const cred = parseFloat(data.cred || 4);
-                    totalPonderado += (nota * cred);
-                    divisor += cred;
+                const nota = notasCR[c.value];
+                if(nota !== undefined && !isNaN(nota)) {
+                    if(isCRA || nota > 0) { // CR puro exclui os zeros
+                        total += nota * 4; // Peso padrao = 4 creditos
+                        divisor += 4;
+                    }
                 }
             });
 
             const resDiv = document.getElementById('cr-result');
             resDiv.classList.remove('hidden');
-            if(divisor === 0) {
-                resDiv.innerText = "Insira as notas corretamente.";
-            } else {
-                resDiv.innerText = `Seu CR Calculado é: ${(totalPonderado/divisor).toFixed(2)}`;
-            }
+            if(divisor === 0) resDiv.innerText = "Insira as notas corretamente.";
+            else resDiv.innerText = `Seu ${isCRA ? 'CRA' : 'CR'} é: ${(total/divisor).toFixed(2)}`;
         }
+
+        // Extrator
+        function extractCodes(str) { return str ? (str.match(/[A-Z]{3}[A-Z0-9]{3}/g) || []) : []; }
 
         // Calcular Grade Original
         document.getElementById('btn-calcular').addEventListener('click', () => {
@@ -514,8 +441,7 @@
             disciplinas.forEach(mat => {
                 const card = document.getElementById(`card-${mat.codigo}`);
                 if (!card) return;
-                
-                card.className = "subject-card flex items-center p-4 mb-2 rounded-lg cursor-pointer hover:bg-yellow-50 dark:hover:bg-gray-800 transition-colors";
+                card.className = "subject-card flex items-center p-4 mb-2 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors";
                 if (concluidas.includes(mat.codigo)) card.classList.add('status-passed');
                 else if (isApta(mat)) card.classList.add('status-eligible');
                 else card.classList.add('status-blocked');
