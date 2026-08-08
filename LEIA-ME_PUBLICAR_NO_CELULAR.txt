@@ -1,0 +1,17 @@
+CALCULADORA DE GRADE - FARMÁCIA
+Projeto preparado para publicação como PWA.
+
+Arquivos principais:
+- index.html
+- manifest.json
+- sw.js
+- icons/icon-192.png
+- icons/icon-512.png
+
+Para publicar pelo celular, você pode enviar o conteúdo desta pasta para um repositório
+do GitHub e ativar o GitHub Pages. O arquivo index.html deve ficar na raiz do site.
+
+Importante:
+- O endereço deve ser HTTPS para que o Service Worker funcione.
+- Depois de publicar, abra o endereço no Chrome/Edge e use "Adicionar à tela inicial"
+  ou "Instalar aplicativo", quando essa opção aparecer.
