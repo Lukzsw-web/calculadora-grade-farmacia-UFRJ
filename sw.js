@@ -1,11 +1,9 @@
-const CACHE_NAME = 'grade-farma-v5';
+const CACHE_NAME = 'grade-farma-v6';
 const APP_SHELL = [
   './',
   './index.html',
   './styles.css',
-  './manifest.json',
-  './icon-192.png',
-  './icon-512.png'
+  './manifest.json'
 ];
 
 self.addEventListener('install', event => {
@@ -44,8 +42,6 @@ self.addEventListener('fetch', event => {
         return response;
       }).catch(() => cached);
 
-      // App shell: cached first for fast/offline startup, while the network
-      // request refreshes the cache in the background when available.
       return cached || network;
     })
   );
