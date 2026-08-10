@@ -1,0 +1,22 @@
+{
+  "name": "Calculadora de Grade - Farmácia UFRJ",
+  "short_name": "Grade Farma",
+  "description": "App para cálculo de grade curricular de Farmácia, verificando pré-requisitos, correquisitos e calculadora de CR.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#d97706",
+  "icons": [
+    {
+      "src": "./assets/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "./assets/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
