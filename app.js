@@ -65,7 +65,6 @@ function buildSearchIndex(mat) {
   return normalizeStr([formatName(mat), mat.codigo, displayPeriod(mat), `${mat.periodo} periodo`].join(' '));
 }
 
-// EXPANSÃO COM AS NOVAS CHAVES PEDIDAS ("orgexp", "f1", "exp")
 function expandSearchAliases(rawText) {
   let r = String(rawText || '').trim().toLowerCase();
 
@@ -145,8 +144,8 @@ function restoreCheckedState() {
 
 function resolveReqsColor(reqStr, concluidas) {
   if (!reqStr) return "<span class='text-gray-500 font-normal'>Nenhum</span>";
-  const incompleteColor = html.classList.contains('dark') ? '#d9bb7d' : '#ef4444';
-  const completedColor = html.classList.contains('dark') ? '#4ade80' : '#16a34a';
+  const incompleteColor = html.classList.contains('dark') ? '#f87171' : '#ef4444';
+  const completedColor = html.classList.contains('dark') ? '#34d399' : '#10b981';
 
   return extractCodes(reqStr).map(c => {
     const m = disciplinas.find(d => d.codigo === c);
@@ -196,7 +195,10 @@ function toggleThemeFromSettings() {
 function openModal(id) {
   document.getElementById(id).classList.add('active');
   document.body.style.overflow = 'hidden';
-  if (id === 'modal-planner') renderPlannerList();
+  if (id === 'modal-planner') {
+    document.getElementById('planner-search-input').value = '';
+    filterPlannerSearch('');
+  }
 }
 
 function closeModal(id) {
@@ -260,7 +262,6 @@ function getSelectedCondStats() {
   return { condCred, condHoras, condCount };
 }
 
-// PAINEL DE INFORMAÇÕES EXIBE SOMENTE OBRIGATÓRIAS NO QUADRADO "DISCIPLINAS"
 function updateDashboard() {
   let dObrig = 0, dCond = 0, tCred = 0, tHr = 0, obrigCredFeitos = 0;
 
@@ -317,7 +318,6 @@ function updateDashboard() {
   document.getElementById('total-horas').textContent = tHr;
 }
 
-// SISTEMA DE GERAÇÃO E COMPARTILHAMENTO DE PDF (jsPDF)
 async function compartilharGradePDF() {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
@@ -357,7 +357,6 @@ async function compartilharGradePDF() {
   }
 }
 
-// BUSCA E PESQUISA AUTOMÁTICA
 function setupSearchInputs(inputId, clearBtnId, suggestionsId, filterFn) {
   const input = document.getElementById(inputId);
   const clearBtn = document.getElementById(clearBtnId);
@@ -426,7 +425,49 @@ function autoSearchMain(codigo) {
   }
 }
 
-// LÓGICA DO PLANEJADOR DE GRADE E TRANCAMENTOS
+// SISTEMA DE PESQUISA DO PLANEJADOR DE GRADE
+function filterPlannerSearch(query) {
+  renderPlannerList(query);
+  
+  const normalized = expandSearchAliases(query);
+  const suggestionsBox = document.getElementById('planner-search-suggestions');
+  
+  if (!query.trim()) {
+    suggestionsBox.classList.add('hidden');
+    return;
+  }
+  
+  const concluidas = getConcludedCodes();
+  const matches = disciplinas.filter(m => {
+    if (periodIsCond(m.periodo) || concluidas.includes(m.codigo)) return false;
+    return buildSearchIndex(m).includes(normalized);
+  }).slice(0, 5);
+
+  if (matches.length > 0) {
+    suggestionsBox.innerHTML = matches.map(m => `
+      <div class="search-suggestion" onclick="autoSearchPlanner('${m.codigo}')">
+        <div class="search-suggestion-main">
+          <div class="search-suggestion-name">${formatName(m)}</div>
+          <div class="search-suggestion-meta">${m.codigo} • ${displayPeriod(m)}</div>
+        </div>
+      </div>
+    `).join('');
+    suggestionsBox.classList.remove('hidden');
+  } else {
+    suggestionsBox.classList.add('hidden');
+  }
+}
+
+function autoSearchPlanner(codigo) {
+  const m = disciplinas.find(d => d.codigo === codigo);
+  if (!m) return;
+  const input = document.getElementById('planner-search-input');
+  input.value = formatName(m);
+  document.getElementById('planner-clear-search-button').classList.remove('hidden');
+  document.getElementById('planner-search-suggestions').classList.add('hidden');
+  filterPlannerSearch(formatName(m));
+}
+
 function getLockedSubjects(codigo) {
   return disciplinas.filter(m => {
     const preList = extractCodes(m.pre);
@@ -447,14 +488,20 @@ function renderPlannerList(query = '') {
   const elegiveis = disciplinas.filter(m => {
     if (periodIsCond(m.periodo)) return false;
     if (concluidas.includes(m.codigo)) return false;
+    
     const preOK = extractCodes(m.pre).every(c => concluidas.includes(c));
     const coOK = extractCodes(m.co).every(c => concluidas.includes(c));
-    if (!(preOK && coOK)) return false;
-    return !normalized || buildSearchIndex(m).includes(normalized);
+    const isApta = preOK && coOK;
+
+    if (normalized) {
+      return buildSearchIndex(m).includes(normalized);
+    } else {
+      return isApta;
+    }
   });
 
   if (!elegiveis.length) {
-    container.innerHTML = `<p class="text-center text-gray-500 py-6">Nenhuma disciplina disponível encontrada.</p>`;
+    container.innerHTML = `<p class="text-center text-gray-500 py-6">Nenhuma disciplina encontrada.</p>`;
     return;
   }
 
@@ -523,9 +570,15 @@ function buildSections() {
   container.innerHTML = '';
 
   periodosKeys.forEach((periodo, index) => {
-    const titulo = periodo === PERIODO_COND ? periodo : `${periodo}º Período`;
+    let tituloRaw = periodo === PERIODO_COND ? periodo : `${periodo}º Período`;
+    
+    // Adição do ícone de info no título de Escolha Condicionada
+    const tituloHtml = periodo === PERIODO_COND
+      ? `<span class="flex items-center gap-2">${tituloRaw} <button onclick="event.preventDefault(); openModal('modal-cond-info')" class="text-yellowTheme-600 dark:text-yellowTheme-400 hover:scale-110 transition-transform"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" /></svg></button></span>`
+      : `<span>${tituloRaw}</span>`;
+
     const div = document.createElement('div');
-    div.className = 'mb-4 bg-white dark:bg-darkCard rounded-xl shadow-sm border border-yellowTheme-200 dark:border-darkBorder overflow-hidden';
+    div.className = 'mb-4 bg-white dark:bg-darkCard rounded-xl shadow-sm border border-gray-100 dark:border-darkBorder overflow-hidden';
 
     const materiasHtml = periodosMap[periodo].map(m => `
       <label id="card-${m.codigo}" data-periodo="${periodo}" data-search="${buildSearchIndex(m)}"
@@ -542,11 +595,12 @@ function buildSections() {
       </label>
     `).join('');
 
+    // Sanfona substituída de ▼ para o V animado via css
     div.innerHTML = `
       <details class="group" data-periodo="${periodo}" ${index === 0 ? 'open' : ''}>
         <summary class="flex justify-between items-center font-bold cursor-pointer list-none p-5 text-lg bg-yellow-50/50 dark:bg-darkBg hover:bg-yellow-100 dark:hover:bg-gray-800 transition-colors">
-          <span>${titulo}</span>
-          <span class="accordion-chevron">▼</span>
+          ${tituloHtml}
+          <span class="accordion-chevron font-mono inline-block font-extrabold text-sm text-gray-500 dark:text-gray-400">V</span>
         </summary>
         <div class="accordion-content p-5 border-t border-yellowTheme-100 dark:border-darkBorder">
           <div class="flex gap-2 mb-4">
@@ -560,7 +614,6 @@ function buildSections() {
   });
 }
 
-// INICIALIZAÇÃO DO SISTEMA
 document.addEventListener('DOMContentLoaded', () => {
   buildSections();
   restoreCheckedState();
@@ -568,7 +621,7 @@ document.addEventListener('DOMContentLoaded', () => {
   applySelectedVisualization(getConcludedCodes());
 
   setupSearchInputs('search-input', 'clear-search-button', 'search-suggestions', filterMainSearch);
-  setupSearchInputs('planner-search-input', 'planner-clear-search-button', 'planner-search-suggestions', renderPlannerList);
+  setupSearchInputs('planner-search-input', 'planner-clear-search-button', 'planner-search-suggestions', filterPlannerSearch);
 
   if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
     setTheme(true);
