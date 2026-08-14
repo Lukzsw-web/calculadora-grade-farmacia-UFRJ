@@ -16,6 +16,7 @@ let totalCond = disciplinas.filter(d => periodIsCond(d.periodo)).length;
 
 const html = document.documentElement;
 let timerLongPress = null;
+let activeModalCount = 0;
 
 const normalizeStr = (s = '') =>
   String(s)
@@ -157,7 +158,7 @@ function resolveReqsColor(reqStr, concluidas) {
 }
 
 function applyCardStatus(cardEl, status) {
-  cardEl.className = 'subject-card flex items-center p-4 mb-2 rounded-lg cursor-pointer hover:bg-yellow-50 dark:hover:bg-gray-800 transition-colors';
+  cardEl.className = 'subject-card flex items-center p-4 mb-2 rounded-lg cursor-pointer transition-colors';
   if (status === 'passed') cardEl.classList.add('status-passed');
   else if (status === 'eligible') cardEl.classList.add('status-eligible');
   else if (status === 'blocked') cardEl.classList.add('status-blocked');
@@ -192,9 +193,17 @@ function toggleThemeFromSettings() {
   setTheme(!html.classList.contains('dark'));
 }
 
+/* SISTEMA DE MODAIS COM BLOQUEIO RIGOROSO DE SCROLL DO FUNDO */
 function openModal(id) {
-  document.getElementById(id).classList.add('active');
+  const modal = document.getElementById(id);
+  if (!modal) return;
+  
+  if (!modal.classList.contains('active')) {
+    modal.classList.add('active');
+    activeModalCount++;
+  }
   document.body.style.overflow = 'hidden';
+  
   if (id === 'modal-planner') {
     document.getElementById('planner-search-input').value = '';
     filterPlannerSearch('');
@@ -202,8 +211,17 @@ function openModal(id) {
 }
 
 function closeModal(id) {
-  document.getElementById(id).classList.remove('active');
-  document.body.style.overflow = '';
+  const modal = document.getElementById(id);
+  if (!modal) return;
+  
+  if (modal.classList.contains('active')) {
+    modal.classList.remove('active');
+    activeModalCount = Math.max(0, activeModalCount - 1);
+  }
+  
+  if (activeModalCount === 0) {
+    document.body.style.overflow = '';
+  }
 }
 
 document.querySelectorAll('.modal-overlay').forEach(o => {
@@ -211,6 +229,39 @@ document.querySelectorAll('.modal-overlay').forEach(o => {
     if (e.target === o) closeModal(o.id);
   });
 });
+
+/* COPIAR CÓDIGO DA DISCIPLINA PARA A ÁREA DE TRANSFERÊNCIA (IMAGEM 2) */
+function copyCodeToClipboard(codigo, event) {
+  if (event) event.stopPropagation();
+  
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(codigo);
+  } else {
+    const ta = document.createElement('textarea');
+    ta.value = codigo;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+  }
+  
+  showToast(`Código ${codigo} copiado!`);
+}
+
+function showToast(message) {
+  const toast = document.getElementById('toast-copy');
+  const msgEl = document.getElementById('toast-message');
+  if (!toast || !msgEl) return;
+  
+  msgEl.textContent = message;
+  toast.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-4');
+  toast.classList.add('opacity-100', 'translate-y-0');
+  
+  setTimeout(() => {
+    toast.classList.remove('opacity-100', 'translate-y-0');
+    toast.classList.add('opacity-0', 'pointer-events-none', 'translate-y-4');
+  }, 2000);
+}
 
 function startLongPress(cod) {
   timerLongPress = setTimeout(() => {
@@ -224,6 +275,12 @@ function startLongPress(cod) {
     document.getElementById('det-ch').innerText = `${hoursOf(m)} Horas`;
     document.getElementById('det-pre').innerHTML = resolveReqsColor(m.pre, concluidas);
     document.getElementById('det-co').innerHTML = resolveReqsColor(m.co, concluidas);
+    
+    const copyBtn = document.getElementById('det-copy-btn');
+    if (copyBtn) {
+      copyBtn.onclick = (e) => copyCodeToClipboard(m.codigo, e);
+    }
+
     openModal('modal-details');
   }, 600);
 }
@@ -371,6 +428,7 @@ function setupSearchInputs(inputId, clearBtnId, suggestionsId, filterFn) {
     input.value = '';
     clearBtn.classList.add('hidden');
     filterFn('');
+    document.getElementById(suggestionsId)?.classList.add('hidden');
     input.focus();
   });
 }
@@ -425,7 +483,7 @@ function autoSearchMain(codigo) {
   }
 }
 
-// SISTEMA DE PESQUISA DO PLANEJADOR DE GRADE
+/* SISTEMA DE PESQUISA DO PLANEJADOR DE GRADE (COM CORREÇÃO DO BUG DE SUGESTÃO) */
 function filterPlannerSearch(query) {
   renderPlannerList(query);
   
@@ -466,6 +524,9 @@ function autoSearchPlanner(codigo) {
   document.getElementById('planner-clear-search-button').classList.remove('hidden');
   document.getElementById('planner-search-suggestions').classList.add('hidden');
   filterPlannerSearch(formatName(m));
+  
+  // Esconde o menu de sugestão após selecionar para não tampar a visualização
+  document.getElementById('planner-search-suggestions').classList.add('hidden');
 }
 
 function getLockedSubjects(codigo) {
@@ -501,18 +562,26 @@ function renderPlannerList(query = '') {
   });
 
   if (!elegiveis.length) {
-    container.innerHTML = `<p class="text-center text-gray-500 py-6">Nenhuma disciplina encontrada.</p>`;
+    container.innerHTML = `<p class="text-center text-gray-500 py-6 font-medium">Nenhuma disciplina encontrada.</p>`;
     return;
   }
 
   container.innerHTML = elegiveis.map(m => {
     const trancadas = getLockedSubjects(m.codigo);
     return `
-      <div class="p-3 bg-yellow-50 dark:bg-darkBg border border-yellowTheme-200 dark:border-darkBorder rounded-xl cursor-pointer hover:bg-yellow-100 dark:hover:bg-gray-800 transition"
+      <div class="p-3.5 bg-yellow-50 dark:bg-darkBg border border-yellowTheme-200 dark:border-darkBorder rounded-xl cursor-pointer hover:bg-yellow-100 dark:hover:bg-gray-800 transition"
            onmousedown="startHoldLocks('${m.codigo}')" onmouseup="cancelLongPress()" onmouseleave="cancelLongPress()"
            ontouchstart="startHoldLocks('${m.codigo}')" ontouchend="cancelLongPress()">
-        <div class="font-bold text-yellowTheme-800 dark:text-yellowTheme-300">${formatName(m)}</div>
-        <div class="text-xs text-yellowTheme-600 dark:text-yellowTheme-400 mt-0.5">${m.codigo} • ${displayPeriod(m)}</div>
+        <div class="font-bold text-yellowTheme-800 dark:text-yellowTheme-300 flex items-center justify-between">
+          <span>${formatName(m)}</span>
+          <button type="button" onclick="copyCodeToClipboard('${m.codigo}', event)" title="Copiar código" class="p-1 text-gray-400 hover:text-yellowTheme-600 dark:hover:text-yellowTheme-400 transition-colors">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+          </button>
+        </div>
+        <div class="text-xs text-yellowTheme-600 dark:text-yellowTheme-400 mt-0.5"><span class="font-bold">${m.codigo}</span> • ${displayPeriod(m)}</div>
         <div class="text-xs font-semibold text-red-500 mt-1">Tranca ${trancadas.length} disciplina(s)</div>
       </div>`;
   }).join('');
@@ -528,11 +597,12 @@ function startHoldLocks(codigo) {
     const list = document.getElementById('locks-list');
 
     if (!trancadas.length) {
-      list.innerHTML = `<p class="text-gray-500 text-center">Não tranca nenhuma disciplina.</p>`;
+      list.innerHTML = `<p class="text-gray-500 text-center font-medium">Não tranca nenhuma disciplina.</p>`;
     } else {
       list.innerHTML = trancadas.map(t => `
-        <div class="p-2 bg-gray-100 dark:bg-gray-800 rounded">
-          ${formatName(t)} <span class="text-xs text-yellowTheme-600 dark:text-yellowTheme-400">(${displayPeriod(t)})</span>
+        <div class="p-2.5 bg-gray-100 dark:bg-gray-800 rounded-lg flex justify-between items-center">
+          <span class="font-semibold text-gray-800 dark:text-gray-200 text-xs">${formatName(t)}</span>
+          <span class="text-xs font-bold text-yellowTheme-600 dark:text-yellowTheme-400">(${displayPeriod(t)})</span>
         </div>
       `).join('');
     }
@@ -572,7 +642,6 @@ function buildSections() {
   periodosKeys.forEach((periodo, index) => {
     let tituloRaw = periodo === PERIODO_COND ? periodo : `${periodo}º Período`;
     
-    // Adição do ícone de info no título de Escolha Condicionada
     const tituloHtml = periodo === PERIODO_COND
       ? `<span class="flex items-center gap-2">${tituloRaw} <button onclick="event.preventDefault(); openModal('modal-cond-info')" class="text-yellowTheme-600 dark:text-yellowTheme-400 hover:scale-110 transition-transform"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" /></svg></button></span>`
       : `<span>${tituloRaw}</span>`;
@@ -582,20 +651,29 @@ function buildSections() {
 
     const materiasHtml = periodosMap[periodo].map(m => `
       <label id="card-${m.codigo}" data-periodo="${periodo}" data-search="${buildSearchIndex(m)}"
-             class="subject-card status-default flex items-center p-4 mb-2 rounded-lg cursor-pointer hover:bg-yellow-50 dark:hover:bg-gray-800"
+             class="subject-card status-default flex items-center p-4 mb-2 rounded-lg cursor-pointer"
              onmousedown="startLongPress('${m.codigo}')" onmouseup="cancelLongPress()" onmouseleave="cancelLongPress()"
              ontouchstart="startLongPress('${m.codigo}')" ontouchend="cancelLongPress()">
         <input type="checkbox" class="form-checkbox h-5 w-5 text-yellowTheme-600 rounded mr-4 focus:ring-yellowTheme-500"
                value="${m.codigo}" data-periodo="${periodo}"
                onchange="persistCheckedState(); updateDashboard(); applySelectedVisualization(getConcludedCodes());">
         <div class="flex-1 min-w-0">
-          <div class="subject-name text-yellowTheme-800 dark:text-yellowTheme-300 leading-tight mb-1 truncate">${formatName(m)}</div>
-          <div class="subject-meta text-yellowTheme-600/90 dark:text-yellowTheme-400/90 truncate"><span class="font-extrabold">${m.codigo}</span> • ${creditsOf(m)} créd. • ${hoursOf(m)} Horas.</div>
+          <div class="subject-name text-gray-800 dark:text-gray-100 leading-tight mb-1 truncate">${formatName(m)}</div>
+          <div class="subject-meta truncate flex items-center gap-1.5">
+            <span class="font-extrabold">${m.codigo}</span>
+            <!-- Botão de Copiar Código Próximo ao Código (Imagem 2) -->
+            <button type="button" onclick="copyCodeToClipboard('${m.codigo}', event)" title="Copiar código" class="p-0.5 text-gray-500 dark:text-gray-300 hover:text-yellowTheme-600 dark:hover:text-yellowTheme-400 transition-colors inline-flex items-center">
+              <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+            </button>
+            • ${creditsOf(m)} créd. • ${hoursOf(m)} Horas.
+          </div>
         </div>
       </label>
     `).join('');
 
-    // Sanfona substituída de ▼ para o V animado via css
     div.innerHTML = `
       <details class="group" data-periodo="${periodo}" ${index === 0 ? 'open' : ''}>
         <summary class="flex justify-between items-center font-bold cursor-pointer list-none p-5 text-lg bg-yellow-50/50 dark:bg-darkBg hover:bg-yellow-100 dark:hover:bg-gray-800 transition-colors">
@@ -613,6 +691,19 @@ function buildSections() {
     container.appendChild(div);
   });
 }
+
+// Fechar caixas de sugestões ao clicar fora
+document.addEventListener('click', (e) => {
+  const searchWrapper = document.getElementById('search-wrapper');
+  const plannerSearchWrapper = document.getElementById('planner-search-wrapper');
+  
+  if (searchWrapper && !searchWrapper.contains(e.target)) {
+    document.getElementById('search-suggestions')?.classList.add('hidden');
+  }
+  if (plannerSearchWrapper && !plannerSearchWrapper.contains(e.target)) {
+    document.getElementById('planner-search-suggestions')?.classList.add('hidden');
+  }
+});
 
 document.addEventListener('DOMContentLoaded', () => {
   buildSections();
