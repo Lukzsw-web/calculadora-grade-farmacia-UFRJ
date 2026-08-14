@@ -1,9 +1,0 @@
-{
-  "name": "Planejamento Acadêmico - Farmácia",
-  "short_name": "Planejador Acadêmico",
-  "start_url": ".",
-  "display": "standalone",
-  "background_color": "#f9fafb",
-  "theme_color": "#d97706",
-  "lang": "pt-BR"
-}
