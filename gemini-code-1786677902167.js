@@ -1,0 +1,578 @@
+const STORAGE_KEYS = {
+  checked: 'farma_checked_v4',
+  theme: 'theme'
+};
+const PERIODO_COND = 'Escolha Condicionada';
+const META_COND_CRED = 12;
+const META_COND_HORAS = 180;
+
+const TOTAL_OBRIG_CRED = disciplinas
+  .filter(d => !periodIsCond(d.periodo))
+  .reduce((sum, d) => sum + creditsOf(d), 0);
+const TOTAL_GRAD_CRED_EQUIV = TOTAL_OBRIG_CRED + META_COND_CRED;
+
+let totalObrig = disciplinas.filter(d => !periodIsCond(d.periodo)).length;
+let totalCond = disciplinas.filter(d => periodIsCond(d.periodo)).length;
+
+const html = document.documentElement;
+let timerLongPress = null;
+
+const normalizeStr = (s = '') =>
+  String(s)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, '')
+    .toLowerCase();
+
+const loadJSON = (key, fallback) => {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : fallback;
+  } catch {
+    return fallback;
+  }
+};
+
+const saveJSON = (key, value) => {
+  localStorage.setItem(key, JSON.stringify(value));
+};
+
+function formatName(mat) {
+  return mat.nome + (cifAjustes[mat.codigo] || '');
+}
+
+function displayPeriod(mat) {
+  return mat.periodo === PERIODO_COND ? PERIODO_COND : `${mat.periodo}º Período`;
+}
+
+function extractCodes(str) {
+  return str ? (str.match(/[A-Z]{3}[A-Z0-9]{3}/g) || []) : [];
+}
+
+function periodIsCond(periodo) {
+  return periodo === PERIODO_COND;
+}
+
+function creditsOf(mat) {
+  return mat.cred || 4;
+}
+
+function hoursOf(mat) {
+  return mat.ch || creditsOf(mat) * 15;
+}
+
+function buildSearchIndex(mat) {
+  return normalizeStr([formatName(mat), mat.codigo, displayPeriod(mat), `${mat.periodo} periodo`].join(' '));
+}
+
+// EXPANSÃO COM AS NOVAS CHAVES PEDIDAS ("orgexp", "f1", "exp")
+function expandSearchAliases(rawText) {
+  let r = String(rawText || '').trim().toLowerCase();
+
+  if (r === 'orgexp') return normalizeStr('Química Orgânica Experimental');
+  if (r === 'f1') return normalizeStr('Farmacocinética e Farmacodinâmica');
+  if (r === 'exp') return normalizeStr('Experimental');
+
+  const replacements = [
+    [/\bcif\s*(1|i)\b/g, 'cuidado integrado em farmacia i'],
+    [/\bcif\s*(2|ii)\b/g, 'cuidado integrado em farmacia ii'],
+    [/\bcif\s*(3|iii)\b/g, 'cuidado integrado em farmacia iii'],
+    [/\bcif\s*(4|iv)\b/g, 'cuidado integrado em farmacia iv'],
+    [/\bcif\s*(5|v)\b/g, 'cuidado integrado em farmacia v'],
+    [/\bcif\s*(6|vi)\b/g, 'cuidado integrado em farmacia vi'],
+    [/\bcif\s*(7|vii)\b/g, 'cuidado integrado em farmacia vii'],
+    [/\bcif\b/g, 'cuidado integrado em farmacia'],
+
+    [/\bpcq\s*(1|i)\b/g, 'producao e controle de qualidade de produtos farmaceuticos i'],
+    [/\bpcq\s*(2|ii)\b/g, 'producao e controle de qualidade de produtos farmaceuticos ii'],
+    [/\bpcq\s*(3|iii)\b/g, 'producao e controle de qualidade de produtos farmaceuticos iii'],
+    [/\bpcq\s*(4|iv)\b/g, 'producao e controle de qualidade de produtos farmaceuticos iv'],
+    [/\bpcq\s*(5|v)\b/g, 'producao e controle de qualidade de produtos farmaceuticos v'],
+    [/\bpcq\s*(6|vi)\b/g, 'producao e controle de qualidade de produtos farmaceuticos vi'],
+    [/\bpcq\s*(7|vii)\b/g, 'producao e controle de qualidade de farmacia vii'],
+    [/\bpcq\b/g, 'producao e controle de qualidade'],
+
+    [/\bbqm\s*(1|i)\b/g, 'bioquimica i'],
+    [/\bbqm\s*(2|ii)\b/g, 'bioquimica ii'],
+    [/\bbqm\b/g, 'bioquimica'],
+
+    [/\bqfm\s*(1|i)\b/g, 'quimica farmaceutica e medicinal i'],
+    [/\bqfm\s*(2|ii)\b/g, 'quimica farmaceutica ii'],
+    [/\bqfm\b/g, 'quimica farmaceutica'],
+
+    [/\bfisqui\s*(1|i)\b/g, 'fisico-quimica i'],
+    [/\bfisqui\s*(2|ii)\b/g, 'fisico-quimica ii'],
+    [/\bfisqui\b/g, 'fisico-quimica']
+  ];
+
+  for (const [pattern, replacement] of replacements) {
+    r = r.replace(pattern, replacement);
+  }
+
+  return normalizeStr(r);
+}
+
+function getConcludedCodes() {
+  return Array.from(document.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
+}
+
+function persistCheckedState() {
+  saveJSON(STORAGE_KEYS.checked, getConcludedCodes());
+  const el = document.getElementById('save-status');
+  if (el) {
+    el.classList.remove('opacity-0');
+    setTimeout(() => el.classList.add('opacity-0'), 1600);
+  }
+}
+
+function confirmarLimparSelecao() {
+  const marcadas = getConcludedCodes();
+  if (!marcadas.length) return;
+  if (!confirm('Tem certeza que deseja desmarcar todas as disciplinas?')) return;
+  document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+  persistCheckedState();
+  updateDashboard();
+  applySelectedVisualization([]);
+}
+
+function restoreCheckedState() {
+  const stored = loadJSON(STORAGE_KEYS.checked, []);
+  const set = new Set(stored);
+  document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+    cb.checked = set.has(cb.value);
+  });
+}
+
+function resolveReqsColor(reqStr, concluidas) {
+  if (!reqStr) return "<span class='text-gray-500 font-normal'>Nenhum</span>";
+  const incompleteColor = html.classList.contains('dark') ? '#d9bb7d' : '#ef4444';
+  const completedColor = html.classList.contains('dark') ? '#4ade80' : '#16a34a';
+
+  return extractCodes(reqStr).map(c => {
+    const m = disciplinas.find(d => d.codigo === c);
+    let label = m ? formatName(m) : c;
+    if (m && !periodIsCond(m.periodo)) label += ` (${displayPeriod(m)})`;
+    const color = concluidas.includes(c) ? completedColor : incompleteColor;
+    return `<span style="color:${color}" class="font-bold block mb-1">${label}</span>`;
+  }).join('');
+}
+
+function applyCardStatus(cardEl, status) {
+  cardEl.className = 'subject-card flex items-center p-4 mb-2 rounded-lg cursor-pointer hover:bg-yellow-50 dark:hover:bg-gray-800 transition-colors';
+  if (status === 'passed') cardEl.classList.add('status-passed');
+  else if (status === 'eligible') cardEl.classList.add('status-eligible');
+  else if (status === 'blocked') cardEl.classList.add('status-blocked');
+  else cardEl.classList.add('status-default');
+}
+
+function setTheme(isDark) {
+  if (isDark) {
+    html.classList.add('dark');
+    html.classList.remove('light');
+  } else {
+    html.classList.remove('dark');
+    html.classList.add('light');
+  }
+  localStorage.theme = isDark ? 'dark' : 'light';
+  updateThemeUI();
+}
+
+function updateThemeUI() {
+  const isDark = html.classList.contains('dark');
+  const thumb = document.getElementById('theme-toggle-thumb');
+  if (thumb) thumb.style.transform = isDark ? 'translateX(1.25rem)' : 'translateX(0)';
+
+  const label = document.getElementById('settings-theme-label');
+  if (label) label.textContent = isDark ? 'Modo escuro' : 'Modo claro';
+
+  document.getElementById('settings-theme-icon-sun')?.classList.toggle('hidden', isDark);
+  document.getElementById('settings-theme-icon-moon')?.classList.toggle('hidden', !isDark);
+}
+
+function toggleThemeFromSettings() {
+  setTheme(!html.classList.contains('dark'));
+}
+
+function openModal(id) {
+  document.getElementById(id).classList.add('active');
+  document.body.style.overflow = 'hidden';
+  if (id === 'modal-planner') renderPlannerList();
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('active');
+  document.body.style.overflow = '';
+}
+
+document.querySelectorAll('.modal-overlay').forEach(o => {
+  o.addEventListener('click', e => {
+    if (e.target === o) closeModal(o.id);
+  });
+});
+
+function startLongPress(cod) {
+  timerLongPress = setTimeout(() => {
+    const m = disciplinas.find(d => d.codigo === cod);
+    if (!m) return;
+    const concluidas = getConcludedCodes();
+    document.getElementById('det-nome').innerText = formatName(m);
+    document.getElementById('det-cod').innerText = m.codigo;
+    document.getElementById('det-per').innerText = displayPeriod(m);
+    document.getElementById('det-cred').innerText = creditsOf(m);
+    document.getElementById('det-ch').innerText = `${hoursOf(m)} Horas`;
+    document.getElementById('det-pre').innerHTML = resolveReqsColor(m.pre, concluidas);
+    document.getElementById('det-co').innerHTML = resolveReqsColor(m.co, concluidas);
+    openModal('modal-details');
+  }, 600);
+}
+
+function cancelLongPress() {
+  clearTimeout(timerLongPress);
+}
+
+function marcarTudo(p) {
+  if (p === PERIODO_COND) {
+    if (!confirm('Tem certeza que deseja marcar todas de Escolha Condicionada?')) return;
+  }
+  document.querySelectorAll(`input[data-periodo="${p}"]`).forEach(cb => cb.checked = true);
+  persistCheckedState();
+  updateDashboard();
+  applySelectedVisualization(getConcludedCodes());
+}
+
+function limparTudo(p) {
+  document.querySelectorAll(`input[data-periodo="${p}"]`).forEach(cb => cb.checked = false);
+  persistCheckedState();
+  updateDashboard();
+  applySelectedVisualization(getConcludedCodes());
+}
+
+function getSelectedCondStats() {
+  let condCred = 0, condHoras = 0, condCount = 0;
+  document.querySelectorAll('input[type="checkbox"]:checked').forEach(c => {
+    const m = disciplinas.find(d => d.codigo === c.value);
+    if (m && periodIsCond(m.periodo)) {
+      condCount++;
+      condCred += creditsOf(m);
+      condHoras += hoursOf(m);
+    }
+  });
+  return { condCred, condHoras, condCount };
+}
+
+// PAINEL DE INFORMAÇÕES EXIBE SOMENTE OBRIGATÓRIAS NO QUADRADO "DISCIPLINAS"
+function updateDashboard() {
+  let dObrig = 0, dCond = 0, tCred = 0, tHr = 0, obrigCredFeitos = 0;
+
+  document.querySelectorAll('input[type="checkbox"]:checked').forEach(c => {
+    const m = disciplinas.find(d => d.codigo === c.value);
+    if (!m) return;
+    const baseCred = creditsOf(m);
+    const baseHor = hoursOf(m);
+
+    if (periodIsCond(c.dataset.periodo)) dCond++;
+    else {
+      dObrig++;
+      obrigCredFeitos += baseCred;
+    }
+    tCred += baseCred;
+    tHr += baseHor;
+  });
+
+  document.getElementById('count-obrig-feitas-painel').textContent = dObrig;
+  document.getElementById('count-obrig-total-painel').textContent = totalObrig;
+
+  document.getElementById('count-obrig-feitas').textContent = dObrig;
+  document.getElementById('count-obrig-faltam').textContent = Math.max(0, totalObrig - dObrig);
+
+  const pObrig = totalObrig ? Math.round((dObrig / totalObrig) * 100) : 0;
+  document.getElementById('percent-obrig').textContent = pObrig + '%';
+  document.getElementById('bar-obrig').style.width = Math.min(100, pObrig) + '%';
+
+  document.getElementById('count-cond-feitas').textContent = dCond;
+  document.getElementById('count-cond-faltam').textContent = Math.max(0, totalCond - dCond);
+
+  const { condCred, condHoras } = getSelectedCondStats();
+  document.getElementById('text-cond-progress').textContent = `${condCred} créd. • ${condHoras}h`;
+
+  const pCondCred = (condCred / META_COND_CRED) * 100;
+  const pCondHoras = (condHoras / META_COND_HORAS) * 100;
+  const pCond = Math.min(100, Math.min(pCondCred, pCondHoras));
+  document.getElementById('bar-cond').style.width = pCond + '%';
+
+  if (condCred >= META_COND_CRED && condHoras >= META_COND_HORAS) {
+    document.getElementById('text-cond-meta').classList.add('hidden');
+    document.getElementById('icon-cond-exclamation').classList.remove('hidden');
+  } else {
+    document.getElementById('text-cond-meta').classList.remove('hidden');
+    document.getElementById('icon-cond-exclamation').classList.add('hidden');
+  }
+
+  const condProgress = Math.min(1, condCred / META_COND_CRED, condHoras / META_COND_HORAS);
+  const creditosEquivalentes = obrigCredFeitos + (META_COND_CRED * condProgress);
+  const percent = Math.min(100, Math.round((creditosEquivalentes / TOTAL_GRAD_CRED_EQUIV) * 100));
+  
+  document.getElementById('percent-total').textContent = `${percent}%`;
+  document.getElementById('total-creditos').textContent = tCred;
+  document.getElementById('total-horas').textContent = tHr;
+}
+
+// SISTEMA DE GERAÇÃO E COMPARTILHAMENTO DE PDF (jsPDF)
+async function compartilharGradePDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  
+  const concluidas = getConcludedCodes();
+  doc.setFontSize(18);
+  doc.text("Planejamento Acadêmico - Farmácia UFRJ", 14, 20);
+
+  doc.setFontSize(12);
+  doc.text(`Disciplinas Concluídas: ${concluidas.length}`, 14, 30);
+  
+  let y = 40;
+  disciplinas.forEach(m => {
+    if (concluidas.includes(m.codigo)) {
+      if (y > 280) { doc.addPage(); y = 20; }
+      doc.setFontSize(10);
+      doc.text(`[X] ${m.codigo} - ${formatName(m)} (${displayPeriod(m)})`, 14, y);
+      y += 7;
+    }
+  });
+
+  const pdfBlob = doc.output('blob');
+  const file = new File([pdfBlob], 'grade-academica.pdf', { type: 'application/pdf' });
+
+  if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+    try {
+      await navigator.share({
+        files: [file],
+        title: 'Minha Grade Acadêmica',
+        text: 'Confira minhas disciplinas concluídas.'
+      });
+    } catch (e) {
+      doc.save('grade-academica.pdf');
+    }
+  } else {
+    doc.save('grade-academica.pdf');
+  }
+}
+
+// BUSCA E PESQUISA AUTOMÁTICA
+function setupSearchInputs(inputId, clearBtnId, suggestionsId, filterFn) {
+  const input = document.getElementById(inputId);
+  const clearBtn = document.getElementById(clearBtnId);
+
+  input.addEventListener('input', () => {
+    if (input.value.trim().length > 0) clearBtn.classList.remove('hidden');
+    else clearBtn.classList.add('hidden');
+    filterFn(input.value);
+  });
+
+  clearBtn.addEventListener('click', () => {
+    input.value = '';
+    clearBtn.classList.add('hidden');
+    filterFn('');
+    input.focus();
+  });
+}
+
+function filterMainSearch(query) {
+  const normalized = expandSearchAliases(query);
+  let visibleCount = 0;
+  
+  document.querySelectorAll('.subject-card').forEach(card => {
+    const visible = normalized === '' || card.dataset.search.includes(normalized);
+    card.style.display = visible ? 'flex' : 'none';
+    if (visible) visibleCount++;
+  });
+
+  const suggestionsBox = document.getElementById('search-suggestions');
+  if (!query.trim()) {
+    suggestionsBox.classList.add('hidden');
+    return;
+  }
+
+  const matches = disciplinas.filter(m => buildSearchIndex(m).includes(normalized)).slice(0, 5);
+  if (matches.length > 0) {
+    suggestionsBox.innerHTML = matches.map(m => `
+      <div class="search-suggestion" onclick="autoSearchMain('${m.codigo}')">
+        <div class="search-suggestion-main">
+          <div class="search-suggestion-name">${formatName(m)}</div>
+          <div class="search-suggestion-meta">${m.codigo} • ${displayPeriod(m)}</div>
+        </div>
+      </div>
+    `).join('');
+    suggestionsBox.classList.remove('hidden');
+  } else {
+    suggestionsBox.classList.add('hidden');
+  }
+}
+
+function autoSearchMain(codigo) {
+  const m = disciplinas.find(d => d.codigo === codigo);
+  if (!m) return;
+  
+  const input = document.getElementById('search-input');
+  input.value = formatName(m);
+  document.getElementById('clear-search-button').classList.remove('hidden');
+  document.getElementById('search-suggestions').classList.add('hidden');
+  filterMainSearch(formatName(m));
+
+  const card = document.getElementById(`card-${codigo}`);
+  if (card) {
+    const details = card.closest('details');
+    if (details) details.open = true;
+    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+}
+
+// LÓGICA DO PLANEJADOR DE GRADE E TRANCAMENTOS
+function getLockedSubjects(codigo) {
+  return disciplinas.filter(m => {
+    const preList = extractCodes(m.pre);
+    const coList = extractCodes(m.co);
+    return preList.includes(codigo) || coList.includes(codigo);
+  }).sort((a, b) => {
+    const pa = parseInt(a.periodo, 10) || 99;
+    const pb = parseInt(b.periodo, 10) || 99;
+    return pa - pb;
+  });
+}
+
+function renderPlannerList(query = '') {
+  const container = document.getElementById('planner-list');
+  const concluidas = getConcludedCodes();
+  const normalized = expandSearchAliases(query);
+
+  const elegiveis = disciplinas.filter(m => {
+    if (periodIsCond(m.periodo)) return false;
+    if (concluidas.includes(m.codigo)) return false;
+    const preOK = extractCodes(m.pre).every(c => concluidas.includes(c));
+    const coOK = extractCodes(m.co).every(c => concluidas.includes(c));
+    if (!(preOK && coOK)) return false;
+    return !normalized || buildSearchIndex(m).includes(normalized);
+  });
+
+  if (!elegiveis.length) {
+    container.innerHTML = `<p class="text-center text-gray-500 py-6">Nenhuma disciplina disponível encontrada.</p>`;
+    return;
+  }
+
+  container.innerHTML = elegiveis.map(m => {
+    const trancadas = getLockedSubjects(m.codigo);
+    return `
+      <div class="p-3 bg-yellow-50 dark:bg-darkBg border border-yellowTheme-200 dark:border-darkBorder rounded-xl cursor-pointer hover:bg-yellow-100 dark:hover:bg-gray-800 transition"
+           onmousedown="startHoldLocks('${m.codigo}')" onmouseup="cancelLongPress()" onmouseleave="cancelLongPress()"
+           ontouchstart="startHoldLocks('${m.codigo}')" ontouchend="cancelLongPress()">
+        <div class="font-bold text-yellowTheme-800 dark:text-yellowTheme-300">${formatName(m)}</div>
+        <div class="text-xs text-yellowTheme-600 dark:text-yellowTheme-400 mt-0.5">${m.codigo} • ${displayPeriod(m)}</div>
+        <div class="text-xs font-semibold text-red-500 mt-1">Tranca ${trancadas.length} disciplina(s)</div>
+      </div>`;
+  }).join('');
+}
+
+function startHoldLocks(codigo) {
+  timerLongPress = setTimeout(() => {
+    const m = disciplinas.find(d => d.codigo === codigo);
+    if (!m) return;
+    const trancadas = getLockedSubjects(codigo);
+
+    document.getElementById('locks-title').innerText = formatName(m);
+    const list = document.getElementById('locks-list');
+
+    if (!trancadas.length) {
+      list.innerHTML = `<p class="text-gray-500 text-center">Não tranca nenhuma disciplina.</p>`;
+    } else {
+      list.innerHTML = trancadas.map(t => `
+        <div class="p-2 bg-gray-100 dark:bg-gray-800 rounded">
+          ${formatName(t)} <span class="text-xs text-yellowTheme-600 dark:text-yellowTheme-400">(${displayPeriod(t)})</span>
+        </div>
+      `).join('');
+    }
+    openModal('modal-locks');
+  }, 500);
+}
+
+function isApta(m, concluidas) {
+  const pR = extractCodes(m.pre);
+  const cR = extractCodes(m.co);
+  return pR.every(r => concluidas.includes(r)) && cR.every(r => concluidas.includes(r));
+}
+
+function applySelectedVisualization(concluidas) {
+  disciplinas.forEach(m => {
+    const c = document.getElementById(`card-${m.codigo}`);
+    if (c) applyCardStatus(c, concluidas.includes(m.codigo) ? 'passed' : (isApta(m, concluidas) ? 'eligible' : 'blocked'));
+  });
+}
+
+function buildSections() {
+  const periodosMap = {};
+  disciplinas.forEach(d => {
+    if (!periodosMap[d.periodo]) periodosMap[d.periodo] = [];
+    periodosMap[d.periodo].push(d);
+  });
+
+  const periodosKeys = Object.keys(periodosMap).sort((a, b) => {
+    if (a === PERIODO_COND) return 1;
+    if (b === PERIODO_COND) return -1;
+    return parseInt(a, 10) - parseInt(b, 10);
+  });
+
+  const container = document.getElementById('accordions-container');
+  container.innerHTML = '';
+
+  periodosKeys.forEach((periodo, index) => {
+    const titulo = periodo === PERIODO_COND ? periodo : `${periodo}º Período`;
+    const div = document.createElement('div');
+    div.className = 'mb-4 bg-white dark:bg-darkCard rounded-xl shadow-sm border border-yellowTheme-200 dark:border-darkBorder overflow-hidden';
+
+    const materiasHtml = periodosMap[periodo].map(m => `
+      <label id="card-${m.codigo}" data-periodo="${periodo}" data-search="${buildSearchIndex(m)}"
+             class="subject-card status-default flex items-center p-4 mb-2 rounded-lg cursor-pointer hover:bg-yellow-50 dark:hover:bg-gray-800"
+             onmousedown="startLongPress('${m.codigo}')" onmouseup="cancelLongPress()" onmouseleave="cancelLongPress()"
+             ontouchstart="startLongPress('${m.codigo}')" ontouchend="cancelLongPress()">
+        <input type="checkbox" class="form-checkbox h-5 w-5 text-yellowTheme-600 rounded mr-4 focus:ring-yellowTheme-500"
+               value="${m.codigo}" data-periodo="${periodo}"
+               onchange="persistCheckedState(); updateDashboard(); applySelectedVisualization(getConcludedCodes());">
+        <div class="flex-1 min-w-0">
+          <div class="subject-name text-yellowTheme-800 dark:text-yellowTheme-300 leading-tight mb-1 truncate">${formatName(m)}</div>
+          <div class="subject-meta text-yellowTheme-600/90 dark:text-yellowTheme-400/90 truncate"><span class="font-extrabold">${m.codigo}</span> • ${creditsOf(m)} créd. • ${hoursOf(m)} Horas.</div>
+        </div>
+      </label>
+    `).join('');
+
+    div.innerHTML = `
+      <details class="group" data-periodo="${periodo}" ${index === 0 ? 'open' : ''}>
+        <summary class="flex justify-between items-center font-bold cursor-pointer list-none p-5 text-lg bg-yellow-50/50 dark:bg-darkBg hover:bg-yellow-100 dark:hover:bg-gray-800 transition-colors">
+          <span>${titulo}</span>
+          <span class="accordion-chevron">▼</span>
+        </summary>
+        <div class="accordion-content p-5 border-t border-yellowTheme-100 dark:border-darkBorder">
+          <div class="flex gap-2 mb-4">
+            <button onclick="marcarTudo('${periodo}')" class="flex-1 bg-yellowTheme-100 dark:bg-yellowTheme-900/40 text-yellowTheme-700 dark:text-yellowTheme-300 py-2 rounded-lg text-sm font-bold hover:bg-yellowTheme-200 transition">Marcar Tudo</button>
+            <button onclick="limparTudo('${periodo}')" class="flex-1 bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 py-2 rounded-lg text-sm font-bold hover:bg-red-200 transition">Limpar Tudo</button>
+          </div>
+          ${materiasHtml}
+        </div>
+      </details>`;
+    container.appendChild(div);
+  });
+}
+
+// INICIALIZAÇÃO DO SISTEMA
+document.addEventListener('DOMContentLoaded', () => {
+  buildSections();
+  restoreCheckedState();
+  updateDashboard();
+  applySelectedVisualization(getConcludedCodes());
+
+  setupSearchInputs('search-input', 'clear-search-button', 'search-suggestions', filterMainSearch);
+  setupSearchInputs('planner-search-input', 'planner-clear-search-button', 'planner-search-suggestions', renderPlannerList);
+
+  if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+    setTheme(true);
+  } else {
+    setTheme(false);
+  }
+});
