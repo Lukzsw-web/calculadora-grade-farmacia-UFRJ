@@ -7,7 +7,8 @@
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#d97706">
 <link rel="stylesheet" href="styles.css">
-<script src="https://cdn.tailwindcss.com"></script>
+<!-- jsPDF para conserto do menu de compartilhamento local -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
   tailwind.config = {
     darkMode: 'class',
@@ -15,271 +16,206 @@
       extend: {
         colors: {
           yellowTheme: {
-            300: '#fde047', 400: '#facc15', 500: '#eab308', 600: '#ca8a04', 700: '#a16207', 800:
-'#854d0e'
+            300: '#fde047', 400: '#facc15', 500: '#eab308', 600: '#ca8a04', 700: '#a16207', 800: '#854d0e'
           },
           darkBg: '#121212', darkCard: '#1e1e1e', darkBorder: '#333'
+        },
+        animation: {
+          slideDown: 'slideDown 0.35s ease-out forwards'
+        },
+        keyframes: {
+          slideDown: {
+            '0%': { opacity: 0, transform: 'translateY(-15px)' },
+            '100%': { opacity: 1, transform: 'translateY(0)' }
+          }
         }
       }
     }
   }
 </script>
 </head>
-<body class="bg-gray-50 text-yellowTheme-700 dark:bg-darkBg dark:text-yellowTheme-300
-font-sans antialiased">
-  <header class="bg-yellowTheme-600 dark:bg-yellowTheme-800 text-white p-6 shadow-md
-rounded-b-2xl mb-6 relative flex flex-col items-center">
+<body class="bg-gray-50 text-yellowTheme-700 dark:bg-darkBg dark:text-yellowTheme-300 font-sans antialiased">
+  <header class="bg-yellowTheme-600 dark:bg-yellowTheme-800 text-white p-6 shadow-md rounded-b-2xl mb-6 relative flex flex-col items-center">
     <div class="absolute top-4 left-4">
-      <button onclick="openModal('modal-info')" class="text-white hover:scale-110
-transition-transform">
-        <svg class="w-7 h-7" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd"
-d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000
-2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" /></svg>
+      <button onclick="openModal('modal-info')" class="info-button text-white hover:scale-110 transition-transform" aria-label="Abrir instruções">
+        <svg class="w-7 h-7" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" /></svg>
       </button>
     </div>
+
     <div class="absolute top-4 right-4 flex items-center">
-      <button class="text-white hover:scale-110 transition-transform"
-onclick="openModal('modal-settings')">
-        <svg class="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <button id="settings-button" class="settings-header-button text-white hover:scale-110 transition-transform" type="button" onclick="openModal('modal-settings')" aria-label="Abrir configurações">
+        <svg class="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="3"></circle>
-          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83
-0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0
-1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1
-0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1
-2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1
-2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2
-2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0
-2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2
-2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-     </svg>
-    </button>
-  </div>
-  <!-- Título -->
-  <h1 class="text-2xl font-bold text-center mt-8 md:mt-2 text-white">Planejamento
-Acadêmico</h1>
-  <p class="text-center text-yellow-100 text-sm mt-1">Farmácia - UFRJ</p>
- </header>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+        </svg>
+      </button>
+    </div>
+
+    <h1 class="text-2xl font-bold text-center mt-8 md:mt-2 text-white">Planejamento Acadêmico</h1>
+    <p class="text-center text-yellow-100 text-sm mt-1">Farmácia - UFRJ</p>
+  </header>
 
   <main class="max-w-3xl mx-auto px-4">
-   <div id="search-wrapper" class="relative mb-2">
-    <div class="relative">
-     <button id="search-button" class="absolute left-3 top-3.5 text-yellowTheme-600
-dark:text-yellowTheme-400">
-       <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-         <circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path>
-       </svg>
-     </button>
-     <input type="text" id="search-input" placeholder="Pesquise por disciplina, código ou
-período" class="w-full pl-10 pr-10 py-3 border rounded-xl dark:bg-darkCard
-dark:border-darkBorder text-yellowTheme-700 dark:text-yellowTheme-300
-focus:outline-none focus:border-yellowTheme-500 focus:ring-2 focus:ring-yellowTheme-200
-transition shadow-sm">
-     <!-- Botão de limpar (X) adicionado -->
-     <button id="clear-search" class="absolute right-3 top-3.5 text-gray-400
-hover:text-red-500 hidden transition-colors">
-       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"
-stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6
-6l12 12"></path></svg>
-     </button>
+    <div id="search-wrapper" class="search-wrapper relative mb-2">
+      <div class="search-bar-shell">
+        <button id="search-button" class="search-button absolute left-3 top-3.5 text-yellowTheme-600 dark:text-yellowTheme-400" type="button" aria-label="Pesquisar">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path>
+          </svg>
+        </button>
+        <input type="text" id="search-input" placeholder="Pesquise por disciplina, código ou período" autocomplete="off" class="search-input w-full pl-10 pr-12 py-3 border rounded-xl dark:bg-darkCard dark:border-darkBorder text-yellowTheme-700 dark:text-yellowTheme-300 font-medium focus:outline-none focus:border-yellowTheme-500 focus:ring-2 focus:ring-yellowTheme-200 transition shadow-sm placeholder-yellowTheme-600/50 dark:placeholder-yellowTheme-400/50">
+        
+        <!-- Botão X na barra de pesquisa -->
+        <button id="clear-search" class="absolute right-3 top-3.5 text-gray-400 hover:text-red-500 hidden transition-colors" type="button" aria-label="Limpar pesquisa">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+      </div>
+      <div id="search-suggestions" class="search-suggestions hidden" role="listbox"></div>
     </div>
-    <div id="search-suggestions" class="hidden absolute w-full bg-white dark:bg-darkCard
-mt-1 rounded-xl shadow-lg border border-gray-200 dark:border-darkBorder z-10 max-h-60
-overflow-y-auto"></div>
-   </div>
+    <div class="flex justify-between items-center gap-3 mb-6 px-1 text-xs font-semibold">
+      <span id="search-results" class="text-yellowTheme-700/70 dark:text-yellowTheme-300/70"></span>
+      <span id="save-status" class="text-green-600 dark:text-green-400 opacity-0 transition-opacity">✓ Seleção salva</span>
+    </div>
 
-   <div class="flex justify-between items-center gap-3 mb-6 px-1 text-xs font-semibold">
-    <span id="search-results" class="text-yellowTheme-700/70
-dark:text-yellowTheme-300/70"></span>
-    <span id="save-status" class="text-green-600 dark:text-green-400 opacity-0
-transition-opacity">✓ Seleção salva</span>
+    <div class="bg-white dark:bg-darkCard p-5 rounded-xl shadow-sm border border-yellowTheme-200 dark:border-darkBorder mb-6">
+      <div class="grid grid-cols-2 gap-4 mb-5 text-center text-sm font-bold border-b border-yellowTheme-100 dark:border-darkBorder pb-4">
+        <div>
+          <p class="text-yellowTheme-600 dark:text-yellowTheme-400 text-xs uppercase tracking-wide">Créditos Possuídos</p>
+          <p class="text-lg"><span id="total-creditos">0</span> / 161</p>
+        </div>
+        <div>
+          <p class="text-yellowTheme-600 dark:text-yellowTheme-400 text-xs uppercase tracking-wide">Carga Horária Possuída</p>
+          <p class="text-lg"><span id="total-horas">0</span> / 3250</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-3 mb-5 text-center">
+        <div class="p-3 rounded-lg bg-yellow-50 dark:bg-darkBg border border-yellowTheme-100 dark:border-darkBorder">
+          <p class="text-yellowTheme-600 dark:text-yellowTheme-400 text-xs uppercase tracking-wide">Disciplinas (Obrigatórias)</p>
+          <p class="text-lg font-extrabold"><span id="count-total-feitas">0</span> / <span id="count-total">0</span></p>
+        </div>
+        <div class="p-3 rounded-lg bg-yellow-50 dark:bg-darkBg border border-yellowTheme-100 dark:border-darkBorder">
+          <p class="text-yellowTheme-600 dark:text-yellowTheme-400 text-xs uppercase tracking-wide">Graduação</p>
+          <p class="text-lg font-extrabold"><span id="percent-total">0%</span></p>
+        </div>
+      </div>
+
+      <div class="mb-4">
+        <div class="flex justify-between text-sm font-semibold mb-1">
+          <span>Obrigatórias (<span id="count-obrig-feitas">0</span> feitas / <span id="count-obrig-faltam">0</span> faltam)</span>
+          <span id="percent-obrig">0%</span>
+        </div>
+        <div class="w-full bg-yellow-100 dark:bg-gray-700 rounded-full h-2.5">
+          <div id="bar-obrig" class="progress-bar progress-bar-obrig h-2.5 rounded-full transition-all duration-500" style="width: 0%;"></div>
+        </div>
+      </div>
+
+      <div class="mb-5 relative">
+        <div class="flex justify-between text-sm font-semibold mb-1 gap-3">
+          <span>Escolha Cond. (<span id="count-cond-feitas">0</span> feitas)</span>
+          <div id="text-cond-meta-container" class="flex items-center gap-2 flex-wrap justify-end">
+            <span id="text-cond-meta" class="text-xs text-yellowTheme-600 dark:text-yellowTheme-400">Meta: 12 créd. / 180h</span>
+            <span id="text-cond-progress" class="text-xs text-yellowTheme-600/80 dark:text-yellowTheme-400/80">0 créd. • 0h</span>
+            <svg id="icon-cond-exclamation" onclick="openModal('modal-cond-done')" class="w-5 h-5 text-green-500 hidden cursor-pointer hover:scale-125 transition-transform" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+            </svg>
+          </div>
+        </div>
+        <div class="w-full bg-yellow-100 dark:bg-gray-700 rounded-full h-2.5 flex items-center relative">
+          <div id="bar-cond" class="progress-bar progress-bar-cond h-2.5 rounded-full transition-all duration-500" style="width: 0%;"></div>
+        </div>
+      </div>
+
+      <div class="flex gap-2 mt-3 flex-wrap sm:flex-nowrap">
+        <button onclick="confirmarLimparSelecao()" class="flex-1 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 font-bold py-2.5 px-4 rounded-lg transition-colors shadow-sm" type="button">Limpar seleção</button>
+        <button onclick="abrirPlanejador()" class="flex-1 bg-yellowTheme-600 dark:bg-yellowTheme-700 hover:bg-yellowTheme-700 dark:hover:bg-yellowTheme-600 text-white font-bold py-2.5 px-4 rounded-lg transition-colors shadow-sm" type="button">Planejador de Grade</button>
+      </div>
+    </div>
+
+    <div class="flex justify-center gap-4 text-sm font-bold mb-6 flex-wrap items-center">
+      <div class="flex items-center gap-1.5"><span class="w-3.5 h-3.5 rounded-full bg-green-500 block"></span> Pode puxar</div>
+      <div class="flex items-center gap-1.5"><span class="w-3.5 h-3.5 rounded-full bg-red-500 block"></span> Pré/correquisito pendente</div>
+      <div class="flex items-center gap-1.5"><span class="w-3.5 h-3.5 rounded-full bg-blue-500 block"></span> Cursadas</div>
+    </div>
+
+    <div id="accordions-container"></div>
+  </main>
+
+  <!-- MODAL CONFIGURAÇÕES -->
+  <div id="modal-settings" class="fixed inset-0 modal-overlay justify-center items-center z-50">
+    <div class="bg-white dark:bg-darkCard w-11/12 max-w-sm rounded-2xl p-5 shadow-2xl relative border border-yellowTheme-500 modal-content" onclick="event.stopPropagation()">
+      <button aria-label="Fechar" onclick="closeModal('modal-settings')" class="absolute top-4 right-4 text-gray-400 hover:text-red-500 text-2xl font-bold transition-colors" type="button">&times;</button>
+      <h3 class="text-xl font-bold text-yellowTheme-600 dark:text-yellowTheme-400 mb-4 pr-10">Configurações</h3>
+      
+      <div class="space-y-3">
+        <!-- Modo Escuro/Claro atualizado -->
+        <button class="w-full flex items-center justify-between bg-gray-50 dark:bg-darkBg hover:bg-gray-100 dark:hover:bg-gray-800 p-3 rounded-lg transition-colors border border-gray-200 dark:border-darkBorder" type="button" onclick="toggleThemeFromSettings()">
+          <div class="flex items-center gap-3">
+            <!-- Ícone Modo Claro -->
+            <svg id="settings-theme-icon-sun" class="w-7 h-7" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M7 16C4.79086 16 3 14.2091 3 12C3 9.79086 4.79086 8 7 8C7.65345 8 8.27042 8.15617 8.81057 8.4287C9.52981 6.45279 11.4116 5 13.5 5C16.5376 5 19 7.46243 19 10.5C19 10.741 18.9846 10.9786 18.9547 11.2117C20.6723 11.7588 21.9231 13.3768 21.9231 15.3077C21.9231 17.8988 19.8219 20 17.2308 20H7.5C5.01472 20 3 17.9853 3 15.5C3 13.9168 3.81734 12.5246 5.06841 11.722" fill="#F3F4F6"/>
+              <circle cx="15" cy="9" r="3" fill="#89CFF0"/>
+              <path d="M15 4V3M15 15V14M19.9497 13.9497L19.2426 13.2426M10.7574 4.75736L10.0503 4.05025M20 9H21M9 9H10M19.9497 4.05025L19.2426 4.75736M10.7574 13.2426L10.0503 13.9497" stroke="#89CFF0" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            <!-- Ícone Modo Escuro -->
+            <svg id="settings-theme-icon-moon" class="w-7 h-7 hidden" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M20.3542 15.3542C19.0684 16.2753 17.4815 16.8182 15.7727 16.8182C11.4795 16.8182 8 13.3387 8 9.04545C8 7.33671 8.54286 5.74976 9.464 4.464C5.75169 5.37895 3 8.73037 3 12.7273C3 17.2882 7.69634 21 12.2727 21C16.2696 21 19.621 18.2483 20.3542 15.3542Z" fill="#FDE047"/>
+            </svg>
+            <div class="text-left">
+              <strong class="block text-sm text-gray-800 dark:text-gray-200">Modo visual</strong>
+              <small id="settings-theme-label" class="text-xs text-gray-500 dark:text-gray-400">Modo claro</small>
+            </div>
+          </div>
+          <div class="w-10 h-5 bg-gray-300 dark:bg-yellowTheme-600 rounded-full relative transition-colors flex items-center px-0.5">
+             <div class="w-4 h-4 bg-white rounded-full shadow-md transform transition-transform duration-300" id="theme-toggle-thumb"></div>
+          </div>
+        </button>
+
+        <button class="w-full flex items-center justify-between bg-gray-50 dark:bg-darkBg hover:bg-gray-100 dark:hover:bg-gray-800 p-3 rounded-lg transition-colors border border-gray-200 dark:border-darkBorder share-grade-button" type="button" onclick="compartilharGradePDF()">
+          <div class="flex items-center gap-3">
+            <svg class="w-6 h-6 text-green-600 dark:text-green-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle>
+              <path d="m8.59 13.51 6.83 3.98M15.41 6.51l-6.82 3.98"></path>
+            </svg>
+            <div class="text-left">
+              <strong class="block text-sm text-gray-800 dark:text-gray-200">Compartilhar grade</strong>
+              <small class="text-xs text-gray-500 dark:text-gray-400">Gerar PDF</small>
+            </div>
+          </div>
+          <span class="text-gray-400 text-lg leading-none">›</span>
+        </button>
+      </div>
+    </div>
   </div>
 
-   <!-- Painel de Informações -->
-   <div class="bg-white dark:bg-darkCard p-5 rounded-xl shadow-sm border
-border-yellowTheme-200 dark:border-darkBorder mb-6">
-    <div class="grid grid-cols-2 gap-4 mb-5 text-center text-sm font-bold border-b
-border-yellowTheme-100 dark:border-darkBorder pb-4">
-      <div>
-        <p class="text-yellowTheme-600 dark:text-yellowTheme-400 text-xs uppercase
-tracking-wide">Créditos Possuídos</p>
-        <p class="text-lg"><span id="total-creditos">0</span> / 161</p>
+  <!-- MODAL PLANEJADOR DE GRADE -->
+  <div id="modal-planejador" class="fixed inset-0 modal-overlay justify-center items-center z-50">
+    <div class="bg-white dark:bg-darkCard w-11/12 max-w-lg rounded-2xl p-6 shadow-2xl relative max-h-[85vh] flex flex-col modal-content" onclick="event.stopPropagation()">
+      <button aria-label="Fechar" onclick="closeModal('modal-planejador')" class="modal-close absolute top-4 right-4 text-yellowTheme-700 dark:text-yellowTheme-300 hover:text-red-500 text-2xl font-bold">&times;</button>
+      <h3 class="text-xl font-bold text-yellowTheme-600 dark:text-yellowTheme-400 mb-4">Planejador de Grade</h3>
+      
+      <div class="relative mb-4">
+        <input type="text" id="search-planejador" placeholder="Pesquisar disciplinas disponíveis..." class="w-full pl-4 pr-10 py-2 border rounded-xl dark:bg-darkBg dark:border-darkBorder text-sm text-yellowTheme-700 dark:text-yellowTheme-300 focus:outline-none focus:border-yellowTheme-500 transition">
       </div>
-      <div>
-        <p class="text-yellowTheme-600 dark:text-yellowTheme-400 text-xs uppercase
-tracking-wide">Carga Horária Possuída</p>
-        <p class="text-lg"><span id="total-horas">0</span> / 3250</p>
-      </div>
+
+      <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">Mostrando as disciplinas obrigatórias que você já pode puxar neste semestre baseado no que concluiu. Segure na matéria para ver quais ela tranca.</p>
+      
+      <div id="lista-planejador" class="flex-1 overflow-y-auto space-y-2 pr-2"></div>
     </div>
-
-    <div class="grid grid-cols-2 gap-3 mb-5 text-center">
-     <div class="p-3 rounded-lg bg-yellow-50 dark:bg-darkBg border
-border-yellowTheme-100 dark:border-darkBorder">
-       <p class="text-yellowTheme-600 dark:text-yellowTheme-400 text-xs uppercase
-tracking-wide">Disciplinas (Obrigatórias)</p>
-       <p class="text-lg font-extrabold"><span id="count-total-feitas">0</span> / <span
-id="count-total">0</span></p>
-     </div>
-     <div class="p-3 rounded-lg bg-yellow-50 dark:bg-darkBg border
-border-yellowTheme-100 dark:border-darkBorder">
-       <p class="text-yellowTheme-600 dark:text-yellowTheme-400 text-xs uppercase
-tracking-wide">Graduação</p>
-       <p class="text-lg font-extrabold"><span id="percent-total">0%</span></p>
-     </div>
-    </div>
-
-    <div class="mb-4">
-     <div class="flex justify-between text-sm font-semibold mb-1">
-      <span>Obrigatórias (<span id="count-obrig-feitas">0</span> feitas / <span
-id="count-obrig-faltam">0</span> faltam)</span>
-      <span id="percent-obrig">0%</span>
-     </div>
-     <div class="w-full bg-yellow-100 dark:bg-gray-700 rounded-full h-2.5">
-      <div id="bar-obrig" class="h-2.5 rounded-full transition-all duration-500
-modern-gradient-obrig" style="width: 0%;"></div>
-     </div>
-    </div>
-
-   <div class="mb-5 relative">
-      <div class="flex justify-between text-sm font-semibold mb-1 gap-3">
-        <span>Escolha Cond. (<span id="count-cond-feitas">0</span> feitas / <span id="count-cond-faltam">0</span> faltam)</span>
-        <div id="text-cond-meta-container" class="flex items-center gap-2 flex-wrap
-justify-end">
-         <svg id="icon-cond-info" onclick="openModal('modal-cond-info')" class="w-5 h-5 text-yellowTheme-600 dark:text-yellowTheme-400 cursor-pointer hover:scale-125 transition-transform" fill="currentColor" viewBox="0 0 20 20" aria-label="Informações sobre Escolha Condicionada" title="Informações"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" /></svg>
-         <span id="text-cond-meta" class="text-xs text-yellowTheme-600
-dark:text-yellowTheme-400">Meta: 12 créd. / 180h</span>
-         <span id="text-cond-progress" class="text-xs text-yellowTheme-600/80
-dark:text-yellowTheme-400/80">0 créd. • 0h</span>
-         <svg id="icon-cond-done" class="w-5 h-5 text-green-500 hidden cursor-pointer hover:scale-125 transition-transform" fill="currentColor" viewBox="0 0 24 24" aria-label="Meta atingida" title="Meta atingida" onclick="openModal('modal-cond-done')"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
-        </div>
-      </div>
-      <div class="w-full bg-yellow-100 dark:bg-gray-700 rounded-full h-2.5 flex items-center
-relative">
-        <div id="bar-cond" class="h-2.5 rounded-full transition-all duration-500
-modern-gradient-cond" style="width: 0%;"></div>
-      </div>
-    </div>
-
-    <!-- Botão Planejador -->
-    <div class="flex gap-2 mt-3">
-     <button onclick="confirmarLimparSelecao()" class="flex-1 bg-gray-100
-dark:bg-gray-800 hover:bg-gray-200 text-gray-700 dark:text-gray-200 font-bold py-2.5 px-4
-rounded-lg transition-colors">Limpar seleção</button>
-     <button onclick="abrirPlanejador()" class="flex-1 bg-yellowTheme-500
-hover:bg-yellowTheme-600 text-white font-bold py-2.5 px-4 rounded-lg
-transition-colors">Planejador de Grade</button>
-    </div>
-   </div>
-
-   <div class="flex justify-center gap-4 text-sm font-bold mb-6 flex-wrap items-center">
-    <div class="flex items-center gap-1.5"><span class="w-3.5 h-3.5 rounded-full
-bg-green-500 block shadow-sm"></span> Pode puxar</div>
-    <div class="flex items-center gap-1.5"><span class="w-3.5 h-3.5 rounded-full bg-red-500
-block shadow-sm"></span> Pré-req pendente</div>
-    <div class="flex items-center gap-1.5"><span class="w-3.5 h-3.5 rounded-full
-bg-blue-500 block shadow-sm"></span> Cursadas</div>
-   </div>
-
-  <div id="accordions-container"></div>
- </main>
-
-  <!-- Modal Configurações -->
-  <div id="modal-settings" class="fixed inset-0 hidden backdrop-blur-sm bg-black/60
-justify-center items-center z-50 transition-opacity">
-   <div class="bg-white dark:bg-darkCard w-11/12 max-w-sm rounded-2xl p-5 shadow-2xl
-relative border border-yellowTheme-500">
-     <button onclick="closeModal('modal-settings')" class="absolute top-4 right-4
-text-gray-400 hover:text-red-500 text-2xl font-bold">&times;</button>
-     <h3 class="text-xl font-bold text-yellowTheme-600 dark:text-yellowTheme-400
-mb-4">Configurações</h3>
-     <div class="space-y-3">
-       <button class="w-full flex items-center justify-between bg-gray-50 dark:bg-darkBg p-3
-rounded-lg border border-gray-200 dark:border-darkBorder"
-onclick="toggleThemeFromSettings()">
-        <div class="flex items-center gap-3">
-         <!-- Ícone Modo Claro (Luz azul bebê, nuvem branca neutra) -->
-         <svg id="settings-theme-icon-sun" class="w-8 h-8" viewBox="0 0 24 24" fill="none"
-stroke="none">
-          <!-- Luz azul bebe radiante -->
-          <circle cx="12" cy="12" r="5" fill="#89CFF0" opacity="0.8"></circle>
-          <!-- Nuvem branco neutro -->
-          <path d="M16.5 14.5A3.5 3.5 0 0 0 14 8.5h-.5a5 5 0 0 0-9 1.5 3.5 3.5 0 0 0 1
-6.5h11z" fill="#F5F5F5" stroke="#D3D3D3" stroke-width="1"></path>
-         </svg>
-         <!-- Ícone Modo Escuro -->
-         <svg id="settings-theme-icon-moon" class="w-8 h-8 hidden" viewBox="0 0 24 24"
-fill="none">
-          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" fill="#1E3A8A"></path>
-          <circle cx="16" cy="6" r="1" fill="#FFF"></circle>
-          <circle cx="19" cy="4" r="0.5" fill="#FFF"></circle>
-         </svg>
-         <div class="text-left">
-          <strong class="block text-sm text-gray-800 dark:text-gray-200">Modo
-visual</strong>
-          <small id="settings-theme-label" class="text-xs text-gray-500">Modo claro</small>
-         </div>
-        </div>
-        <div class="w-10 h-5 bg-gray-300 dark:bg-yellowTheme-600 rounded-full relative
-transition-colors flex items-center px-0.5">
-          <div class="w-4 h-4 bg-white rounded-full shadow-md transform
-transition-transform" id="theme-toggle-thumb"></div>
-        </div>
-       </button>
-       <button class="w-full flex items-center justify-between bg-gray-50 dark:bg-darkBg p-3
-rounded-lg border border-gray-200 dark:border-darkBorder"
-onclick="compartilharGradePDF()">
-        <div class="flex items-center gap-3">
-         <svg class="w-6 h-6 text-green-600" viewBox="0 0 24 24" fill="none"
-stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"></path></svg>
-         <div class="text-left">
-          <strong class="block text-sm text-gray-800 dark:text-gray-200">Exportar
-Grade</strong>
-          <small class="text-xs text-gray-500">Baixar PDF Local</small>
-         </div>
-        </div>
-       </button>
-   </div>
   </div>
- </div>
 
-  <!-- Modal do Planejador de Grade -->
-  <div id="modal-planejador" class="fixed inset-0 hidden backdrop-blur-sm bg-black/60
-justify-center items-center z-50">
-   <div class="bg-white dark:bg-darkCard w-11/12 max-w-2xl h-[80vh] rounded-2xl p-5
-shadow-2xl relative border border-yellowTheme-500 flex flex-col">
-     <button onclick="closeModal('modal-planejador')" class="absolute top-4 right-4
-text-gray-400 hover:text-red-500 text-2xl font-bold">&times;</button>
-     <h3 class="text-xl font-bold text-yellowTheme-600 dark:text-yellowTheme-400
-mb-2">Planejador de Grade</h3>
-     <p class="text-xs text-gray-500 dark:text-gray-400 mb-4">Veja as disciplinas obrigatórias
-que você já pode cursar. Pesquise uma matéria para ver o que ela tranca.</p>
-
-    <div class="relative mb-4">
-     <input type="text" id="input-planejador" placeholder="Pesquise para ver disciplinas
-trancadas..." class="w-full pl-4 pr-10 py-2 border rounded-xl dark:bg-darkBg
-dark:border-darkBorder text-sm focus:ring-2 focus:ring-yellowTheme-500">
-     <button id="clear-planejador" class="absolute right-3 top-2.5 text-gray-400
-hover:text-red-500 hidden">
-      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"
-stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6
-6l12 12"></path></svg>
-     </button>
+  <!-- MODAL INFO DETALHES DE TRANCA -->
+  <div id="modal-tranca-details" class="fixed inset-0 modal-overlay justify-center items-center z-50">
+    <div class="bg-white dark:bg-darkCard w-11/12 max-w-md rounded-2xl p-6 shadow-2xl relative max-h-[80vh] flex flex-col modal-content" onclick="event.stopPropagation()">
+      <button aria-label="Fechar" onclick="closeModal('modal-tranca-details')" class="modal-close absolute top-4 right-4 text-yellowTheme-700 dark:text-yellowTheme-300 hover:text-red-500 text-2xl font-bold">&times;</button>
+      <h3 id="tranca-nome" class="text-lg font-extrabold text-yellowTheme-600 dark:text-yellowTheme-400 mb-1 pr-6 leading-tight"></h3>
+      <p class="text-sm text-red-500 dark:text-red-400 mb-4 font-bold">Disciplinas que ela tranca:</p>
+      <div id="tranca-lista" class="space-y-2 text-sm font-medium overflow-y-auto pr-2"></div>
     </div>
-
-   <div id="lista-planejador" class="flex-1 overflow-y-auto space-y-2 pr-2">
-     <!-- Itens injetados via JS -->
-   </div>
   </div>
- </div>
 
- <script src="dados_obrigatorias.js"></script>
- <script src="dados_condicionadas.js"></script>
- <script src="app.js"></script>
-</body>
-</html>
-  <!-- Instruções -->
   <div id="modal-info" class="fixed inset-0 modal-overlay justify-center items-center z-50">
+    <!-- Resto dos modais originais -->
     <div class="bg-white dark:bg-darkCard w-11/12 max-w-sm rounded-2xl p-6 shadow-2xl relative border border-yellowTheme-500 text-center modal-content" onclick="event.stopPropagation()">
       <button aria-label="Fechar" onclick="closeModal('modal-info')" class="modal-close absolute top-4 right-4 text-yellowTheme-700 dark:text-yellowTheme-300 hover:text-red-500 text-2xl font-bold">&times;</button>
       <h3 class="text-xl font-bold text-yellowTheme-600 dark:text-yellowTheme-400 mb-6">Instruções</h3>
@@ -290,7 +226,6 @@ stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L1
     </div>
   </div>
 
-  <!-- Detalhes da disciplina -->
   <div id="modal-details" class="fixed inset-0 modal-overlay justify-center items-center z-50">
     <div class="bg-white dark:bg-darkCard w-11/12 max-w-md rounded-2xl p-6 shadow-2xl relative border border-yellowTheme-500 modal-content" onclick="event.stopPropagation()">
       <button aria-label="Fechar" onclick="closeModal('modal-details')" class="modal-close absolute top-4 right-4 text-yellowTheme-700 dark:text-yellowTheme-300 hover:text-red-500 text-2xl font-bold">&times;</button>
@@ -301,32 +236,12 @@ stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L1
         <p><strong>Créditos:</strong> <span id="det-cred" class="text-gray-600 dark:text-gray-300"></span></p>
         <p><strong>Carga Horária Total:</strong> <span id="det-ch" class="text-gray-600 dark:text-gray-300"></span></p>
         <div class="w-full h-px bg-yellowTheme-200 dark:bg-darkBorder my-2"></div>
-        <p><strong>Pré-requisitos:</strong><br><span id="det-pre" class="block mt-1"></span></p>
-        <p><strong>Correquisitos:</strong><br><span id="det-co" class="block mt-1"></span></p>
+        <p><strong>Pré-requisitos:</strong> <br><span id="det-pre" class="block mt-1"></span></p>
+        <p><strong>Correquisitos:</strong> <br><span id="det-co" class="block mt-1"></span></p>
       </div>
     </div>
   </div>
 
-  <!-- Calculadora de CR -->
-  <div id="modal-cr" class="fixed inset-0 modal-overlay justify-center items-center z-50">
-    <div class="bg-white dark:bg-darkCard w-11/12 max-w-md rounded-2xl p-6 shadow-2xl relative max-h-[85vh] flex flex-col modal-content" onclick="event.stopPropagation()">
-      <button aria-label="Fechar" onclick="closeModal('modal-cr')" class="modal-close absolute top-4 right-4 text-yellowTheme-700 dark:text-yellowTheme-300 hover:text-red-500 text-2xl font-bold">&times;</button>
-      <h3 class="text-xl font-bold text-yellowTheme-600 dark:text-yellowTheme-400 mb-2">Calcular CR</h3>
-      <p class="text-xs text-yellowTheme-700/80 dark:text-yellowTheme-300/80 mb-4 font-medium">Insira a nota e ajuste os créditos das matérias concluídas. O crédito ajustado vale só para o CR; o total do dashboard continua usando o crédito oficial da disciplina.</p>
-      <div class="flex text-xs font-bold mb-2 px-1 text-yellowTheme-600 dark:text-yellowTheme-400">
-        <div class="flex-1">Disciplina</div>
-        <div class="w-16 text-center mr-2">Nota</div>
-        <div class="w-16 text-center">Créd.</div>
-      </div>
-      <div id="cr-inputs" class="flex-1 overflow-y-auto space-y-3 mb-4 pr-2"></div>
-      <div class="flex gap-2">
-        <button onclick="calcularCRValue()" class="w-full bg-yellowTheme-600 hover:bg-yellowTheme-700 text-white py-3 rounded-lg font-bold transition">Calcular Meu CR</button>
-      </div>
-      <div id="cr-result" class="mt-4 text-center text-xl font-bold text-yellowTheme-700 dark:text-yellowTheme-300 hidden p-4 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg border border-yellowTheme-300 dark:border-yellowTheme-700"></div>
-    </div>
-  </div>
-
-  <!-- Meta de Escolha Condicionada atingida -->
   <div id="modal-cond-done" class="fixed inset-0 modal-overlay justify-center items-center z-50">
     <div class="bg-white dark:bg-darkCard w-11/12 max-w-sm rounded-2xl p-6 shadow-2xl relative border border-green-500 text-center modal-content" onclick="event.stopPropagation()">
       <button aria-label="Fechar" onclick="closeModal('modal-cond-done')" class="modal-close absolute top-4 right-4 text-gray-500 hover:text-red-500 text-2xl font-bold">&times;</button>
@@ -335,20 +250,8 @@ stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L1
     </div>
   </div>
 
-  <!-- Informações da Escolha Condicionada -->
-  <div id="modal-cond-info" class="fixed inset-0 modal-overlay justify-center items-center z-50">
-    <div class="bg-white dark:bg-darkCard w-11/12 max-w-sm rounded-2xl p-6 shadow-2xl relative border border-yellowTheme-500 text-center modal-content" onclick="event.stopPropagation()">
-      <button aria-label="Fechar" onclick="closeModal('modal-cond-info')" class="modal-close absolute top-4 right-4 text-gray-500 hover:text-red-500 text-2xl font-bold">&times;</button>
-      <h3 class="text-xl font-bold text-yellowTheme-600 dark:text-yellowTheme-400 mb-4">Escolha Condicionada</h3>
-      <p class="font-medium text-gray-700 dark:text-gray-300 text-sm text-justify">Disciplinas de Escolha Condicionada: são matérias que o aluno deve escolher dentro de um grupo de opções definido pelo curso, seguindo determinados critérios. Basicamente, você deve 12 créditos e 180 horas dessas matérias para a faculdade. Por sorte, esse site faz esse cálculo para você não ter trabalho (via a segunda barra de progresso).<br><br>A consulta desse site não substitui a consulta oficial do BOA no aplicativo "Portal Aluno UFRJ" ou no site do SIGA.</p>
-    </div>
-  </div>
-
-  <!-- Aviso de atualização -->
-  <div id="update-toast" class="fixed bottom-24 left-1/2 -translate-x-1/2 hidden z-50 bg-yellowTheme-600 text-white rounded-xl shadow-lg px-4 py-3 text-sm font-bold flex items-center gap-3">
-    <span>Nova versão disponível.</span>
-    <button id="update-now" class="bg-white text-yellowTheme-700 px-3 py-1.5 rounded-lg">Atualizar</button>
-  </div>
-
-  <footer class="text-center text-xs text-yellowTheme-600/60 dark:text-yellowTheme-400/50 mt-12 mb-8 px-4">Projeto independente, feito de aluno para aluno, sem vínculo oficial com a UFRJ. Site de caráter auxiliar, seu uso não substitui a consulta do BOA.</footer>
-
+  <script src="dados_obrigatorias.js"></script>
+  <script src="dados_condicionadas.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
