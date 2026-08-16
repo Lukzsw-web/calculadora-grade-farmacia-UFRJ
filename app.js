@@ -158,7 +158,7 @@ function resolveReqsColor(reqStr, concluidas) {
 }
 
 function applyCardStatus(cardEl, status) {
-  cardEl.className = 'subject-card flex items-center p-4 mb-2 rounded-lg cursor-pointer transition-colors';
+  cardEl.className = 'subject-card flex items-center p-4 mb-2 rounded-lg cursor-pointer transition-colors no-select';
   if (status === 'passed') cardEl.classList.add('status-passed');
   else if (status === 'eligible') cardEl.classList.add('status-eligible');
   else if (status === 'blocked') cardEl.classList.add('status-blocked');
@@ -166,6 +166,11 @@ function applyCardStatus(cardEl, status) {
 }
 
 function setTheme(isDark) {
+  // Correção do travamento/piscada ao mudar o tema
+  const css = document.createElement('style');
+  css.innerHTML = '* { transition: none !important; }';
+  document.head.appendChild(css);
+
   if (isDark) {
     html.classList.add('dark');
     html.classList.remove('light');
@@ -175,6 +180,13 @@ function setTheme(isDark) {
   }
   localStorage.theme = isDark ? 'dark' : 'light';
   updateThemeUI();
+
+  // Força o navegador a recalcular o layout para aplicar instantaneamente
+  window.getComputedStyle(document.body).getPropertyValue('background-color');
+  
+  setTimeout(() => {
+    document.head.removeChild(css);
+  }, 50);
 }
 
 function updateThemeUI() {
@@ -430,6 +442,10 @@ function setupSearchInputs(inputId, clearBtnId, suggestionsId, filterFn) {
     filterFn('');
     document.getElementById(suggestionsId)?.classList.add('hidden');
     input.focus();
+    
+    if (inputId === 'search-input') {
+      document.getElementById('search-wrapper').classList.remove('sticky-search-active');
+    }
   });
 }
 
@@ -479,6 +495,10 @@ function autoSearchMain(codigo) {
   if (card) {
     const details = card.closest('details');
     if (details) details.open = true;
+    
+    // Deixa a barra fixa
+    document.getElementById('search-wrapper').classList.add('sticky-search-active');
+    
     card.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 }
@@ -569,7 +589,7 @@ function renderPlannerList(query = '') {
   container.innerHTML = elegiveis.map(m => {
     const trancadas = getLockedSubjects(m.codigo);
     return `
-      <div class="p-3.5 bg-yellow-50 dark:bg-darkBg border border-yellowTheme-200 dark:border-darkBorder rounded-xl cursor-pointer hover:bg-yellow-100 dark:hover:bg-gray-800 transition"
+      <div class="p-3.5 bg-yellow-50 dark:bg-darkBg border border-yellowTheme-200 dark:border-darkBorder rounded-xl cursor-pointer hover:bg-yellow-100 dark:hover:bg-gray-800 transition no-select"
            onmousedown="startHoldLocks('${m.codigo}')" onmouseup="cancelLongPress()" onmouseleave="cancelLongPress()"
            ontouchstart="startHoldLocks('${m.codigo}')" ontouchend="cancelLongPress()">
         <div class="font-bold text-yellowTheme-800 dark:text-yellowTheme-300 flex items-center justify-between">
@@ -651,7 +671,7 @@ function buildSections() {
 
     const materiasHtml = periodosMap[periodo].map(m => `
       <label id="card-${m.codigo}" data-periodo="${periodo}" data-search="${buildSearchIndex(m)}"
-             class="subject-card status-default flex items-center p-4 mb-2 rounded-lg cursor-pointer"
+             class="subject-card status-default flex items-center p-4 mb-2 rounded-lg cursor-pointer no-select"
              onmousedown="startLongPress('${m.codigo}')" onmouseup="cancelLongPress()" onmouseleave="cancelLongPress()"
              ontouchstart="startLongPress('${m.codigo}')" ontouchend="cancelLongPress()">
         <input type="checkbox" class="form-checkbox h-5 w-5 text-yellowTheme-600 rounded mr-4 focus:ring-yellowTheme-500"
@@ -705,6 +725,14 @@ document.addEventListener('click', (e) => {
   }
 });
 
+// Remove a barra de pesquisa sticky caso o usuário role até o topo manualmente
+window.addEventListener('scroll', () => {
+  const searchWrapper = document.getElementById('search-wrapper');
+  if (searchWrapper && searchWrapper.classList.contains('sticky-search-active') && window.scrollY < 50) {
+    searchWrapper.classList.remove('sticky-search-active');
+  }
+});
+
 document.addEventListener('DOMContentLoaded', () => {
   buildSections();
   restoreCheckedState();
@@ -713,10 +741,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   setupSearchInputs('search-input', 'clear-search-button', 'search-suggestions', filterMainSearch);
   setupSearchInputs('planner-search-input', 'planner-clear-search-button', 'planner-search-suggestions', filterPlannerSearch);
-
-  if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-    setTheme(true);
-  } else {
-    setTheme(false);
-  }
+  
+  // Update UI components for theme since dark class might be pre-applied in head
+  updateThemeUI();
 });
