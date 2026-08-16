@@ -23,6 +23,23 @@ body, .bg-white, .dark\:bg-darkCard, .dark\:bg-darkBg, .bg-gray-50, .subject-car
   background: rgba(253, 224, 71, 0.2);
 }
 
+/* Classe utilitária para desativar seleção de texto em botões interativos */
+.no-select {
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+  user-select: none !important;
+  -webkit-touch-callout: none !important;
+}
+
+/* Classe utilitária para manter a barra de pesquisa fixa */
+.sticky-search-active {
+  position: sticky !important;
+  top: 1rem !important;
+  z-index: 100 !important;
+  transition: top 0.3s ease !important;
+}
+
 /* Modais Efeitos Glassmorphism */
 .modal-overlay {
   display: flex;
