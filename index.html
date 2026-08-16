@@ -11,6 +11,17 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   
+  <!-- Previne a piscada na tela antes do Tailwind carregar, validando o tema na raiz -->
+  <script>
+    if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.classList.add('dark');
+      document.documentElement.classList.remove('light');
+    } else {
+      document.documentElement.classList.remove('dark');
+      document.documentElement.classList.add('light');
+    }
+  </script>
+
   <link rel="stylesheet" href="styles.css">
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
@@ -71,7 +82,7 @@
   </header>
 
   <main class="max-w-3xl mx-auto px-4 sm:px-6 pb-20">
-    <div id="search-wrapper" class="search-wrapper relative -mt-16 mb-8 z-20">
+    <div id="search-wrapper" class="search-wrapper relative -mt-16 mb-8 z-20 transition-all duration-300">
       <div class="search-bar-shell relative flex items-center shadow-xl shadow-yellowTheme-900/10 dark:shadow-black/40 rounded-full bg-white dark:bg-darkCard transition-transform hover:scale-[1.01] duration-200">
         <button id="search-button" class="search-button absolute left-5 text-yellowTheme-500" type="button" aria-label="Pesquisar">
           <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -499,38 +510,12 @@
                 <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"></path></svg>
                 Matrícula cancelada/Trancada:
               </strong>
-              <p>significa que sua matrícula não está ativa. Dependendo da situação, o estudante deve procurar a secretaria acadêmica ou a coordenação do curso para regularizar sua situação. Lembrando que, mesmo nesta situação, o SIGA acolhe todos os pedidos e o(a) estudante concorre às vagas normalmente, mas precisará resolver tal situação, sob pena de ter seu nome retirado da pauta final.</p>
+              <p>significa que sua matrícula não está ativa. Dependendo da situação, o estudante deve procurar a secretaria acadêmica ou a coordenação do curso para regularizar sua situação. Lembrando que, mesmo nesta situação, o SIGA acolhe</p>
             </div>
-
-            <div class="bg-white dark:bg-darkCard p-3.5 rounded-xl border border-gray-100 dark:border-darkBorder/50">
-              <strong class="text-sky-500 dark:text-sky-400 block mb-1 font-extrabold flex items-center gap-2">
-                <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                Previsão pendente:
-              </strong>
-              <p>significa que há uma pendência que não é gerada pelo(a) estudante, pois deve faltar algum dado na previsão de turma (professor responsável ou local definido). Muitas vezes a turma é prevista, mas está “pendente” por algum desses motivos ou el sistema detecta que o horário ou local está colidindo com outra turma. Esse é um problema que deve ser resolvido pela secretaria acadêmica, ou seja, o(a) estudante não precisa fazer nada.</p>
-            </div>
-
-            <div class="bg-white dark:bg-darkCard p-3.5 rounded-xl border border-gray-100 dark:border-darkBorder/50">
-              <strong class="text-emerald-500 dark:text-emerald-400 block mb-1 font-extrabold flex items-center gap-2">
-                <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                Inscrição Normal:
-              </strong>
-              <p>Quando seu pedido é enviado com sucesso e sem pendências aparecerá no CRPID ou na CRID a informação “Inscrição Normal”.</p>
-            </div>
-
           </div>
         </details>
       </div>
     </div>
   </div>
-
-  <footer class="text-center font-medium text-sm text-gray-400 dark:text-gray-500 mt-16 mb-8 px-6">
-    <p>Projeto independente, de aluno para aluno.<br>Sem vínculo oficial com a UFRJ.</p>
-    <p class="mt-2 text-xs">O uso desse site não substitui a consulta ao BOA.</p>
-  </footer>
-
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="disciplinas.js"></script>
-  <script src="app.js"></script>
 </body>
 </html>
