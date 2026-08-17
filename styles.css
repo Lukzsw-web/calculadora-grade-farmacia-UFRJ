@@ -300,3 +300,55 @@ details[open] summary .accordion-chevron {
 .dark .search-suggestion-meta {
   color: #9ca3af;
 }
+/* Transições Otimizadas */
+body, .bg-white, .dark\:bg-darkCard, .dark\:bg-darkBg, .bg-gray-50, .subject-card {
+  transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1), color 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(202, 138, 4, 0.4); border-radius: 10px; }
+.dark ::-webkit-scrollbar-thumb { background: rgba(253, 224, 71, 0.2); }
+
+.no-select {
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+  user-select: none !important;
+  -webkit-touch-callout: none !important;
+}
+
+/* Modais Efeitos */
+.modal-overlay {
+  display: flex; opacity: 0; pointer-events: none;
+  backdrop-filter: blur(8px); background-color: rgba(0, 0, 0, 0.4);
+  transition: opacity 0.25s ease;
+}
+.modal-overlay.active { opacity: 1; pointer-events: auto; }
+.modal-overlay.active .modal-content { transform: scale(1); }
+
+/* Accordion */
+details > summary { list-style: none; }
+details > summary::-webkit-details-marker { display: none; }
+details[open] summary ~ * { animation: sweep 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+@keyframes sweep {
+  0% { opacity: 0; transform: translateY(-6px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* BARRA DE PESQUISA FLUTUANTE (NOVO) */
+.search-floating {
+  position: fixed !important;
+  top: 1rem !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  width: calc(100% - 2rem) !important;
+  max-width: 48rem !important;
+  z-index: 1000 !important;
+}
+
+/* CHECKBOX QUE RISCA O NOME DA DISCIPLINA (NOVO) */
+.strikethrough-checked:checked ~ div .subject-name-text {
+  text-decoration: line-through;
+  color: #9ca3af !important;
+}
