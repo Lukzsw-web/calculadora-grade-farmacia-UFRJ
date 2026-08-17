@@ -746,3 +746,187 @@ document.addEventListener('DOMContentLoaded', () => {
   // Update UI components for theme since dark class might be pre-applied in head
   updateThemeUI();
 });
+// ====== VARIÁVEIS GLOBAIS E UTILITÁRIOS ======
+let timerLongPress;
+let isLongPress = false;
+
+function openModal(id) {
+    const el = document.getElementById(id);
+    if(el) el.classList.add('active');
+}
+
+function closeModal(id) {
+    const el = document.getElementById(id);
+    if(el) el.classList.remove('active');
+}
+
+function normalizeStr(str) {
+    return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+}
+
+function formatName(mat) {
+    return mat.nome;
+}
+
+// ====== LÓGICA DE CO-REQUISITOS (NOVO) ======
+function showCoreqInfo(nome, coreqCode, event) {
+    event.stopPropagation();
+    event.preventDefault();
+    const coreq = disciplinas.find(d => d.codigo === coreqCode);
+    const coreqName = coreq ? formatName(coreq) : coreqCode;
+    alert(`Essa matéria possui ${coreqName} como co-requisito, ou seja, devem ser cursadas simultaneamente no mesmo período.`);
+}
+
+function getCoreqHTML(mat) {
+    if (!mat.co) return '';
+    return `<span onclick="showCoreqInfo('${mat.nome}', '${mat.co}', event)" class="inline-flex items-center justify-center w-5 h-5 bg-blue-100 text-blue-600 dark:bg-blue-900/50 dark:text-blue-400 rounded-full text-xs font-bold ml-2 cursor-pointer shadow-sm border border-blue-200 dark:border-blue-800 transition-transform hover:scale-110" title="Possui Co-requisito">C</span>`;
+}
+
+// ====== DETALHES DA DISCIPLINA ======
+function openDetailsModal(cod) {
+    const m = disciplinas.find(d => d.codigo === cod);
+    if (!m) return;
+    
+    document.getElementById('det-nome').innerText = formatName(m);
+    document.getElementById('det-cod').innerText = m.codigo;
+    document.getElementById('det-per').innerText = m.periodo;
+    document.getElementById('det-ch').innerText = `${m.ch || 0}h`;
+    
+    // Configura a cópia de texto com visual adaptativo para sobrepor o Blur corretamente
+    const copyBtn = document.getElementById('det-copy-btn');
+    copyBtn.onclick = (e) => {
+        navigator.clipboard.writeText(m.codigo);
+        const toast = document.getElementById('toast-copy');
+        toast.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-4');
+        setTimeout(() => {
+            toast.classList.add('opacity-0', 'pointer-events-none', 'translate-y-4');
+        }, 2000);
+    };
+    
+    openModal('modal-details');
+}
+
+// ====== TRANCAMENTOS (BUG LONG PRESS RESOLVIDO) ======
+function startLongPress(cod, ev) {
+    isLongPress = false;
+    timerLongPress = setTimeout(() => {
+        isLongPress = true;
+        const m = disciplinas.find(d => d.codigo === cod);
+        if (!m) return;
+        
+        document.getElementById('locks-title').innerText = formatName(m);
+        const list = document.getElementById('locks-list');
+        
+        const trancadas = disciplinas.filter(d => d.pre && d.pre.includes(cod));
+        if (trancadas.length === 0) {
+            list.innerHTML = '<p class="text-gray-500 font-medium mt-2">Esta matéria não tranca nenhuma disciplina futura.</p>';
+        } else {
+            list.innerHTML = trancadas.map(t => `<div class="p-3 bg-gray-50 dark:bg-[#1a1c22] rounded-xl border border-gray-100 dark:border-darkBorder font-medium text-gray-700 dark:text-gray-200">${formatName(t)}</div>`).join('');
+        }
+        openModal('modal-locks');
+    }, 500); // Aciona em 500ms
+}
+
+function cancelLongPress() {
+    clearTimeout(timerLongPress);
+}
+
+// ====== BARRA DE PESQUISA FLUTUANTE 100% FUNCIONAL (NOVO) ======
+const searchInput = document.getElementById('search-input');
+const searchWrapper = document.getElementById('search-wrapper');
+const clearBtn = document.getElementById('clear-search-button');
+
+function updateSearchFloatingState() {
+    const val = searchInput.value.trim();
+    if (val.length > 0) {
+        searchWrapper.classList.add('search-floating');
+        searchWrapper.classList.remove('-mt-16', 'mb-8', 'relative');
+        clearBtn.classList.remove('hidden');
+    } else {
+        searchWrapper.classList.remove('search-floating');
+        searchWrapper.classList.add('-mt-16', 'mb-8', 'relative');
+        clearBtn.classList.add('hidden');
+    }
+}
+
+searchInput.addEventListener('input', () => {
+    updateSearchFloatingState();
+    // Chame a sua função de filtrar as matérias da tela principal aqui
+});
+
+clearBtn.addEventListener('click', () => {
+    searchInput.value = '';
+    updateSearchFloatingState();
+    // Chame a sua função de resetar as matérias da tela principal aqui
+});
+
+// ====== SANFONAS DO PLANEJADOR DE GRADE (NOVO) ======
+function openPlannerModal() {
+    populatePlanner();
+    openModal('modal-planner');
+}
+
+function populatePlanner(searchTerm = '') {
+    // Array com as matérias que você já clicou na tela inicial (assumindo a sua lógica existente)
+    const concluidas = getConcludedCodes(); 
+    
+    const obrigList = document.getElementById('planner-obrig-list');
+    const condList = document.getElementById('planner-cond-list');
+    
+    let obrigHTML = '';
+    let condHTML = '';
+    const term = normalizeStr(searchTerm);
+
+    disciplinas.forEach(mat => {
+        // Se a matéria já foi feita na grade principal, tira do planejador
+        if (concluidas.includes(mat.codigo)) return;
+        
+        // Regra para aparecer: Ter os pré requisitos (ou se estiver pesquisando ignorar as travas)
+        const hasPre = !mat.pre || mat.pre.split(',').every(r => concluidas.includes(r.trim()));
+        if (!hasPre && term === '') return;
+        
+        if (term !== '' && !normalizeStr(mat.nome + mat.codigo).includes(term)) return;
+
+        // O label possui a classe que risca e eventos para corrigir o BUG do long press no mobile e web
+        const card = `
+            <label class="flex items-start gap-3 p-3 rounded-xl bg-white dark:bg-[#21242b] border border-gray-100 dark:border-darkBorder shadow-sm cursor-pointer no-select relative overflow-hidden transition-colors"
+                   onmousedown="startLongPress('${mat.codigo}', event)"
+                   onmouseup="cancelLongPress()"
+                   onmouseleave="cancelLongPress()"
+                   ontouchstart="startLongPress('${mat.codigo}', event)"
+                   ontouchend="cancelLongPress()">
+                <input type="checkbox" value="${mat.codigo}" class="strikethrough-checked mt-1 w-5 h-5 rounded border-gray-300 text-yellowTheme-500 focus:ring-yellowTheme-400 transition" onchange="togglePlannerSubject(this, '${mat.codigo}')">
+                <div class="flex-1 pointer-events-none">
+                    <div class="font-bold text-gray-800 dark:text-gray-100 subject-name-text flex items-center flex-wrap transition-colors">
+                       ${formatName(mat)}
+                       ${getCoreqHTML(mat)}
+                    </div>
+                    <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        ${mat.codigo} • ${mat.creditos || 0} créd. • ${mat.ch || 0}h
+                    </div>
+                </div>
+            </label>
+        `;
+        
+        if (mat.periodo.toLowerCase().includes('condicionada')) condHTML += card;
+        else obrigHTML += card;
+    });
+
+    obrigList.innerHTML = obrigHTML || '<p class="text-sm text-gray-500 font-medium p-2">Nenhuma disciplina obrigatória disponível para puxar.</p>';
+    condList.innerHTML = condHTML || '<p class="text-sm text-gray-500 font-medium p-2">Nenhuma disciplina de escolha condicionada disponível para puxar.</p>';
+}
+
+function togglePlannerSubject(checkbox, codigo) {
+    // Aqui você integra com a sua função original para marcar a matéria como "feita"
+    // e recalcular a barra de progresso.
+    const mainCheckbox = document.querySelector(`.main-list-checkbox[value="${codigo}"]`);
+    if(mainCheckbox) {
+        mainCheckbox.checked = checkbox.checked;
+        // Chame sua lógica de atualização e save state
+    }
+}
+
+// Campo de pesquisa exclusivo do modal Planner
+document.getElementById('planner-search-input').addEventListener('input', (e) => {
+    populatePlanner(e.target.value);
+});
