@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Planejamento Acadêmico - Farmácia</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#ca8a04">
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  
+  <script>
+    if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+      document.documentElement.classList.add('dark');
+      document.documentElement.classList.remove('light');
+    } else {
+      document.documentElement.classList.remove('dark');
+      document.documentElement.classList.add('light');
+    }
+  </script>
+
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'sans-serif'] },
+          colors: {
+            yellowTheme: { 300: '#fde047', 400: '#facc15', 500: '#eab308', 600: '#ca8a04', 700: '#a16207', 800: '#854d0e' },
+            darkBg: '#0f1115', darkCard: '#1a1d24', darkBorder: '#2d313a'
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-gray-50 text-gray-800 dark:bg-darkBg dark:text-gray-200 font-sans antialiased selection:bg-yellowTheme-500 selection:text-white transition-colors duration-200">
+  
+  <!-- TOAST NOTIFICATION DE CÓDIGO COPIADO (Z-INDEX 9999 GARANTE QUE FIQUE POR CIMA DE TUDO) -->
+  <div id="toast-copy" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-900/90 dark:bg-yellowTheme-500 text-white dark:text-gray-900 px-5 py-2.5 rounded-full font-bold text-sm shadow-2xl z-[9999] transition-all duration-300 opacity-0 pointer-events-none translate-y-4 flex items-center gap-2">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>
+    <span id="toast-message">Código copiado!</span>
+  </div>
+
+  <header class="bg-[#fce98a] dark:bg-[#c99522] text-gray-800 dark:text-white pt-8 pb-10 px-6 shadow-xl rounded-b-[2.5rem] mb-10 relative flex flex-col items-center overflow-hidden">
+    <div class="absolute top-0 left-0 w-full h-full bg-white opacity-5 pointer-events-none" style="background-image: radial-gradient(circle at 50% 0%, #fff 0%, transparent 70%);"></div>
+    <div class="absolute top-6 left-6 z-10">
+      <button onclick="openModal('modal-info')" class="p-2 bg-black/5 hover:bg-black/10 dark:bg-white/10 dark:hover:bg-white/20 backdrop-blur-sm rounded-full transition-transform duration-200 hover:scale-105 active:scale-95 shadow-sm" aria-label="Abrir instruções">
+        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" /></svg>
+      </button>
+    </div>
+    <div class="absolute top-6 right-6 z-10">
+      <button id="settings-button" class="p-2 bg-black/5 hover:bg-black/10 dark:bg-white/10 dark:hover:bg-white/20 backdrop-blur-sm rounded-full transition-transform duration-200 hover:scale-105 active:scale-95 shadow-sm" type="button" onclick="openModal('modal-settings')" aria-label="Abrir configurações">
+        <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+      </button>
+    </div>
+    <h1 class="text-3xl font-black text-center mt-6 tracking-tight z-10 drop-shadow-sm">Planejamento Acadêmico</h1>
+    <p class="text-center font-bold text-sm mt-2 tracking-wide uppercase z-10 opacity-80">Farmácia - UFRJ</p>
+  </header>
+
+  <main class="max-w-3xl mx-auto px-4 sm:px-6 pb-20 relative">
+    <div id="search-wrapper-container" class="w-full">
+      <div id="search-wrapper" class="search-wrapper relative -mt-16 mb-8 z-[100] transition-all duration-300">
+        <div class="search-bar-shell relative flex items-center shadow-xl shadow-yellowTheme-900/10 dark:shadow-black/40 rounded-full bg-white dark:bg-darkCard transition-transform hover:scale-[1.01] duration-200">
+          <button id="search-button" class="search-button absolute left-5 text-yellowTheme-500" type="button" aria-label="Pesquisar">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path></svg>
+          </button>
+          <input type="text" id="search-input" placeholder="Buscar disciplina, código ou período..." inputmode="search" autocomplete="off" class="search-input w-full pl-12 pr-12 py-4 bg-transparent border border-gray-100 dark:border-darkBorder rounded-full text-gray-800 dark:text-gray-100 font-medium focus:outline-none focus:ring-2 focus:ring-yellowTheme-400 focus:border-transparent transition-all placeholder-gray-400 dark:placeholder-gray-500">
+          <button id="clear-search-button" class="absolute right-5 text-gray-400 hover:text-red-500 transition-colors hidden" type="button" aria-label="Limpar texto">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path></svg>
+          </button>
+        </div>
+        <div id="search-suggestions" class="search-suggestions hidden" role="listbox"></div>
+      </div>
+    </div>
+
+    <div class="flex justify-between items-center mb-6 px-2 text-sm font-semibold">
+      <span id="search-results" class="text-gray-500 dark:text-gray-400"></span>
+      <span id="save-status" class="flex items-center gap-1 text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-500/10 px-3 py-1 rounded-full opacity-0 transition-all duration-300 transform scale-95 shadow-sm">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+        Salvo
+      </span>
+    </div>
+
+    <section aria-label="Progresso acadêmico" class="bg-white dark:bg-darkCard p-6 md:p-8 rounded-[2rem] shadow-xl shadow-gray-200/50 dark:shadow-none border border-gray-100 dark:border-darkBorder mb-8 relative overflow-hidden">
+      <div class="relative z-10">
+        <div class="flex flex-col gap-4 mb-6">
+          <div class="flex items-end justify-between gap-4">
+            <div>
+              <p class="text-xs font-black uppercase tracking-wider text-gray-400">Progresso da graduação</p>
+              <p id="percent-total" class="text-4xl font-black text-gray-800 dark:text-white mt-1">0%</p>
+            </div>
+            <div class="text-right text-xs font-bold text-gray-400">
+              <div><span id="total-creditos">0</span> créd.</div>
+              <div><span id="total-horas">0</span>h</div>
+            </div>
+          </div>
+          <div class="h-3 rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden">
+            <div id="bar-total" class="h-full rounded-full bg-gradient-to-r from-yellowTheme-400 to-yellowTheme-600 transition-all duration-500" style="width:0%"></div>
+          </div>
+        </div>
+
+        <div class="space-y-5">
+          <div>
+            <div class="flex items-center justify-between gap-3 text-sm mb-2">
+              <div class="font-bold text-gray-700 dark:text-gray-200">
+                Obrigatórias
+                <span class="text-gray-400 font-semibold">(<span id="count-obrig-feitas-painel">0</span>/<span id="count-obrig-total-painel">0</span>)</span>
+              </div>
+              <span id="percent-obrig" class="font-black text-gray-500 dark:text-gray-300">0%</span>
+            </div>
+            <div class="h-2.5 rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden">
+              <div id="bar-obrig" class="progress-bar-obrig h-full rounded-full transition-all duration-500" style="width:0%"></div>
+            </div>
+            <div class="flex justify-between mt-1.5 text-xs font-semibold text-gray-400">
+              <span><span id="count-obrig-feitas">0</span> feitas</span>
+              <span><span id="count-obrig-faltam">0</span> faltam</span>
+            </div>
+          </div>
+
+          <div>
+            <div class="flex items-center justify-between gap-3 text-sm mb-2">
+              <div class="font-bold text-gray-700 dark:text-gray-200 flex items-center gap-1.5">
+                Escolha Condicionada
+                <span id="icon-cond-exclamation" class="hidden text-yellowTheme-600 dark:text-yellowTheme-300" title="Meta ainda não atingida">!</span>
+              </div>
+              <span id="text-cond-progress" class="font-black text-gray-500 dark:text-gray-300">0 créd. • 0h</span>
+            </div>
+            <div class="h-2.5 rounded-full bg-gray-100 dark:bg-gray-800 overflow-hidden">
+              <div id="bar-cond" class="progress-bar-cond h-full rounded-full transition-all duration-500" style="width:0%"></div>
+            </div>
+            <div class="flex justify-between mt-1.5 text-xs font-semibold text-gray-400">
+              <span><span id="count-cond-feitas">0</span> feitas</span>
+              <span><span id="count-cond-faltam">0</span> disponíveis/faltam</span>
+            </div>
+            <div class="mt-2 text-xs font-semibold text-gray-400">
+              <span id="text-cond-meta">Meta: 12 créd. / 180h</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex flex-col sm:flex-row gap-3 mt-8 relative z-10">
+        <button onclick="confirmarLimparSelecao()" class="flex-1 bg-white dark:bg-darkBg border border-gray-200 dark:border-darkBorder hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 font-bold py-3 px-4 rounded-xl transition-all duration-200 active:scale-[0.98] shadow-sm flex justify-center items-center gap-2" type="button">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+          Limpar
+        </button>
+        <button onclick="openPlannerModal()" class="flex-[2] bg-gradient-to-r from-yellowTheme-500 to-yellowTheme-600 hover:from-yellowTheme-600 hover:to-yellowTheme-700 text-white font-bold py-3 px-4 rounded-xl transition-all duration-200 active:scale-[0.98] shadow-md hover:shadow-lg flex justify-center items-center gap-2" type="button">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+          Planejar Grade
+        </button>
+      </div>
+    </section>
+
+    <div id="accordions-container" class="space-y-4"></div>
+  </main>
+
+
+  <!-- MODAL INFORMAÇÕES -->
+  <div id="modal-info" class="fixed inset-0 modal-overlay justify-center items-center z-[90] transition-opacity opacity-0 pointer-events-none">
+    <div class="bg-white dark:bg-darkCard w-[92%] max-w-md rounded-[2rem] p-7 shadow-2xl relative border border-gray-100 dark:border-darkBorder modal-content transform scale-95 transition-all duration-300" onclick="event.stopPropagation()">
+      <button aria-label="Fechar" onclick="closeModal('modal-info')" class="absolute top-5 right-5 text-gray-400 hover:text-red-500 bg-gray-50 dark:bg-gray-800 p-2 rounded-full">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
+      </button>
+      <h3 class="text-2xl font-black text-gray-800 dark:text-white mb-4 pr-8">Como usar</h3>
+      <div class="space-y-3 text-sm font-medium text-gray-600 dark:text-gray-300">
+        <p>Marque as disciplinas que você já concluiu para atualizar o progresso automaticamente.</p>
+        <p>Use a busca para localizar uma disciplina, código ou período.</p>
+        <p>Pressione e segure uma disciplina para ver detalhes e os requisitos.</p>
+        <p>O <strong>Planejador de Grade</strong> mostra as disciplinas disponíveis conforme os pré-requisitos.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL CONFIGURAÇÕES -->
+  <div id="modal-settings" class="fixed inset-0 modal-overlay justify-center items-center z-[90] transition-opacity opacity-0 pointer-events-none">
+    <div class="bg-white dark:bg-darkCard w-[92%] max-w-md rounded-[2rem] p-7 shadow-2xl relative border border-gray-100 dark:border-darkBorder modal-content transform scale-95 transition-all duration-300" onclick="event.stopPropagation()">
+      <button aria-label="Fechar" onclick="closeModal('modal-settings')" class="absolute top-5 right-5 text-gray-400 hover:text-red-500 bg-gray-50 dark:bg-gray-800 p-2 rounded-full">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path></svg>
+      </button>
+      <h3 class="text-2xl font-black text-gray-800 dark:text-white mb-5 pr-8">Configurações</h3>
+      <button type="button" onclick="toggleThemeFromSettings()" class="w-full flex items-center justify-between p-4 rounded-2xl bg-gray-50 dark:bg-darkBg border border-gray-100 dark:border-darkBorder">
+        <span class="flex items-center gap-3 font-bold text-gray-800 dark:text-gray-100">
+          <svg id="settings-theme-icon-sun" class="w-5 h-5 text-orange-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32l1.41 1.41M2 12h2m16 0h2M4.93 19.07l1.41-1.41m11.32-11.32l1.41-1.41"></path></svg>
+          <svg id="settings-theme-icon-moon" class="hidden w-5 h-5 text-blue-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+          <span id="settings-theme-label">Modo claro</span>
+        </span>
+        <span class="relative inline-flex items-center w-11 h-6 rounded-full bg-gray-300 dark:bg-gray-700">
+          <span id="theme-toggle-thumb" class="w-5 h-5 bg-white rounded-full shadow absolute left-0.5 transition-transform duration-200"></span>
+        </span>
+      </button>
+    </div>
+  </div>
+
+  <!-- MODAL INFORMAÇÕES DO PLANEJADOR -->
+  <div id="modal-planner-info" class="fixed inset-0 modal-overlay justify-center items-center z-[95] transition-opacity opacity-0 pointer-events-none">
+    <div class="bg-white dark:bg-darkCard w-[92%] max-w-md rounded-[2rem] p-7 shadow-2xl relative border border-gray-100 dark:border-darkBorder modal-content transform scale-95 transition-all duration-300" onclick="event.stopPropagation()">
+      <button aria-label="Fechar" onclick="closeModal('modal-planner-info')" class="absolute top-5 right-5 text-gray-400 hover:text-red-500 bg-gray-50 dark:bg-gray-800 p-2 rounded-full">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"></path></svg>
+      </button>
+      <h3 class="text-xl font-black text-gray-800 dark:text-white mb-3 pr-8">Sobre o Planejador</h3>
+      <p class="text-sm font-medium text-gray-600 dark:text-gray-300">As disciplinas aparecem quando seus pré-requisitos e correquisitos estão atendidos. Ao pesquisar, você também pode localizar matérias fora das condições atuais.</p>
+    </div>
+  </div>
+
+  <!-- MODAL INFORMAÇÕES DE ESCOLHA CONDICIONADA -->
+  <div id="modal-cond-info" class="fixed inset-0 modal-overlay justify-center items-center z-[95] transition-opacity opacity-0 pointer-events-none">
+    <div class="bg-white dark:bg-darkCard w-[92%] max-w-md rounded-[2rem] p-7 shadow-2xl relative border border-gray-100 dark:border-darkBorder modal-content transform scale-95 transition-all duration-300" onclick="event.stopPropagation()">
+      <button aria-label="Fechar" onclick="closeModal('modal-cond-info')" class="absolute top-5 right-5 text-gray-400 hover:text-red-500 bg-gray-50 dark:bg-gray-800 p-2 rounded-full">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"></path></svg>
+      </button>
+      <h3 class="text-xl font-black text-gray-800 dark:text-white mb-3 pr-8">Escolha Condicionada</h3>
+      <p class="text-sm font-medium text-gray-600 dark:text-gray-300">A meta desta categoria é de 12 créditos e 180 horas.</p>
+    </div>
+  </div>
+
+  <!-- MODAL PLANEJADOR DE GRADE -->
+  <div id="modal-planner" class="fixed inset-0 modal-overlay justify-center items-center z-[80] transition-opacity opacity-0 pointer-events-none">
+    <div class="bg-white dark:bg-darkCard w-[95%] max-w-2xl rounded-[2rem] p-5 md:p-7 shadow-2xl relative border border-gray-100 dark:border-darkBorder h-[85vh] flex flex-col modal-content transform scale-95 transition-all duration-300" onclick="event.stopPropagation()">
+      <div class="flex justify-between items-start mb-2">
+        <div>
+          <h3 class="text-2xl font-black text-gray-800 dark:text-white flex items-center gap-2">
+            Planejador de Grade
+            <button onclick="openModal('modal-planner-info')" class="text-yellowTheme-500 hover:text-yellowTheme-600 transition-colors" aria-label="Informações do Planejador">
+              <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" /></svg>
+            </button>
+          </h3>
+        </div>
+        <button aria-label="Fechar" onclick="closeModal('modal-planner')" class="text-gray-400 hover:text-red-500 bg-gray-50 dark:bg-gray-800 hover:bg-red-50 p-2 rounded-full transition-colors flex-shrink-0">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+      </div>
+
+      <div id="planner-search-wrapper" class="search-wrapper relative my-5 z-20">
+        <div class="search-bar-shell relative flex items-center shadow-md shadow-gray-200/50 dark:shadow-black/40 rounded-full bg-gray-50 dark:bg-[#1a1d24] transition-transform hover:scale-[1.01] duration-200 border border-gray-200 dark:border-darkBorder">
+          <button class="search-button absolute left-5 text-yellowTheme-500" type="button">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path></svg>
+          </button>
+          <input type="text" id="planner-search-input" placeholder="Buscar nas disciplinas..." autocomplete="off" class="search-input w-full pl-12 pr-12 py-3.5 bg-transparent border-none rounded-full text-gray-800 dark:text-gray-100 font-medium focus:outline-none focus:ring-2 focus:ring-yellowTheme-400 transition-all placeholder-gray-400 dark:placeholder-gray-500">
+          <button id="planner-clear-search-button" class="absolute right-5 text-gray-400 hover:text-red-500 transition-colors hidden" type="button">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path></svg>
+          </button>
+        </div>
+        <div id="planner-search-suggestions" class="search-suggestions hidden" role="listbox"></div>
+      </div>
+
+      <div id="planner-accordions" class="flex-1 overflow-y-auto space-y-4 pr-2 scrollbar-thin pb-4">
+        <details open class="group bg-gray-50 dark:bg-[#15171b] rounded-2xl border border-gray-200/80 dark:border-darkBorder/80 overflow-hidden transition-all duration-200">
+          <summary class="flex justify-between items-center font-bold cursor-pointer list-none p-4 text-base text-gray-800 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-[#1c1f26] transition-colors">
+            <span>Disciplinas Obrigatórias</span>
+            <svg class="w-5 h-5 text-gray-400 group-open:rotate-180 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"></path></svg>
+          </summary>
+          <div id="planner-obrig-list" class="p-4 border-t border-gray-200/60 dark:border-darkBorder/60 space-y-3"></div>
+        </details>
+
+        <details class="group bg-gray-50 dark:bg-[#15171b] rounded-2xl border border-gray-200/80 dark:border-darkBorder/80 overflow-hidden transition-all duration-200">
+          <summary class="flex justify-between items-center font-bold cursor-pointer list-none p-4 text-base text-gray-800 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-[#1c1f26] transition-colors">
+            <span>Escolha Condicionada</span>
+            <svg class="w-5 h-5 text-gray-400 group-open:rotate-180 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"></path></svg>
+          </summary>
+          <div id="planner-cond-list" class="p-4 border-t border-gray-200/60 dark:border-darkBorder/60 space-y-3"></div>
+        </details>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL DETALHES -->
+  <div id="modal-details" class="fixed inset-0 modal-overlay justify-center items-center z-[80] transition-opacity opacity-0 pointer-events-none">
+    <div class="bg-white dark:bg-darkCard w-[92%] max-w-md rounded-[2rem] p-7 shadow-2xl relative border border-gray-100 dark:border-darkBorder modal-content transform scale-95 transition-all duration-300" onclick="event.stopPropagation()">
+      <button aria-label="Fechar" onclick="closeModal('modal-details')" class="absolute top-5 right-5 text-gray-400 hover:text-red-500 bg-gray-50 dark:bg-gray-800 hover:bg-red-50 p-2 rounded-full transition-colors">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
+      </button>
+      <h3 id="det-nome" class="text-2xl font-black text-gray-800 dark:text-white mb-5 pr-8 leading-tight"></h3>
+      
+      <div class="bg-gray-50 dark:bg-[#15171b] rounded-2xl p-4 border border-gray-100 dark:border-darkBorder mb-5 flex flex-wrap gap-4 text-sm font-bold items-center">
+        <div class="flex flex-col">
+          <span class="text-xs text-gray-400 uppercase">Código</span>
+          <div class="flex items-center gap-2 mt-1">
+            <!-- CÓDIGO COM COR ADAPTÁVEL QUE CHAMA A ATENÇÃO -->
+            <span id="det-cod" class="text-indigo-600 dark:text-indigo-300 bg-indigo-100 dark:bg-indigo-900/50 px-2 py-0.5 rounded shadow-sm font-extrabold tracking-wide"></span>
+            <button id="det-copy-btn" type="button" class="p-1 text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors" title="Copiar Código">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div class="flex flex-col border-l border-gray-200 dark:border-gray-700 pl-4">
+          <span class="text-xs text-gray-400 uppercase">Período</span>
+          <span id="det-per" class="text-gray-700 dark:text-gray-200 mt-1"></span>
+        </div>
+        <div class="flex flex-col border-l border-gray-200 dark:border-gray-700 pl-4">
+          <span class="text-xs text-gray-400 uppercase">Créditos</span>
+          <span id="det-cred" class="text-gray-700 dark:text-gray-200 mt-1"></span>
+        </div>
+        <div class="flex flex-col border-l border-gray-200 dark:border-gray-700 pl-4">
+          <span class="text-xs text-gray-400 uppercase">Carga</span>
+          <span id="det-ch" class="text-gray-700 dark:text-gray-200 mt-1"></span>
+        </div>
+      </div>
+
+      <div class="space-y-4 text-sm font-medium">
+        <div>
+          <span class="text-xs font-bold text-gray-400 uppercase block mb-1">Pré-requisitos</span>
+          <div id="det-pre" class="bg-gray-50 dark:bg-[#15171b] rounded-xl p-3 border border-gray-100 dark:border-darkBorder"></div>
+        </div>
+        <div>
+          <span class="text-xs font-bold text-gray-400 uppercase block mb-1">Correquisitos</span>
+          <div id="det-co" class="bg-gray-50 dark:bg-[#15171b] rounded-xl p-3 border border-gray-100 dark:border-darkBorder"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL TRANCAMENTOS -->
+  <div id="modal-locks" class="fixed inset-0 modal-overlay justify-center items-center z-[90] transition-opacity opacity-0 pointer-events-none">
+    <div class="bg-white dark:bg-darkCard w-[90%] max-w-sm rounded-[2rem] p-6 shadow-2xl relative border border-gray-100 dark:border-darkBorder text-center modal-content transform scale-95 transition-all duration-300" onclick="event.stopPropagation()">
+      <button aria-label="Fechar" onclick="closeModal('modal-locks')" class="absolute top-5 right-5 text-gray-400 hover:text-red-500 bg-gray-50 dark:bg-gray-800 hover:bg-red-50 p-2 rounded-full transition-colors">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
+      </button>
+      <div class="mx-auto w-12 h-12 bg-red-100 dark:bg-red-900/30 text-red-500 rounded-full flex items-center justify-center mb-4">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+      </div>
+      <h3 id="locks-title" class="text-xl font-black text-gray-800 dark:text-white mb-1"></h3>
+      <p class="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-5">Essa matéria tranca:</p>
+      <div id="locks-list" class="space-y-2 text-sm max-h-60 overflow-y-auto text-left scrollbar-thin"></div>
+    </div>
+  </div>
+
+  <script src="disciplinas.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
