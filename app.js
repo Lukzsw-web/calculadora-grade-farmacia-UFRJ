@@ -1,5 +1,6 @@
 const STORAGE_KEYS = {
   checked: 'farma_checked_v4',
+  plannerChecked: 'farma_planner_checked_v1',
   theme: 'theme'
 };
 const PERIODO_COND = 'Escolha Condicionada';
@@ -67,12 +68,26 @@ function hoursOf(mat) {
 }
 
 function buildSearchIndex(mat) {
-  return normalizeStr([formatName(mat), mat.codigo, displayPeriod(mat), `${mat.periodo} periodo`].join(' '));
+  let extra = '';
+  const c = mat.codigo;
+  // Expansão inteligente para siglas no motor de busca
+  if(c.startsWith('FFW361')||c.startsWith('FFW362')||c.startsWith('FFW471')||c.startsWith('FFW472')||c.startsWith('FFW481')||c.startsWith('FFW591')||c.startsWith('FFW502')) extra += 'cif ';
+  if(c.startsWith('FFW241')||c.startsWith('FFW354')||c.startsWith('FFW365')||c.startsWith('FFW474')||c.startsWith('FFW483')||c.startsWith('FFW593')||c.startsWith('FFW503')) extra += 'pcq ';
+  if(c.startsWith('BQM')) extra += 'bqm bioquimica ';
+  if(c.startsWith('IQF')) extra += 'fisqui fq fisico quimica ';
+  if(c.startsWith('IQO242')) extra += 'orgexp organica experimental ';
+  if(c.startsWith('BMF310')) extra += 'f1 f 1 farmacocinetica e farmacodinamica ';
+  if(c.startsWith('FFW242')||c.startsWith('FFW352')) extra += 'qfm quimica farmaceutica e medicinal ';
+  if(c.startsWith('IMW360')) extra += 'mif micro ';
+  if(c.startsWith('BMW103')) extra += 'morfo bases morfologicas ';
+  
+  return normalizeStr([formatName(mat), mat.codigo, displayPeriod(mat), `${mat.periodo} periodo`, extra].join(' '));
 }
 
 function expandSearchAliases(rawText) {
   let r = String(rawText || '').trim().toLowerCase();
 
+  // Preservando as substituições diretas legadas para compatibilidade
   if (r === 'orgexp') return normalizeStr('Química Orgânica Experimental');
   if (r === 'f1') return normalizeStr('Farmacocinética e Farmacodinâmica');
   if (r === 'exp') return normalizeStr('Experimental');
@@ -283,7 +298,7 @@ function showToast(codigo) {
   const msgEl = document.getElementById('toast-message');
   if (!toast || !msgEl) return;
   
-  msgEl.innerHTML = `Código <span class="text-yellow-600 dark:text-yellow-500 font-black px-1 tracking-wider bg-black/10 dark:bg-black/30 rounded">${codigo}</span> copiado com sucesso!`;
+  msgEl.innerHTML = `Texto <span class="text-yellow-600 dark:text-yellow-500 font-black px-1 tracking-wider bg-black/10 dark:bg-black/30 rounded">${codigo}</span> copiado com sucesso!`;
   toast.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-4');
   toast.classList.add('opacity-100', 'translate-y-0');
   
@@ -417,7 +432,7 @@ async function compartilharGradePDF() {
   
   const concluidas = getConcludedCodes();
   doc.setFontSize(18);
-  doc.text("Planejamento Acadêmico - Farmácia UFRJ", 14, 20);
+  doc.text("Planejador Acadêmico - Farmácia UFRJ", 14, 20);
 
   doc.setFontSize(12);
   doc.text(`Disciplinas Concluídas: ${concluidas.length}`, 14, 30);
@@ -467,11 +482,15 @@ function setupSearchInputs(inputId, clearBtnId, suggestionsId, filterFn) {
       clearBtn.classList.remove('hidden');
     } else {
       clearBtn.classList.add('hidden');
-      if (inputId === 'search-input') {
-        document.getElementById('search-wrapper').classList.remove('sticky-search-active');
-      }
     }
     filterFn(input.value);
+  });
+  
+  // A barra flutuante só some se fechar o teclado e estiver vazia
+  input.addEventListener('blur', () => {
+    if (inputId === 'search-input' && input.value.trim() === '') {
+      document.getElementById('search-wrapper').classList.remove('sticky-search-active');
+    }
   });
 
   clearBtn.addEventListener('click', () => {
@@ -479,11 +498,8 @@ function setupSearchInputs(inputId, clearBtnId, suggestionsId, filterFn) {
     clearBtn.classList.add('hidden');
     filterFn('');
     document.getElementById(suggestionsId)?.classList.add('hidden');
+    // Mantém o foco para que o teclado não feche e o scroll não pule para cima
     input.focus();
-    
-    if (inputId === 'search-input') {
-      document.getElementById('search-wrapper').classList.remove('sticky-search-active');
-    }
   });
 }
 
@@ -616,28 +632,25 @@ function togglePlannerCheck(event, codigo) {
   const textDiv = document.getElementById(`planner-text-${codigo}`);
   const cardDiv = document.getElementById(`planner-card-${codigo}`);
 
+  let saved = loadJSON(STORAGE_KEYS.plannerChecked, []);
+
   if (isChecked) {
+      if (!saved.includes(codigo)) saved.push(codigo);
       cardDiv.classList.add('opacity-50', 'grayscale');
       textDiv.classList.add('line-through');
-      
-      const globalCb = document.querySelector(`.subject-card input[type="checkbox"][value="${codigo}"]`);
-      if (globalCb) globalCb.checked = true;
   } else {
+      saved = saved.filter(c => c !== codigo);
       cardDiv.classList.remove('opacity-50', 'grayscale');
       textDiv.classList.remove('line-through');
-      
-      const globalCb = document.querySelector(`.subject-card input[type="checkbox"][value="${codigo}"]`);
-      if (globalCb) globalCb.checked = false;
   }
-
-  persistCheckedState();
-  updateDashboard();
-  applySelectedVisualization(getConcludedCodes());
+  
+  saveJSON(STORAGE_KEYS.plannerChecked, saved);
 }
 
 function renderPlannerList(query = '') {
   const container = document.getElementById('planner-list');
   const concluidas = getConcludedCodes();
+  const savedPlanner = loadJSON(STORAGE_KEYS.plannerChecked, []);
   const normalized = expandSearchAliases(query);
 
   const elegiveis = disciplinas.filter(m => {
@@ -664,23 +677,24 @@ function renderPlannerList(query = '') {
 
   const renderItems = (items) => items.map(m => {
     const trancadas = getLockedSubjects(m.codigo);
+    const isPlannerChecked = savedPlanner.includes(m.codigo);
     
     let coReqHtml = '';
     if (m.co) {
-       coReqHtml = `<button type="button" onclick="showCoreqInfo(event, '${m.codigo}')" title="Ver Co-requisito" class="ml-2 inline-flex items-center justify-center w-[26px] h-[26px] rounded-full border-2 border-yellow-500 text-yellow-600 dark:text-yellow-400 font-black text-[12px] bg-yellow-50 dark:bg-yellow-900/30 hover:bg-yellow-100 dark:hover:bg-yellow-900/50 transition-colors shadow-sm ring-2 ring-yellow-200 dark:ring-yellow-800">C</button>`;
+       coReqHtml = `<button type="button" onclick="showCoreqInfo(event, '${m.codigo}')" title="Ver Co-requisito" class="ml-2 inline-flex items-center justify-center w-[24px] h-[24px] rounded-full border border-yellowTheme-400 text-yellowTheme-600 dark:text-yellowTheme-400 font-extrabold text-[11px] bg-yellow-50 dark:bg-yellow-900/40 hover:bg-yellow-100 dark:hover:bg-yellow-900/60 transition-colors shadow-sm ring-1 ring-yellow-200 dark:ring-yellow-800">C</button>`;
     }
 
     return `
-      <div id="planner-card-${m.codigo}" class="p-3.5 bg-yellow-50 dark:bg-darkBg border border-yellowTheme-200 dark:border-darkBorder rounded-xl cursor-pointer hover:bg-yellow-100 dark:hover:bg-gray-800 transition no-select"
+      <div id="planner-card-${m.codigo}" class="p-3.5 bg-yellow-50 dark:bg-darkBg border border-yellowTheme-200 dark:border-darkBorder rounded-xl cursor-pointer hover:bg-yellow-100 dark:hover:bg-gray-800 transition no-select ${isPlannerChecked ? 'opacity-50 grayscale' : ''}"
            onmousedown="startHoldLocks(event, '${m.codigo}')" onmouseup="cancelLongPress()" onmouseleave="cancelLongPress()"
            ontouchstart="startHoldLocks(event, '${m.codigo}')" ontouchend="cancelLongPress()">
         
         <div class="flex items-start gap-3">
            <div class="pt-0.5" onmousedown="event.stopPropagation()" ontouchstart="event.stopPropagation()">
-             <input type="checkbox" onchange="togglePlannerCheck(event, '${m.codigo}')" class="h-5 w-5 rounded border-gray-300 text-yellowTheme-600 focus:ring-yellowTheme-500 cursor-pointer shadow-sm">
+             <input type="checkbox" onchange="togglePlannerCheck(event, '${m.codigo}')" class="h-5 w-5 rounded border-gray-300 text-yellowTheme-600 focus:ring-yellowTheme-500 cursor-pointer shadow-sm" ${isPlannerChecked ? 'checked' : ''}>
            </div>
            
-           <div class="flex-1 transition-all" id="planner-text-${m.codigo}">
+           <div class="flex-1 transition-all ${isPlannerChecked ? 'line-through' : ''}" id="planner-text-${m.codigo}">
              <div class="font-bold text-yellowTheme-800 dark:text-yellowTheme-300 flex items-center justify-between">
                <span class="flex items-center">${formatName(m)} ${coReqHtml}</span>
                <button type="button" onclick="copyCodeToClipboard('${m.codigo}', event)" title="Copiar código" class="p-1 text-gray-400 hover:text-yellowTheme-600 dark:hover:text-yellowTheme-400 transition-colors bg-black/5 dark:bg-white/5 rounded-md">
@@ -699,12 +713,14 @@ function renderPlannerList(query = '') {
 
   let finalHTML = '';
 
+  const chevronIcon = `<svg class="accordion-chevron w-5 h-5 text-gray-500 dark:text-gray-400 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>`;
+
   if (obrigatorias.length > 0) {
     finalHTML += `
       <details class="group mb-3" open>
         <summary class="flex justify-between items-center font-bold cursor-pointer list-none p-4 text-sm bg-gray-100 dark:bg-gray-800 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition border border-gray-200 dark:border-darkBorder text-gray-800 dark:text-gray-100">
           Disciplinas Obrigatórias (${obrigatorias.length})
-          <span class="accordion-chevron font-mono text-xs">V</span>
+          ${chevronIcon}
         </summary>
         <div class="pt-3 space-y-3 pb-1">
           ${renderItems(obrigatorias)}
@@ -718,7 +734,7 @@ function renderPlannerList(query = '') {
       <details class="group mb-3">
         <summary class="flex justify-between items-center font-bold cursor-pointer list-none p-4 text-sm bg-gray-100 dark:bg-gray-800 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition border border-gray-200 dark:border-darkBorder text-gray-800 dark:text-gray-100">
           Escolha Condicionada (${condicionadas.length})
-          <span class="accordion-chevron font-mono text-xs">V</span>
+          ${chevronIcon}
         </summary>
         <div class="pt-3 space-y-3 pb-1">
           ${renderItems(condicionadas)}
@@ -795,6 +811,8 @@ function buildSections() {
 
   const container = document.getElementById('accordions-container');
   container.innerHTML = '';
+  
+  const chevronIcon = `<svg class="accordion-chevron w-5 h-5 text-gray-500 dark:text-gray-400 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>`;
 
   periodosKeys.forEach((periodo, index) => {
     let tituloRaw = periodo === PERIODO_COND ? periodo : `${periodo}º Período`;
@@ -806,35 +824,42 @@ function buildSections() {
     const div = document.createElement('div');
     div.className = 'mb-4 bg-white dark:bg-darkCard rounded-xl shadow-sm border border-gray-100 dark:border-darkBorder overflow-hidden';
 
-    const materiasHtml = periodosMap[periodo].map(m => `
-      <label id="card-${m.codigo}" data-periodo="${periodo}" data-search="${buildSearchIndex(m)}"
-             class="subject-card status-default flex items-center p-4 mb-2 rounded-lg cursor-pointer no-select"
-             onmousedown="startLongPress('${m.codigo}')" onmouseup="cancelLongPress()" onmouseleave="cancelLongPress()"
-             ontouchstart="startLongPress('${m.codigo}')" ontouchend="cancelLongPress()">
-        <input type="checkbox" class="form-checkbox h-5 w-5 text-yellowTheme-600 rounded mr-4 focus:ring-yellowTheme-500"
-               value="${m.codigo}" data-periodo="${periodo}"
-               onchange="persistCheckedState(); updateDashboard(); applySelectedVisualization(getConcludedCodes());">
-        <div class="flex-1 min-w-0">
-          <div class="subject-name text-gray-800 dark:text-gray-100 leading-tight mb-1 truncate">${formatName(m)}</div>
-          <div class="subject-meta truncate flex items-center gap-1.5">
-            <span class="font-extrabold">${m.codigo}</span>
-            <button type="button" onclick="copyCodeToClipboard('${m.codigo}', event)" title="Copiar código" class="p-0.5 text-gray-500 dark:text-gray-300 hover:text-yellowTheme-600 dark:hover:text-yellowTheme-400 transition-colors inline-flex items-center bg-black/5 dark:bg-white/5 rounded">
-              <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-              </svg>
-            </button>
-            • ${creditsOf(m)} créd. • ${hoursOf(m)} Horas.
+    const materiasHtml = periodosMap[periodo].map(m => {
+      let coReqHtmlMain = '';
+      if (m.co) {
+        coReqHtmlMain = `<button type="button" onclick="showCoreqInfo(event, '${m.codigo}')" title="Ver Co-requisito" class="ml-2 inline-flex items-center justify-center w-[24px] h-[24px] rounded-full border border-yellowTheme-400 text-yellowTheme-600 dark:text-yellowTheme-400 font-extrabold text-[11px] bg-yellow-50 dark:bg-yellow-900/40 hover:bg-yellow-100 dark:hover:bg-yellow-900/60 transition-colors shadow-sm ring-1 ring-yellow-200 dark:ring-yellow-800">C</button>`;
+      }
+      
+      return `
+        <label id="card-${m.codigo}" data-periodo="${periodo}" data-search="${buildSearchIndex(m)}"
+               class="subject-card status-default flex items-center p-4 mb-2 rounded-lg cursor-pointer no-select"
+               onmousedown="startLongPress('${m.codigo}')" onmouseup="cancelLongPress()" onmouseleave="cancelLongPress()"
+               ontouchstart="startLongPress('${m.codigo}')" ontouchend="cancelLongPress()">
+          <input type="checkbox" class="form-checkbox h-5 w-5 text-yellowTheme-600 rounded mr-4 focus:ring-yellowTheme-500"
+                 value="${m.codigo}" data-periodo="${periodo}"
+                 onchange="persistCheckedState(); updateDashboard(); applySelectedVisualization(getConcludedCodes());">
+          <div class="flex-1 min-w-0">
+            <div class="subject-name text-gray-800 dark:text-gray-100 leading-tight mb-1 truncate flex items-center">${formatName(m)} ${coReqHtmlMain}</div>
+            <div class="subject-meta truncate flex items-center gap-1.5">
+              <span class="font-extrabold">${m.codigo}</span>
+              <button type="button" onclick="copyCodeToClipboard('${m.codigo}', event)" title="Copiar código" class="p-0.5 text-gray-500 dark:text-gray-300 hover:text-yellowTheme-600 dark:hover:text-yellowTheme-400 transition-colors inline-flex items-center bg-black/5 dark:bg-white/5 rounded">
+                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+              </button>
+              • ${creditsOf(m)} créd. • ${hoursOf(m)} Horas.
+            </div>
           </div>
-        </div>
-      </label>
-    `).join('');
+        </label>
+      `;
+    }).join('');
 
     div.innerHTML = `
       <details class="group" data-periodo="${periodo}" ${index === 0 ? 'open' : ''}>
         <summary class="flex justify-between items-center font-bold cursor-pointer list-none p-5 text-lg bg-yellow-50/50 dark:bg-darkBg hover:bg-yellow-100 dark:hover:bg-gray-800 transition-colors">
           ${tituloHtml}
-          <span class="accordion-chevron font-mono inline-block font-extrabold text-sm text-gray-500 dark:text-gray-400">V</span>
+          ${chevronIcon}
         </summary>
         <div class="accordion-content p-5 border-t border-yellowTheme-100 dark:border-darkBorder">
           <div class="flex gap-2 mb-4">
