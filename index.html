@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Planejador Acadêmico - Farmácia</title>
+  <title>Planejador Acadêmico</title>
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#ca8a04">
   
@@ -75,11 +75,11 @@
       </button>
     </div>
 
-    <h1 class="text-3xl font-black text-center mt-6 tracking-tight z-10 drop-shadow-sm">Planejamento Acadêmico</h1>
+    <h1 class="text-3xl font-black text-center mt-6 tracking-tight z-10 drop-shadow-sm">Planejador Acadêmico</h1>
     <p class="text-center font-bold text-sm mt-2 tracking-wide uppercase z-10 opacity-80">Farmácia - UFRJ</p>
   </header>
 
-  <main class="max-w-3xl mx-auto px-4 sm:px-6 pb-20">
+  <main class="max-w-3xl mx-auto px-4 sm:px-6 pb-4">
     <div id="search-wrapper" class="search-wrapper relative -mt-16 mb-8 z-50 transition-all duration-300">
       <div class="search-bar-shell relative flex items-center shadow-xl shadow-yellowTheme-900/10 dark:shadow-black/40 rounded-full bg-white dark:bg-darkCard transition-transform hover:scale-[1.01] duration-200">
         <button id="search-button" class="search-button absolute left-5 text-yellowTheme-500" type="button" aria-label="Pesquisar">
@@ -177,7 +177,102 @@
     </div>
 
     <div id="accordions-container" class="space-y-4"></div>
+
   </main>
+
+  <footer class="mt-8 mb-6 text-center text-[11px] md:text-xs text-gray-500 dark:text-gray-400 px-4 max-w-2xl mx-auto font-medium">
+    Ferramenta de caráter auxiliar, sua utilização não substitui a consulta do BOA no aplicativo "Portal Aluno UFRJ" ou no site do SIGA. Site feito de aluno para aluno, sem relação com a UFRJ.
+  </footer>
+
+  <!-- MODALS -->
+
+  <!-- Modal Planner -->
+  <div id="modal-planner" class="fixed inset-0 modal-overlay justify-center items-end sm:items-center z-[85] transition-opacity opacity-0 pointer-events-none">
+    <div class="bg-white dark:bg-darkCard w-full sm:w-[95%] sm:max-w-2xl h-[90vh] sm:h-[85vh] rounded-t-[2rem] sm:rounded-[2rem] shadow-2xl relative border-t sm:border border-gray-100 dark:border-darkBorder modal-content transform translate-y-full sm:translate-y-0 sm:scale-95 transition-all duration-300 flex flex-col" onclick="event.stopPropagation()">
+      <div class="p-6 border-b border-gray-100 dark:border-darkBorder flex items-center justify-between flex-shrink-0">
+        <div class="flex items-center gap-3">
+          <h3 class="text-2xl font-black text-gray-800 dark:text-white">Planejador de Grade</h3>
+          <!-- Novo Ícone de Informação (Quadrado de pontas arredondadas) -->
+          <button onclick="openModal('modal-planner-info')" class="text-yellowTheme-500 hover:scale-110 transition-transform">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><rect x="4" y="4" width="16" height="16" rx="4" ry="4"></rect><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>
+          </button>
+        </div>
+        <button aria-label="Fechar" onclick="closeModal('modal-planner')" class="text-gray-400 hover:text-red-500 bg-gray-50 dark:bg-gray-800 hover:bg-red-50 p-2 rounded-full transition-colors">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+      </div>
+      <div id="planner-search-wrapper" class="p-4 border-b border-gray-100 dark:border-darkBorder bg-gray-50/50 dark:bg-darkBg/50 relative flex-shrink-0">
+        <div class="relative flex items-center">
+          <svg class="absolute left-4 w-5 h-5 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          <input type="text" id="planner-search-input" placeholder="Buscar disciplinas disponíveis..." class="w-full pl-11 pr-10 py-3 bg-white dark:bg-darkCard border border-gray-200 dark:border-gray-700 rounded-xl text-gray-800 dark:text-gray-100 font-medium focus:outline-none focus:ring-2 focus:ring-yellowTheme-400 transition-all">
+          <button id="planner-clear-search-button" class="absolute right-3 text-gray-400 hover:text-red-500 transition-colors hidden">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+          </button>
+        </div>
+        <div id="planner-search-suggestions" class="search-suggestions hidden"></div>
+      </div>
+      <div class="flex-1 overflow-y-auto p-4 custom-scrollbar" id="planner-list"></div>
+    </div>
+  </div>
+
+  <!-- Modal Planner Info -->
+  <div id="modal-planner-info" class="fixed inset-0 modal-overlay justify-center items-center z-[95] transition-opacity opacity-0 pointer-events-none">
+    <div class="bg-white dark:bg-darkCard w-[90%] max-w-sm rounded-[2rem] p-8 shadow-2xl relative border border-gray-100 dark:border-darkBorder text-center modal-content transform scale-95 transition-all duration-300" onclick="event.stopPropagation()">
+      <button aria-label="Fechar" onclick="closeModal('modal-planner-info')" class="absolute top-5 right-5 text-gray-400 hover:text-red-500 bg-gray-50 dark:bg-gray-800 hover:bg-red-50 p-2 rounded-full transition-colors" type="button">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
+      </button>
+      <div class="mx-auto w-12 h-12 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-500 rounded-full flex items-center justify-center mb-5">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5"><rect x="4" y="4" width="16" height="16" rx="4" ry="4"></rect><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>
+      </div>
+      <h3 class="text-xl font-black text-gray-800 dark:text-white mb-4">Organização</h3>
+      <p class="text-sm font-medium text-gray-600 dark:text-gray-300 mb-2 text-left bg-gray-50 dark:bg-gray-800/50 p-4 rounded-xl border border-gray-100 dark:border-gray-700 leading-relaxed">
+        O uso do Quadradinho ao lado da disciplina tem a finalidade de organização. Clique nele para você saber que já puxou aquela matéria na sua grade atual e não se perder.
+      </p>
+    </div>
+  </div>
+
+  <!-- Modal Co-requisito -->
+  <div id="modal-coreq" class="fixed inset-0 modal-overlay justify-center items-center z-[110] transition-opacity opacity-0 pointer-events-none">
+    <div class="bg-white dark:bg-darkCard w-[90%] max-w-sm rounded-[2rem] p-8 shadow-2xl relative border-2 border-yellowTheme-400/50 text-center modal-content transform scale-95 transition-all duration-300" onclick="event.stopPropagation()">
+      <button aria-label="Fechar" onclick="closeModal('modal-coreq')" class="absolute top-5 right-5 text-gray-400 hover:text-red-500 bg-gray-50 dark:bg-gray-800 hover:bg-red-50 p-2 rounded-full transition-colors" type="button">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
+      </button>
+      <div class="mx-auto w-16 h-16 bg-yellowTheme-100 dark:bg-yellowTheme-900/30 text-yellowTheme-600 dark:text-yellowTheme-400 rounded-full flex items-center justify-center mb-5 ring-4 ring-yellowTheme-50 dark:ring-yellowTheme-900/10 font-black text-2xl">
+        C
+      </div>
+      <h3 id="coreq-title" class="text-xl font-black text-gray-800 dark:text-white mb-4"></h3>
+      <p id="coreq-desc" class="font-medium text-gray-600 dark:text-gray-300 leading-relaxed text-sm"></p>
+    </div>
+  </div>
+
+  <!-- Modal Sugestão (Novo) -->
+  <div id="modal-suggestion" class="fixed inset-0 modal-overlay justify-center items-center z-[90] transition-opacity opacity-0 pointer-events-none">
+    <div class="bg-white dark:bg-darkCard w-[90%] max-w-sm rounded-[2rem] p-8 shadow-2xl relative border border-gray-100 dark:border-darkBorder text-center modal-content transform scale-95 transition-all duration-300" onclick="event.stopPropagation()">
+      <button aria-label="Fechar" onclick="closeModal('modal-suggestion')" class="absolute top-5 right-5 text-gray-400 hover:text-red-500 bg-gray-50 dark:bg-gray-800 hover:bg-red-50 p-2 rounded-full transition-colors" type="button">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
+      </button>
+      <div class="mx-auto w-12 h-12 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-500 rounded-full flex items-center justify-center mb-5">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>
+      </div>
+      <h3 class="text-xl font-black text-gray-800 dark:text-white mb-4">Possui alguma sugestão ou deseja reportar um bug?</h3>
+      <p class="text-sm font-medium text-gray-600 dark:text-gray-300 mb-6">Por favor mande sua ideia para o e-mail abaixo:</p>
+      <div class="flex items-center justify-center gap-2 bg-gray-50 dark:bg-[#15171b] p-3 rounded-xl border border-gray-100 dark:border-darkBorder">
+        <span class="text-yellow-600 dark:text-yellow-500 font-bold text-sm select-all">lucas.vambora1@gmail.com</span>
+        <button type="button" onclick="copyCodeToClipboard('lucas.vambora1@gmail.com', event, 'E-mail')" title="Copiar e-mail" class="p-1.5 text-gray-400 hover:text-yellow-600 dark:hover:text-yellow-500 transition-colors bg-white dark:bg-darkBg rounded-md shadow-sm border border-gray-100 dark:border-gray-700">
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Locks / Tranca -->
+  <div id="modal-locks" class="fixed inset-0 modal-overlay justify-center items-center z-[110] transition-opacity opacity-0 pointer-events-none">
+    <div class="bg-white dark:bg-darkCard w-[90%] max-w-sm rounded-[2rem] p-6 shadow-2xl relative border border-gray-100 dark:border-darkBorder modal-content transform scale-95 transition-all duration-300" onclick="event.stopPropagation()">
+       <button aria-label="Fechar" onclick="closeModal('modal-locks')" class="absolute top-4 right-4 text-gray-400 hover:text-red-500 bg-gray-50 dark:bg-gray-800 hover:bg-red-50 p-2 rounded-full transition-colors" type="button"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg></button>
+       <h3 id="locks-title" class="text-xl font-black text-gray-800 dark:text-white mb-2 pr-6"></h3>
+       <div id="locks-list" class="space-y-2 mt-4 max-h-60 overflow-y-auto custom-scrollbar"></div>
+    </div>
+  </div>
 
   <div id="modal-info" class="fixed inset-0 modal-overlay justify-center items-center z-[90] transition-opacity opacity-0 pointer-events-none">
     <div class="bg-white dark:bg-darkCard w-[90%] max-w-sm rounded-[2rem] p-8 shadow-2xl relative border border-gray-100 dark:border-darkBorder text-center modal-content transform scale-95 transition-all duration-300" onclick="event.stopPropagation()">
@@ -281,16 +376,15 @@
           <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
         </button>
 
-        <button class="w-full flex items-center justify-between bg-gray-50 dark:bg-[#15171b] hover:bg-gray-100 dark:hover:bg-[#1a1c22] p-4 rounded-2xl transition-all border border-gray-200/60 dark:border-darkBorder/60 group" type="button" onclick="openModal('modal-faq')">
+        <!-- Botão Sugestão (Novo) -->
+        <button class="w-full flex items-center justify-between bg-gray-50 dark:bg-[#15171b] hover:bg-gray-100 dark:hover:bg-[#1a1c22] p-4 rounded-2xl transition-all border border-gray-200/60 dark:border-darkBorder/60 group" type="button" onclick="openModal('modal-suggestion')">
           <div class="flex items-center gap-4">
             <div class="p-2.5 bg-white dark:bg-darkBg rounded-xl shadow-sm border border-gray-100 dark:border-darkBorder group-hover:scale-110 transition-transform">
-              <svg class="w-6 h-6 text-blue-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line>
-              </svg>
+              <svg class="w-6 h-6 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>
             </div>
             <div class="text-left">
-              <strong class="block text-sm font-bold text-gray-800 dark:text-gray-100">Dúvidas Frequentes</strong>
-              <small class="text-xs text-gray-500 font-medium">Situações e Contatos</small>
+              <strong class="block text-sm font-bold text-gray-800 dark:text-gray-100">Sugestão</strong>
+              <small class="text-xs text-gray-500 font-medium">Reportar bug ou ideia</small>
             </div>
           </div>
           <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
@@ -299,177 +393,6 @@
     </div>
   </div>
 
-  <div id="modal-faq" class="fixed inset-0 modal-overlay justify-center items-center z-[90] transition-opacity opacity-0 pointer-events-none">
-    <div class="bg-white dark:bg-darkCard w-[92%] max-w-lg rounded-[2rem] p-6 shadow-2xl relative border border-gray-100 dark:border-darkBorder modal-content transform scale-95 transition-all duration-300 max-h-[90vh] flex flex-col" onclick="event.stopPropagation()">
-      <button aria-label="Fechar" onclick="closeModal('modal-faq')" class="absolute top-5 right-5 text-gray-400 hover:text-red-500 bg-gray-50 dark:bg-gray-800 hover:bg-red-50 dark:hover:bg-red-900/30 p-2 rounded-full transition-colors z-10" type="button">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
-      </button>
-      
-      <h3 class="text-2xl font-black text-gray-800 dark:text-white mb-6 pr-10 flex items-center gap-3">
-        <div class="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-xl text-blue-500">
-           <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line>
-           </svg>
-        </div>
-        Dúvidas Frequentes
-      </h3>
-      
-      <div class="overflow-y-auto pr-2 scrollbar-thin space-y-4 flex-1">
-        <details class="group bg-gray-50 dark:bg-[#15171b] rounded-2xl border border-gray-200/60 dark:border-darkBorder/60 overflow-hidden">
-          <summary class="flex items-center justify-between p-4 cursor-pointer font-bold text-gray-800 dark:text-gray-100 list-none select-none hover:bg-gray-100 dark:hover:bg-[#1a1c22] transition-colors">
-            <div class="flex items-center gap-3">
-              <div class="p-1.5 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 rounded-lg">
-                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-              </div>
-              Situações da CRID
-            </div>
-            <span class="font-mono text-gray-400 transition-transform group-open:rotate-180">V</span>
-          </summary>
-          <div class="p-4 pt-0 text-sm text-gray-600 dark:text-gray-300 font-medium space-y-4 mt-2">
-            <p><strong>Falta Requisito:</strong> significa que o pré-requisito da disciplina não foi cursado ou ainda não foi lançado até a data em que o(a) estudante está enviando o pedido. Aparece também caso a disciplina tenha um co-requisito que não foi incluído no seu pedido de inscrição.</p>
-            <p><strong>1/3 fora do curso:</strong> informa que o(a) estudante não pode estar inscrito em disciplinas fora de seu currículo em mais de um terço do total das disciplinas cursadas no semestre.</p>
-            <p><strong>Horário sobreposto:</strong> significa que duas ou mais disciplinas estão colidindo horário.</p>
-            <p><strong>Menos de 6 Créditos:</strong> indica que o(a) estudante não pode cursar menos de 6 créditos em cada semestre, salvo com abertura de um processo, visando uma autorização especial na sua unidade.</p>
-            <p><strong>Mais de 32 créditos:</strong> informa que o(a) estudante não pode cursar mais de 32 créditos, salvo com abertura de um processo visando uma autorização especial na sua unidade.</p>
-            <p><strong>Matrícula cancelada/Trancada:</strong> significa que sua matrícula não está ativa. Dependendo da situação, o estudante deve procurar a secretaria acadêmica ou a coordenação do curso para regularizar sua situação. Lembrando que, mesmo nesta situação, o SIGA acolhe todos os pedidos e o(a) estudante concorre às vagas normalmente, mas precisará resolver tal situação, sob pena de ter seu nome retirado da pauta final.</p>
-            <p><strong>Previsão pendente:</strong> significa que há uma pendência que não é gerada pelo(a) estudante, pois deve faltar algum dado na previsão de turma (professor responsável ou local definido). Muitas vezes a turma é prevista, mas está “pendente” por algum desses motivos ou o sistema detecta que o horário ou local está colidindo com outra turma. Esse é um problema que deve ser resolvido pela secretaria acadêmica, ou seja, o(a) estudante não precisa fazer nada.</p>
-            <p><strong>Inscrição Normal:</strong> Quando seu pedido é enviado com sucesso e sem pendências aparecerá no CRPID ou na CRID a informação “Inscrição Normal”.</p>
-          </div>
-        </details>
-
-        <details class="group bg-gray-50 dark:bg-[#15171b] rounded-2xl border border-gray-200/60 dark:border-darkBorder/60 overflow-hidden">
-          <summary class="flex items-center justify-between p-4 cursor-pointer font-bold text-gray-800 dark:text-gray-100 list-none select-none hover:bg-gray-100 dark:hover:bg-[#1a1c22] transition-colors">
-            <div class="flex items-center gap-3">
-              <div class="p-1.5 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-lg">
-                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
-              </div>
-              Contatos Importantes
-            </div>
-            <span class="font-mono text-gray-400 transition-transform group-open:rotate-180">V</span>
-          </summary>
-          <div class="p-4 pt-0 text-sm text-gray-600 dark:text-gray-300 font-medium space-y-2 mt-2">
-            <p>Informações de contato ficarão disponíveis aqui em breve.</p>
-          </div>
-        </details>
-      </div>
-    </div>
-  </div>
-
-  <div id="modal-planner" class="fixed inset-0 modal-overlay justify-center items-center z-[80] transition-opacity opacity-0 pointer-events-none">
-    <div class="bg-white dark:bg-darkCard w-[95%] max-w-2xl rounded-[2rem] p-5 md:p-7 shadow-2xl relative border border-gray-100 dark:border-darkBorder max-h-[90vh] flex flex-col modal-content transform scale-95 transition-all duration-300" onclick="event.stopPropagation()">
-      <div class="flex justify-between items-start mb-2">
-        <div>
-          <h3 class="text-2xl font-black text-gray-800 dark:text-white flex items-center gap-2">
-            Planejador de Grade
-            <button onclick="openModal('modal-planner-info')" class="text-yellowTheme-500 hover:text-yellowTheme-600 transition-colors" aria-label="Informações do Planejador">
-              <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" /></svg>
-            </button>
-          </h3>
-        </div>
-        <button aria-label="Fechar" onclick="closeModal('modal-planner')" class="text-gray-400 hover:text-red-500 bg-gray-50 dark:bg-gray-800 hover:bg-red-50 p-2 rounded-full transition-colors flex-shrink-0">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
-        </button>
-      </div>
-
-      <div id="planner-search-wrapper" class="search-wrapper relative my-5 z-20">
-        <div class="search-bar-shell relative flex items-center shadow-md shadow-gray-200/50 dark:shadow-black/40 rounded-full bg-gray-50 dark:bg-[#1a1d24] transition-transform hover:scale-[1.01] duration-200 border border-gray-200 dark:border-darkBorder">
-          <button id="planner-search-button" class="search-button absolute left-5 text-yellowTheme-500" type="button" aria-label="Pesquisar">
-            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path>
-            </svg>
-          </button>
-          <input type="text" id="planner-search-input" placeholder="Buscar nas disciplinas..." autocomplete="off" class="search-input w-full pl-12 pr-12 py-3.5 bg-transparent border-none rounded-full text-gray-800 dark:text-gray-100 font-medium focus:outline-none focus:ring-2 focus:ring-yellowTheme-400 transition-all placeholder-gray-400 dark:placeholder-gray-500">
-          <button id="planner-clear-search-button" class="absolute right-5 text-gray-400 hover:text-red-500 transition-colors hidden" type="button" aria-label="Limpar texto">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path>
-            </svg>
-          </button>
-        </div>
-        <div id="planner-search-suggestions" class="search-suggestions hidden" role="listbox"></div>
-      </div>
-
-      <div id="planner-list" class="flex-1 overflow-y-auto space-y-3 pr-2 scrollbar-thin"></div>
-    </div>
-  </div>
-
-  <div id="modal-planner-info" class="fixed inset-0 modal-overlay justify-center items-center z-[90] transition-opacity opacity-0 pointer-events-none">
-    <div class="bg-white dark:bg-darkCard w-[90%] max-w-sm rounded-[2rem] p-8 shadow-2xl relative border border-gray-100 dark:border-darkBorder text-center modal-content transform scale-95 transition-all duration-300" onclick="event.stopPropagation()">
-      <button aria-label="Fechar" onclick="closeModal('modal-planner-info')" class="absolute top-5 right-5 text-gray-400 hover:text-red-500 bg-gray-50 dark:bg-gray-800 hover:bg-red-50 p-2 rounded-full transition-colors">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
-      </button>
-      <div class="mx-auto w-12 h-12 bg-yellow-100 dark:bg-yellow-900/30 text-yellowTheme-600 dark:text-yellowTheme-400 rounded-full flex items-center justify-center mb-5">
-        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" /></svg>
-      </div>
-      <h3 class="text-2xl font-black text-gray-800 dark:text-white mb-4">Planejador de Grade</h3>
-      <ul class="text-left text-sm text-gray-600 dark:text-gray-300 space-y-3 font-medium">
-        <li class="flex items-start gap-2">
-          <svg class="w-5 h-5 text-yellowTheme-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-          <span>Exibe <b>apenas as matérias disponíveis</b> que você já possui os pré-requisitos para cursar.</span>
-        </li>
-        <li class="flex items-start gap-2">
-          <svg class="w-5 h-5 text-yellowTheme-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-          <span>Use a barra de pesquisa para localizar qualquer matéria não cursada.</span>
-        </li>
-        <li class="flex items-start gap-2">
-          <svg class="w-5 h-5 text-yellowTheme-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-          <span>O <b>quadradinho</b> ao lado do nome risca a disciplina. Sua função é de organização: ao puxar a matéria no SIGA, você pode marcá-la para não se confundir na hora.</span>
-        </li>
-        <li class="flex items-start gap-2">
-          <svg class="w-5 h-5 text-yellowTheme-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"></path></svg>
-          <span><b>Clique e segure</b> em uma disciplina para visualizar quais outras matérias ela <b>tranca</b>.</span>
-        </li>
-      </ul>
-    </div>
-  </div>
-
-  <div id="modal-cond-info" class="fixed inset-0 modal-overlay justify-center items-center z-[90] transition-opacity opacity-0 pointer-events-none">
-    <div class="bg-white dark:bg-darkCard w-[90%] max-w-sm rounded-[2rem] p-8 shadow-2xl relative border border-gray-100 dark:border-darkBorder text-center modal-content transform scale-95 transition-all duration-300" onclick="event.stopPropagation()">
-      <button aria-label="Fechar" onclick="closeModal('modal-cond-info')" class="absolute top-5 right-5 text-gray-400 hover:text-red-500 bg-gray-50 dark:bg-gray-800 hover:bg-red-50 p-2 rounded-full transition-colors">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
-      </button>
-      <h3 class="text-2xl font-black text-gray-800 dark:text-white mb-6">Escolha Condicionada</h3>
-      <p class="font-medium text-gray-600 dark:text-gray-300 text-sm text-left mb-4">
-        Disciplinas de Escolha Condicionada são as eletivas do currículo novo. Basicamente você precisa ter 12 créditos e 180 horas dessas matérias para se formar.
-      </p>
-      <div class="bg-yellow-50 dark:bg-yellow-900/30 rounded-xl p-3 border border-yellow-200 dark:border-yellow-700/50 flex items-start gap-3 mt-4">
-        <svg class="w-6 h-6 text-yellow-600 dark:text-yellow-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-        <p class="font-bold text-gray-800 dark:text-gray-100 text-xs text-left">
-          O uso desse site é puramente de caráter auxiliar e não substitui a consulta do BOA.
-        </p>
-      </div>
-    </div>
-  </div>
-
-  <div id="modal-locks" class="fixed inset-0 modal-overlay justify-center items-center z-[100] transition-opacity opacity-0 pointer-events-none">
-    <div class="bg-white dark:bg-darkCard w-[90%] max-w-sm rounded-[2rem] p-6 shadow-2xl relative border border-gray-100 dark:border-darkBorder text-center modal-content transform scale-95 transition-all duration-300" onclick="event.stopPropagation()">
-      <button aria-label="Fechar" onclick="closeModal('modal-locks')" class="absolute top-5 right-5 text-gray-400 hover:text-red-500 bg-gray-50 dark:bg-gray-800 hover:bg-red-50 p-2 rounded-full transition-colors">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
-      </button>
-      <div class="mx-auto w-12 h-12 bg-red-100 dark:bg-red-900/30 text-red-500 rounded-full flex items-center justify-center mb-4">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0110 0v4"></path>
-        </svg>
-      </div>
-      <h3 id="locks-title" class="text-xl font-black text-gray-800 dark:text-white mb-1"></h3>
-      <p id="locks-desc" class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-4"></p>
-      <div id="locks-list" class="space-y-2 text-left max-h-60 overflow-y-auto pr-2 scrollbar-thin"></div>
-    </div>
-  </div>
-
-  <div id="modal-coreq" class="fixed inset-0 modal-overlay justify-center items-center z-[100] transition-opacity opacity-0 pointer-events-none">
-    <div class="bg-white dark:bg-darkCard w-[90%] max-w-sm rounded-[2rem] p-6 shadow-2xl relative border border-gray-100 dark:border-darkBorder text-center modal-content transform scale-95 transition-all duration-300" onclick="event.stopPropagation()">
-      <button aria-label="Fechar" onclick="closeModal('modal-coreq')" class="absolute top-5 right-5 text-gray-400 hover:text-red-500 bg-gray-50 dark:bg-gray-800 hover:bg-red-50 p-2 rounded-full transition-colors">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
-      </button>
-      <div class="mx-auto w-12 h-12 bg-blue-100 dark:bg-blue-900/30 text-blue-500 rounded-full flex items-center justify-center mb-4">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-      </div>
-      <h3 id="coreq-title" class="text-xl font-black text-gray-800 dark:text-white mb-4"></h3>
-      <p id="coreq-desc" class="text-sm font-medium text-gray-600 dark:text-gray-300 text-left"></p>
-    </div>
-  </div>
-
-  <script src="disciplinas.js"></script>
-  <script src="app.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
