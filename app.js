@@ -243,7 +243,6 @@ document.querySelectorAll('.modal-overlay').forEach(o => {
   });
 });
 
-/* Cópia do Código Adaptado (Fonte Personalizada e z-index resolvido no HTML) */
 async function copyCodeToClipboard(codigo, event) {
   if (event) event.stopPropagation();
 
@@ -284,8 +283,7 @@ function showToast(codigo) {
   const msgEl = document.getElementById('toast-message');
   if (!toast || !msgEl) return;
   
-  // O código copiado tem cor distinta, adaptável e forte
-  msgEl.innerHTML = `Código <span class="text-cyan-400 dark:text-cyan-500 font-black px-1 tracking-wider bg-black/10 dark:bg-black/30 rounded">${codigo}</span> copiado com sucesso!`;
+  msgEl.innerHTML = `Código <span class="text-yellow-600 dark:text-yellow-500 font-black px-1 tracking-wider bg-black/10 dark:bg-black/30 rounded">${codigo}</span> copiado com sucesso!`;
   toast.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-4');
   toast.classList.add('opacity-100', 'translate-y-0');
   
@@ -528,15 +526,14 @@ function autoSearchMain(codigo) {
   const input = document.getElementById('search-input');
   input.value = formatName(m);
   document.getElementById('clear-search-button').classList.remove('hidden');
-  document.getElementById('search-suggestions').classList.add('hidden');
   filterMainSearch(formatName(m));
+  document.getElementById('search-suggestions').classList.add('hidden');
 
   const card = document.getElementById(`card-${codigo}`);
   if (card) {
     const details = card.closest('details');
     if (details) details.open = true;
     
-    // Adiciona a classe que faz a barra flutuar (sticky) e acompanhar até o topo
     document.getElementById('search-wrapper').classList.add('sticky-search-active');
     
     card.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -581,8 +578,8 @@ function autoSearchPlanner(codigo) {
   const input = document.getElementById('planner-search-input');
   input.value = formatName(m);
   document.getElementById('planner-clear-search-button').classList.remove('hidden');
-  document.getElementById('planner-search-suggestions').classList.add('hidden');
   filterPlannerSearch(formatName(m));
+  document.getElementById('planner-search-suggestions').classList.add('hidden');
 }
 
 function getLockedSubjects(codigo) {
@@ -604,16 +601,17 @@ function showCoreqInfo(event, codigo) {
 
   const coNames = extractCodes(m.co).map(c => {
     const mat = disciplinas.find(d => d.codigo === c);
-    return mat ? formatName(mat) : c;
+    const name = mat ? formatName(mat) : c;
+    return `<span class="text-yellowTheme-600 dark:text-yellowTheme-400 font-bold">${name}</span>`;
   }).join(', ');
 
   document.getElementById('coreq-title').innerText = formatName(m);
-  document.getElementById('coreq-desc').innerText = `Essa matéria possui ${coNames} como co-requisito, ou seja, devem ser cursadas simultaneamente no mesmo período.`;
+  document.getElementById('coreq-desc').innerHTML = `Essa matéria possui ${coNames} como co-requisito, ou seja, devem ser cursadas simultaneamente no mesmo período.`;
   openModal('modal-coreq');
 }
 
 function togglePlannerCheck(event, codigo) {
-  event.stopPropagation(); // Evita acionar o longPress
+  event.stopPropagation();
   const isChecked = event.target.checked;
   const textDiv = document.getElementById(`planner-text-${codigo}`);
   const cardDiv = document.getElementById(`planner-card-${codigo}`);
@@ -622,14 +620,12 @@ function togglePlannerCheck(event, codigo) {
       cardDiv.classList.add('opacity-50', 'grayscale');
       textDiv.classList.add('line-through');
       
-      // Marca na tela global internamente
       const globalCb = document.querySelector(`.subject-card input[type="checkbox"][value="${codigo}"]`);
       if (globalCb) globalCb.checked = true;
   } else {
       cardDiv.classList.remove('opacity-50', 'grayscale');
       textDiv.classList.remove('line-through');
       
-      // Desmarca na tela global internamente
       const globalCb = document.querySelector(`.subject-card input[type="checkbox"][value="${codigo}"]`);
       if (globalCb) globalCb.checked = false;
   }
@@ -671,7 +667,7 @@ function renderPlannerList(query = '') {
     
     let coReqHtml = '';
     if (m.co) {
-       coReqHtml = `<button type="button" onclick="showCoreqInfo(event, '${m.codigo}')" title="Ver Co-requisito" class="ml-2 inline-flex items-center justify-center w-[22px] h-[22px] rounded-full border border-blue-500 text-blue-600 dark:text-blue-400 font-extrabold text-[11px] hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors shadow-sm">C</button>`;
+       coReqHtml = `<button type="button" onclick="showCoreqInfo(event, '${m.codigo}')" title="Ver Co-requisito" class="ml-2 inline-flex items-center justify-center w-[26px] h-[26px] rounded-full border-2 border-yellow-500 text-yellow-600 dark:text-yellow-400 font-black text-[12px] bg-yellow-50 dark:bg-yellow-900/30 hover:bg-yellow-100 dark:hover:bg-yellow-900/50 transition-colors shadow-sm ring-2 ring-yellow-200 dark:ring-yellow-800">C</button>`;
     }
 
     return `
@@ -735,7 +731,6 @@ function renderPlannerList(query = '') {
 }
 
 function startHoldLocks(event, codigo) {
-  // Impede que clicar no botão de copiar código ou no ícone acione o detalhe de segurar.
   if (event.target.tagName === 'BUTTON' || event.target.closest('button')) {
     return;
   }
@@ -747,10 +742,20 @@ function startHoldLocks(event, codigo) {
 
     document.getElementById('locks-title').innerText = formatName(m);
     const list = document.getElementById('locks-list');
+    
+    let desc = document.getElementById('locks-desc');
+    if(!desc) {
+      desc = document.createElement('p');
+      desc.id = 'locks-desc';
+      desc.className = 'text-xs font-medium text-gray-500 mb-4';
+      document.getElementById('locks-title').after(desc);
+    }
 
     if (!trancadas.length) {
+      desc.innerText = "";
       list.innerHTML = `<p class="text-gray-500 text-center font-medium">Não tranca nenhuma disciplina.</p>`;
     } else {
+      desc.innerText = "Essa matéria tranca as seguintes matérias:";
       list.innerHTML = trancadas.map(t => `
         <div class="p-2.5 bg-gray-100 dark:bg-gray-800 rounded-lg flex justify-between items-center">
           <span class="font-semibold text-gray-800 dark:text-gray-200 text-xs">${formatName(t)}</span>
