@@ -29,7 +29,6 @@ body, .bg-white, .dark\:bg-darkCard, .dark\:bg-darkBg, .bg-gray-50, .subject-car
   -webkit-touch-callout: none !important;
 }
 
-/* Nova Barra Flutuante com Position Sticky! Funciona nativamente ao rolar para cima e descer. */
 .sticky-search-active {
   position: sticky !important;
   top: 1rem !important;
