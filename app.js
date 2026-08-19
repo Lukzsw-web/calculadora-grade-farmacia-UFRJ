@@ -1,3 +1,113 @@
+const cifAjustes = {
+  "FFW361": " (Agentes infecciosos)",
+  "FFW362": " (Imunologia)",
+  "FFW471": " (Cardio / Renal)",
+  "FFW472": " (Endócrino)",
+  "FFW481": " (Neurologia)",
+  "FFW591": " (Parasitologia)",
+  "FFW502": " (Oncologia)"
+};
+
+const disciplinas = [
+  {"periodo":"1","codigo":"BMW103","nome":"Bases Morfológicas Aplicadas à Farmácia","pre":"","co":"","cred":6,"ch":105},
+  {"periodo":"1","codigo":"BQM101","nome":"Bioquímica I","pre":"","co":"","cred":3,"ch":45},
+  {"periodo":"1","codigo":"FFW111","nome":"Farmacêutico e Sociedade","pre":"","co":"","cred":2,"ch":30},
+  {"periodo":"1","codigo":"IQG114","nome":"Química Geral I","pre":"","co":"","cred":4,"ch":60},
+  {"periodo":"1","codigo":"MAC108","nome":"Cálculo para Farmácia","pre":"","co":"","cred":3,"ch":45},
+  {"periodo":"2","codigo":"BQM103","nome":"Bioquímica II","pre":"BQM101","co":"","cred":3,"ch":45},
+  {"periodo":"2","codigo":"IQF235","nome":"Físico-Química I","pre":"MAC108; IQG114","co":"","cred":2,"ch":30},
+  {"periodo":"2","codigo":"CFF122","nome":"Fisiologia Humana","pre":"BMW103; BQM101","co":"","cred":6,"ch":90},
+  {"periodo":"2","codigo":"FFW121","nome":"Políticas e Planejamento em Saúde Pública","pre":"FFW111","co":"","cred":2,"ch":30},
+  {"periodo":"2","codigo":"IQG122","nome":"Química Inorgânica Estrutural FF","pre":"IQG114","co":"","cred":2,"ch":30},
+  {"periodo":"2","codigo":"IQO120","nome":"Química Orgânica I","pre":"IQG114","co":"","cred":4,"ch":60},
+  {"periodo":"3","codigo":"BMF310","nome":"Farmacocinética e Farmacodinâmica Fundamental","pre":"CFF122","co":"","cred":4,"ch":60},
+  {"periodo":"3","codigo":"FFW231","nome":"Farmácia Clínica","pre":"FFW111; CFF122","co":"","cred":2,"ch":30},
+  {"periodo":"3","codigo":"FFW232","nome":"Diagnóstico Laboratorial no Cuidado Farmacêutico","pre":"BQM103; CFF122","co":"","cred":2,"ch":30},
+  {"periodo":"3","codigo":"IQA123","nome":"Química Analítica Farmacêutica I","pre":"IQG114","co":"","cred":2,"ch":30},
+  {"periodo":"3","codigo":"IQF232","nome":"Físico-Química II","pre":"IQF235","co":"","cred":2,"ch":30},
+  {"periodo":"3","codigo":"IQO220","nome":"Métodos Espectrométricos","pre":"IQO120","co":"","cred":3,"ch":60},
+  {"periodo":"3","codigo":"IQO230","nome":"Química Orgânica II","pre":"IQO120","co":"","cred":4,"ch":60},
+  {"periodo":"4","codigo":"FFW241","nome":"Produção e Controle de Qualidade de Produtos Farmacêuticos I (PCQ I)","pre":"IQA123; IQO220","co":"","cred":3,"ch":60},
+  {"periodo":"4","codigo":"FFW243","nome":"Métodos Computacionais Aplicados às Ciências Farmacêuticas (MACF)","pre":"BMF310; IQO230","co":"FFW242","cred":1,"ch":30},
+  {"periodo":"4","codigo":"FFW242","nome":"Química Farmacêutica e Medicinal I","pre":"BMF310; IQO230","co":"","cred":2,"ch":30},
+  {"periodo":"4","codigo":"IQA240","nome":"Química Analítica Farmacêutica Experimental","pre":"IQA123","co":"IQA233","cred":1,"ch":30},
+  {"periodo":"4","codigo":"IQA233","nome":"Química Analítica Farmacêutica II","pre":"IQA123","co":"","cred":2,"ch":30},
+  {"periodo":"4","codigo":"IQG241","nome":"Química de Coordenações","pre":"IQG122","co":"","cred":2,"ch":30},
+  {"periodo":"4","codigo":"IQO242","nome":"Química Orgânica Experimental FF","pre":"IQO230; IQO220","co":"","cred":2,"ch":60},
+  {"periodo":"5","codigo":"FFW353","nome":"Gestão e Planejamento da Assistência Farmacêutica","pre":"FFW121","co":"","cred":4,"ch":60},
+  {"periodo":"5","codigo":"FFW351","nome":"Toxicologia Geral","pre":"FFW242","co":"","cred":2,"ch":30},
+  {"periodo":"5","codigo":"FFW352","nome":"Química Farmacêutica II & Toxicológica","pre":"FFW242; FFW243","co":"FFW351","cred":2,"ch":30},
+  {"periodo":"5","codigo":"IMW360","nome":"Microbiologia e Imunologia Fundamental","pre":"CFF122; BQM103","co":"","cred":5,"ch":90},
+  {"periodo":"5","codigo":"FFW354","nome":"Produção e Controle de Qualidade de Produtos Farmacêuticos II","pre":"FFW241","co":"","cred":4,"ch":60},
+  {"periodo":"5","codigo":"FFW355","nome":"Hematologia F","pre":"FFW232; BMF310","co":"","cred":2,"ch":30},
+  {"periodo":"6","codigo":"FFW361","nome":"Cuidado Integrado em Farmácia I","pre":"IMW360; FFW242; FFW231; FFW232","co":"","cred":5,"ch":90},
+  {"periodo":"6","codigo":"FFW363","nome":"Farmacobotânica","pre":"BMW103","co":"","cred":1,"ch":30},
+  {"periodo":"6","codigo":"FFW362","nome":"Cuidado Integrado em Farmácia II","pre":"IMW360; FFW231; FFW232; FFW242","co":"","cred":4,"ch":60},
+  {"periodo":"6","codigo":"FFW364","nome":"Gestão Farmacêutica","pre":"FFW121","co":"","cred":2,"ch":30},
+  {"periodo":"6","codigo":"FFW365","nome":"Produção e Controle de Qualidade de Produtos Farmacêuticos III","pre":"FFW241","co":"","cred":3,"ch":45},
+  {"periodo":"7","codigo":"FFW471","nome":"Cuidado Integrado em Farmácia III","pre":"FFW242; FFW231; FFW232","co":"","cred":6,"ch":90},
+  {"periodo":"7","codigo":"FFW472","nome":"Cuidado Integrado em Farmácia IV","pre":"FFW242; FFW231; FFW232","co":"","cred":4,"ch":60},
+  {"periodo":"7","codigo":"FFW473","nome":"Farmacognosia","pre":"IQO242; FFW363","co":"","cred":4,"ch":90},
+  {"periodo":"7","codigo":"FFW474","nome":"Produção e Controle de Qualidade de Produtos Farmacêuticos IV","pre":"FFW354; FFW365","co":"","cred":2,"ch":60},
+  {"periodo":"8","codigo":"FFW481","nome":"Cuidado Integrado em Farmácia V","pre":"FFW242; FFW231; FFW232","co":"","cred":4,"ch":75},
+  {"periodo":"8","codigo":"FFW482","nome":"Farmacoepidemiologia e Bioestatística Aplicada","pre":"FFW121","co":"","cred":3,"ch":45},
+  {"periodo":"8","codigo":"FFW483","nome":"Produção e Controle de Qualidade de Produtos Farmacêuticos V","pre":"FFW354; FFW365","co":"","cred":2,"ch":30},
+  {"periodo":"8","codigo":"FFW484","nome":"Genética e Biologia Molecular Aplicadas","pre":"BMW103; BQM103","co":"","cred":2,"ch":30},
+  {"periodo":"8","codigo":"FFW485","nome":"Biotecnologia Farmacêutica","pre":"IMW360","co":"","cred":2,"ch":30},
+  {"periodo":"8","codigo":"FFW486","nome":"Metodologia Científica","pre":"","co":"","cred":2,"ch":30},
+  {"periodo":"9","codigo":"FFW591","nome":"Cuidado Integrado em Farmácia VI","pre":"FFW242; FFW231; FFW232","co":"","cred":6,"ch":90},
+  {"periodo":"9","codigo":"FFW592","nome":"Processamento e Controle de Qualidade de Alimentos","pre":"IQA233; BQM103","co":"","cred":3,"ch":60},
+  {"periodo":"9","codigo":"FFW593","nome":"Produção e Controle de Qualidade de Produtos Farmacêuticos VI","pre":"FFW483","co":"","cred":1,"ch":30},
+  {"periodo":"9","codigo":"IEE326","nome":"Economia e Administração de Empresas","pre":"","co":"","cred":3,"ch":45},
+  {"periodo":"9","codigo":"FFWK03","nome":"Trabalho de Conclusão de Curso (TCC)","pre":"FFW486","co":"","cred":1,"ch":45},
+  {"periodo":"10","codigo":"FFW501","nome":"Farmacoterapia no Cuidado Farmacêutico","pre":"FFW361; FFW362; FFW471; FFW472; FFW481; FFW591","co":"","cred":3,"ch":60},
+  {"periodo":"10","codigo":"FFW502","nome":"Cuidado Integrado em Farmácia VII","pre":"FFW242; FFW231; FFW232","co":"","cred":4,"ch":60},
+  {"periodo":"10","codigo":"FFW503","nome":"Produção e Controle de Qualidade em Farmácia VII","pre":"FFW473; FFW483","co":"","cred":2,"ch":30},
+  {"periodo":"Escolha Condicionada","codigo":"FFM010","nome":"Análise Proteo Apli Diag Terap","pre":"BMW103; BQM103","co":"","cred":2,"ch":30},
+  {"periodo":"Escolha Condicionada","codigo":"FFC501","nome":"Bioquímica Clin Experimental","pre":"FFW232","co":"","cred":2,"ch":60},
+  {"periodo":"Escolha Condicionada","codigo":"FFC008","nome":"Citopatologia Clinica Aplicada","pre":"FFW232","co":"","cred":3,"ch":60},
+  {"periodo":"Escolha Condicionada","codigo":"FFC005","nome":"Hematologia Clínica","pre":"FFW355","co":"","cred":3,"ch":60},
+  {"periodo":"Escolha Condicionada","codigo":"FFC009","nome":"Micologia Médica","pre":"FFW591","co":"","cred":3,"ch":60},
+  {"periodo":"Escolha Condicionada","codigo":"FFC007","nome":"Microbiologia Clínica Aplicada","pre":"FFW361","co":"","cred":3,"ch":60},
+  {"periodo":"Escolha Condicionada","codigo":"FFC004","nome":"Parasitologia Clínica Avançada","pre":"FFW472","co":"","cred":3,"ch":60},
+  {"periodo":"Escolha Condicionada","codigo":"FFC003","nome":"Toxico Aplic Análises Clínicas","pre":"IMW360","co":"","cred":3,"ch":60},
+  {"periodo":"Escolha Condicionada","codigo":"FFM009","nome":"Bases da Terapêutica Racional","pre":"FFW471","co":"FFW482","cred":2,"ch":30},
+  {"periodo":"Escolha Condicionada","codigo":"FFI005","nome":"Bases Mol Doenças Metabólicas","pre":"","co":"","cred":2,"ch":30},
+  {"periodo":"Escolha Condicionada","codigo":"FFW003","nome":"Diabetes","pre":"CFF122; BQM103","co":"","cred":3,"ch":45},
+  {"periodo":"Escolha Condicionada","codigo":"FFM024","nome":"Farmácia Estética","pre":"FFW483","co":"","cred":2,"ch":30},
+  {"periodo":"Escolha Condicionada","codigo":"BMF001","nome":"Farmacologia Clínica","pre":"FFW471","co":"","cred":2,"ch":30},
+  {"periodo":"Escolha Condicionada","codigo":"FFM012","nome":"Farmacometria Lab Clínico","pre":"BMF310","co":"","cred":2,"ch":30},
+  {"periodo":"Escolha Condicionada","codigo":"FFI019","nome":"Metabol Lipídeos e Obesidade","pre":"BQM103","co":"","cred":2,"ch":30},
+  {"periodo":"Escolha Condicionada","codigo":"FFP002","nome":"Téc Aplicações de Injetáveis","pre":"","co":"","cred":2,"ch":45},
+  {"periodo":"Escolha Condicionada","codigo":"FFP001","nome":"Técnicas de Socorrismo","pre":"","co":"","cred":2,"ch":45},
+  {"periodo":"Escolha Condicionada","codigo":"FFP015","nome":"Bases da Fitoterapia","pre":"FFW473","co":"","cred":4,"ch":60},
+  {"periodo":"Escolha Condicionada","codigo":"FFP007","nome":"Botânica Aplicada","pre":"FFW363","co":"","cred":2,"ch":30},
+  {"periodo":"Escolha Condicionada","codigo":"FFM413","nome":"Farmacotécnica Homeopática","pre":"FFW354","co":"","cred":3,"ch":60},
+  {"periodo":"Escolha Condicionada","codigo":"FFP304","nome":"Introd à Quím de Prod Naturais","pre":"IQO230","co":"","cred":2,"ch":30},
+  {"periodo":"Escolha Condicionada","codigo":"FFP004","nome":"Ctrl Micr. Drogas e Alim Orig Veg","pre":"FFW363","co":"","cred":2,"ch":45},
+  {"periodo":"Escolha Condicionada","codigo":"FFP016","nome":"Tópicos Especiais em Produtos Naturais","pre":"FFW473","co":"","cred":2,"ch":30},
+  {"periodo":"Escolha Condicionada","codigo":"FFI013","nome":"Biocatal Processos Industriais","pre":"BQM103; IQO230","co":"FFI013","cred":2,"ch":30},
+  {"periodo":"Escolha Condicionada","codigo":"FFM027","nome":"Cosmetologia","pre":"FFW483","co":"","cred":2,"ch":45},
+  {"periodo":"Escolha Condicionada","codigo":"FFM022","nome":"Química Industr Farmacêutica","pre":"IQO230","co":"","cred":3,"ch":45},
+  {"periodo":"Escolha Condicionada","codigo":"FFM018","nome":"Téc de Purificação na Ind Farm","pre":"BQM103","co":"FFM018","cred":2,"ch":35},
+  {"periodo":"Escolha Condicionada","codigo":"FFM415","nome":"Tecnologia Farmacêutica","pre":"FFW354","co":"","cred":4,"ch":90},
+  {"periodo":"Escolha Condicionada","codigo":"FFM026","nome":"Tópicos Especiais em Cromatografia na Indústria Farmacêutica","pre":"FFW241","co":"","cred":1,"ch":30},
+  {"periodo":"Escolha Condicionada","codigo":"FFW006","nome":"Tec Prod Hemocomp Hemoderiv","pre":"FFW355","co":"","cred":2,"ch":30},
+  {"periodo":"Escolha Condicionada","codigo":"PNN015","nome":"Cromatografia","pre":"IQO230","co":"","cred":3,"ch":60},
+  {"periodo":"Escolha Condicionada","codigo":"FFC015","nome":"Análises Forenses","pre":"","co":"","cred":2,"ch":30},
+  {"periodo":"Escolha Condicionada","codigo":"FFP008","nome":"Botânica Forense","pre":"FFW353","co":"","cred":2,"ch":30},
+  {"periodo":"Escolha Condicionada","codigo":"FFM006","nome":"Téc Mod de Proteína Ap C Farmacêuticas","pre":"IQG114","co":"","cred":2,"ch":30},
+  {"periodo":"Escolha Condicionada","codigo":"FFI021","nome":"Empreendedorismo Ciênc Farmac","pre":"","co":"","cred":3,"ch":60},
+  {"periodo":"Escolha Condicionada","codigo":"FFW007","nome":"Gestão de Proj e Comport Organiz","pre":"","co":"","cred":2,"ch":30},
+  {"periodo":"Escolha Condicionada","codigo":"FFW008","nome":"Gestão Farmacêutica Aplicada","pre":"","co":"","cred":1,"ch":30},
+  {"periodo":"Escolha Condicionada","codigo":"FFI010","nome":"Inovação Ciênc Farmacêuticas","pre":"","co":"","cred":3,"ch":45},
+  {"periodo":"Escolha Condicionada","codigo":"FFM025","nome":"Patentes Farmacêuticas e Farmoquímicas","pre":"","co":"","cred":2,"ch":30},
+  {"periodo":"Escolha Condicionada","codigo":"FFW005","nome":"História Descoberta Fármacos","pre":"","co":"","cred":1,"ch":15},
+  {"periodo":"Escolha Condicionada","codigo":"LEB599","nome":"Líng Bras de Sinais","pre":"","co":"","cred":4,"ch":60},
+  {"periodo":"Escolha Condicionada","codigo":"NEP148","nome":"Direitos Humanos e Racismo","pre":"","co":"","cred":4,"ch":60},
+  {"periodo":"Escolha Condicionada","codigo":"NEP149","nome":"Direitos Humanos e Meio Ambiente","pre":"","co":"","cred":4,"ch":60}
+];
+
 const STORAGE_KEYS = {
   checked: 'farma_checked_v4',
   theme: 'theme'
@@ -113,7 +223,7 @@ function expandSearchAliases(rawText) {
 }
 
 function getConcludedCodes() {
-  return Array.from(document.querySelectorAll('input.main-list-checkbox:checked')).map(cb => cb.value);
+  return Array.from(document.querySelectorAll('.subject-card input[type="checkbox"]:checked')).map(cb => cb.value);
 }
 
 function persistCheckedState() {
@@ -138,7 +248,7 @@ function confirmarLimparSelecao() {
 function restoreCheckedState() {
   const stored = loadJSON(STORAGE_KEYS.checked, []);
   const set = new Set(stored);
-  document.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+  document.querySelectorAll('.subject-card input[type="checkbox"]').forEach(cb => {
     cb.checked = set.has(cb.value);
   });
 }
@@ -166,7 +276,6 @@ function applyCardStatus(cardEl, status) {
 }
 
 function setTheme(isDark) {
-  // Correção do travamento/piscada ao mudar o tema
   const css = document.createElement('style');
   css.innerHTML = '* { transition: none !important; }';
   document.head.appendChild(css);
@@ -181,7 +290,6 @@ function setTheme(isDark) {
   localStorage.theme = isDark ? 'dark' : 'light';
   updateThemeUI();
 
-  // Força o navegador a recalcular o layout para aplicar instantaneamente
   window.getComputedStyle(document.body).getPropertyValue('background-color');
   
   setTimeout(() => {
@@ -205,7 +313,6 @@ function toggleThemeFromSettings() {
   setTheme(!html.classList.contains('dark'));
 }
 
-/* SISTEMA DE MODAIS COM BLOQUEIO RIGOROSO DE SCROLL DO FUNDO */
 function openModal(id) {
   const modal = document.getElementById(id);
   if (!modal) return;
@@ -242,7 +349,7 @@ document.querySelectorAll('.modal-overlay').forEach(o => {
   });
 });
 
-/* COPIAR CÓDIGO DA DISCIPLINA PARA A ÁREA DE TRANSFERÊNCIA (IMAGEM 2) */
+/* Cópia do Código Adaptado (Fonte Personalizada e z-index resolvido no HTML) */
 function copyCodeToClipboard(codigo, event) {
   if (event) event.stopPropagation();
   
@@ -257,22 +364,23 @@ function copyCodeToClipboard(codigo, event) {
     document.body.removeChild(ta);
   }
   
-  showToast(`Código ${codigo} copiado!`);
+  showToast(codigo);
 }
 
-function showToast(message) {
+function showToast(codigo) {
   const toast = document.getElementById('toast-copy');
   const msgEl = document.getElementById('toast-message');
   if (!toast || !msgEl) return;
   
-  msgEl.textContent = message;
+  // O código copiado tem cor distinta, adaptável e forte
+  msgEl.innerHTML = `Código <span class="text-cyan-400 dark:text-cyan-500 font-black px-1 tracking-wider bg-black/10 dark:bg-black/30 rounded">${codigo}</span> copiado com sucesso!`;
   toast.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-4');
   toast.classList.add('opacity-100', 'translate-y-0');
   
   setTimeout(() => {
     toast.classList.remove('opacity-100', 'translate-y-0');
     toast.classList.add('opacity-0', 'pointer-events-none', 'translate-y-4');
-  }, 2000);
+  }, 2500);
 }
 
 function startLongPress(cod) {
@@ -306,14 +414,14 @@ function marcarTudo(p) {
   if (p === PERIODO_COND) {
     if (!confirm('Tem certeza que deseja marcar todas de Escolha Condicionada?')) return;
   }
-  document.querySelectorAll(`input[data-periodo="${p}"]`).forEach(cb => cb.checked = true);
+  document.querySelectorAll(`.subject-card input[data-periodo="${p}"]`).forEach(cb => cb.checked = true);
   persistCheckedState();
   updateDashboard();
   applySelectedVisualization(getConcludedCodes());
 }
 
 function limparTudo(p) {
-  document.querySelectorAll(`input[data-periodo="${p}"]`).forEach(cb => cb.checked = false);
+  document.querySelectorAll(`.subject-card input[data-periodo="${p}"]`).forEach(cb => cb.checked = false);
   persistCheckedState();
   updateDashboard();
   applySelectedVisualization(getConcludedCodes());
@@ -321,7 +429,7 @@ function limparTudo(p) {
 
 function getSelectedCondStats() {
   let condCred = 0, condHoras = 0, condCount = 0;
-  document.querySelectorAll('input[type="checkbox"]:checked').forEach(c => {
+  document.querySelectorAll('.subject-card input[type="checkbox"]:checked').forEach(c => {
     const m = disciplinas.find(d => d.codigo === c.value);
     if (m && periodIsCond(m.periodo)) {
       condCount++;
@@ -335,7 +443,7 @@ function getSelectedCondStats() {
 function updateDashboard() {
   let dObrig = 0, dCond = 0, tCred = 0, tHr = 0, obrigCredFeitos = 0;
 
-  document.querySelectorAll('input[type="checkbox"]:checked').forEach(c => {
+  document.querySelectorAll('.subject-card input[type="checkbox"]:checked').forEach(c => {
     const m = disciplinas.find(d => d.codigo === c.value);
     if (!m) return;
     const baseCred = creditsOf(m);
@@ -384,8 +492,6 @@ function updateDashboard() {
   const percent = Math.min(100, Math.round((creditosEquivalentes / TOTAL_GRAD_CRED_EQUIV) * 100));
   
   document.getElementById('percent-total').textContent = `${percent}%`;
-  const totalBar = document.getElementById('bar-total');
-  if (totalBar) totalBar.style.width = percent + '%';
   document.getElementById('total-creditos').textContent = tCred;
   document.getElementById('total-horas').textContent = tHr;
 }
@@ -433,11 +539,15 @@ function setupSearchInputs(inputId, clearBtnId, suggestionsId, filterFn) {
   const input = document.getElementById(inputId);
   const clearBtn = document.getElementById(clearBtnId);
 
-  if (!input || !clearBtn) return;
-
   input.addEventListener('input', () => {
-    if (input.value.trim().length > 0) clearBtn.classList.remove('hidden');
-    else clearBtn.classList.add('hidden');
+    if (input.value.trim().length > 0) {
+      clearBtn.classList.remove('hidden');
+    } else {
+      clearBtn.classList.add('hidden');
+      if (inputId === 'search-input') {
+        document.getElementById('search-wrapper').classList.remove('sticky-search-active');
+      }
+    }
     filterFn(input.value);
   });
 
@@ -466,7 +576,7 @@ function filterMainSearch(query) {
 
   const suggestionsBox = document.getElementById('search-suggestions');
   if (!query.trim()) {
-    suggestionsBox?.classList.add('hidden');
+    suggestionsBox.classList.add('hidden');
     return;
   }
 
@@ -501,31 +611,30 @@ function autoSearchMain(codigo) {
     const details = card.closest('details');
     if (details) details.open = true;
     
-    // Deixa a barra fixa
+    // Adiciona a classe que faz a barra flutuar (sticky) e acompanhar até o topo
     document.getElementById('search-wrapper').classList.add('sticky-search-active');
     
     card.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 }
 
-/* SISTEMA DE PESQUISA DO PLANEJADOR DE GRADE (COM CORREÇÃO DO BUG DE SUGESTÃO) */
 function filterPlannerSearch(query) {
-  populatePlanner(query);
-
+  renderPlannerList(query);
+  
   const normalized = expandSearchAliases(query);
   const suggestionsBox = document.getElementById('planner-search-suggestions');
-
+  
   if (!query.trim()) {
-    suggestionsBox?.classList.add('hidden');
+    suggestionsBox.classList.add('hidden');
     return;
   }
-
+  
   const concluidas = getConcludedCodes();
-  const matches = disciplinas.filter(m =>
-    !concluidas.includes(m.codigo) && buildSearchIndex(m).includes(normalized)
-  ).slice(0, 5);
+  const matches = disciplinas.filter(m => {
+    if (concluidas.includes(m.codigo)) return false;
+    return buildSearchIndex(m).includes(normalized);
+  }).slice(0, 5);
 
-  if (!suggestionsBox) return;
   if (matches.length > 0) {
     suggestionsBox.innerHTML = matches.map(m => `
       <div class="search-suggestion" onclick="autoSearchPlanner('${m.codigo}')">
@@ -549,9 +658,183 @@ function autoSearchPlanner(codigo) {
   document.getElementById('planner-clear-search-button').classList.remove('hidden');
   document.getElementById('planner-search-suggestions').classList.add('hidden');
   filterPlannerSearch(formatName(m));
+}
+
+function getLockedSubjects(codigo) {
+  return disciplinas.filter(m => {
+    const preList = extractCodes(m.pre);
+    const coList = extractCodes(m.co);
+    return preList.includes(codigo) || coList.includes(codigo);
+  }).sort((a, b) => {
+    const pa = parseInt(a.periodo, 10) || 99;
+    const pb = parseInt(b.periodo, 10) || 99;
+    return pa - pb;
+  });
+}
+
+function showCoreqInfo(event, codigo) {
+  event.stopPropagation();
+  const m = disciplinas.find(d => d.codigo === codigo);
+  if(!m || !m.co) return;
+
+  const coNames = extractCodes(m.co).map(c => {
+    const mat = disciplinas.find(d => d.codigo === c);
+    return mat ? formatName(mat) : c;
+  }).join(', ');
+
+  document.getElementById('coreq-title').innerText = formatName(m);
+  document.getElementById('coreq-desc').innerText = `Essa matéria possui ${coNames} como co-requisito, ou seja, devem ser cursadas simultaneamente no mesmo período.`;
+  openModal('modal-coreq');
+}
+
+function togglePlannerCheck(event, codigo) {
+  event.stopPropagation(); // Evita acionar o longPress
+  const isChecked = event.target.checked;
+  const textDiv = document.getElementById(`planner-text-${codigo}`);
+  const cardDiv = document.getElementById(`planner-card-${codigo}`);
+
+  if (isChecked) {
+      cardDiv.classList.add('opacity-50', 'grayscale');
+      textDiv.classList.add('line-through');
+      
+      // Marca na tela global internamente
+      const globalCb = document.querySelector(`.subject-card input[type="checkbox"][value="${codigo}"]`);
+      if (globalCb) globalCb.checked = true;
+  } else {
+      cardDiv.classList.remove('opacity-50', 'grayscale');
+      textDiv.classList.remove('line-through');
+      
+      // Desmarca na tela global internamente
+      const globalCb = document.querySelector(`.subject-card input[type="checkbox"][value="${codigo}"]`);
+      if (globalCb) globalCb.checked = false;
+  }
+
+  persistCheckedState();
+  updateDashboard();
+  applySelectedVisualization(getConcludedCodes());
+}
+
+function renderPlannerList(query = '') {
+  const container = document.getElementById('planner-list');
+  const concluidas = getConcludedCodes();
+  const normalized = expandSearchAliases(query);
+
+  const elegiveis = disciplinas.filter(m => {
+    if (concluidas.includes(m.codigo)) return false;
+    
+    const preOK = extractCodes(m.pre).every(c => concluidas.includes(c));
+    const coOK = extractCodes(m.co).every(c => concluidas.includes(c));
+    const isApta = preOK && coOK;
+
+    if (normalized) {
+      return buildSearchIndex(m).includes(normalized);
+    } else {
+      return isApta;
+    }
+  });
+
+  if (!elegiveis.length) {
+    container.innerHTML = `<p class="text-center text-gray-500 py-6 font-medium">Nenhuma disciplina encontrada.</p>`;
+    return;
+  }
+
+  const obrigatorias = elegiveis.filter(m => !periodIsCond(m.periodo));
+  const condicionadas = elegiveis.filter(m => periodIsCond(m.periodo));
+
+  const renderItems = (items) => items.map(m => {
+    const trancadas = getLockedSubjects(m.codigo);
+    
+    let coReqHtml = '';
+    if (m.co) {
+       coReqHtml = `<button type="button" onclick="showCoreqInfo(event, '${m.codigo}')" title="Ver Co-requisito" class="ml-2 inline-flex items-center justify-center w-[22px] h-[22px] rounded-full border border-blue-500 text-blue-600 dark:text-blue-400 font-extrabold text-[11px] hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors shadow-sm">C</button>`;
+    }
+
+    return `
+      <div id="planner-card-${m.codigo}" class="p-3.5 bg-yellow-50 dark:bg-darkBg border border-yellowTheme-200 dark:border-darkBorder rounded-xl cursor-pointer hover:bg-yellow-100 dark:hover:bg-gray-800 transition no-select"
+           onmousedown="startHoldLocks(event, '${m.codigo}')" onmouseup="cancelLongPress()" onmouseleave="cancelLongPress()"
+           ontouchstart="startHoldLocks(event, '${m.codigo}')" ontouchend="cancelLongPress()">
+        
+        <div class="flex items-start gap-3">
+           <div class="pt-0.5" onmousedown="event.stopPropagation()" ontouchstart="event.stopPropagation()">
+             <input type="checkbox" onchange="togglePlannerCheck(event, '${m.codigo}')" class="h-5 w-5 rounded border-gray-300 text-yellowTheme-600 focus:ring-yellowTheme-500 cursor-pointer shadow-sm">
+           </div>
+           
+           <div class="flex-1 transition-all" id="planner-text-${m.codigo}">
+             <div class="font-bold text-yellowTheme-800 dark:text-yellowTheme-300 flex items-center justify-between">
+               <span class="flex items-center">${formatName(m)} ${coReqHtml}</span>
+               <button type="button" onclick="copyCodeToClipboard('${m.codigo}', event)" title="Copiar código" class="p-1 text-gray-400 hover:text-yellowTheme-600 dark:hover:text-yellowTheme-400 transition-colors bg-black/5 dark:bg-white/5 rounded-md">
+                 <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                   <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                   <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                 </svg>
+               </button>
+             </div>
+             <div class="text-xs text-yellowTheme-600 dark:text-yellowTheme-400 mt-0.5"><span class="font-bold">${m.codigo}</span> • ${displayPeriod(m)}</div>
+             <div class="text-xs font-semibold text-red-500 mt-1">Tranca ${trancadas.length} disciplina(s)</div>
+           </div>
+        </div>
+      </div>`;
+  }).join('');
+
+  let finalHTML = '';
+
+  if (obrigatorias.length > 0) {
+    finalHTML += `
+      <details class="group mb-3" open>
+        <summary class="flex justify-between items-center font-bold cursor-pointer list-none p-4 text-sm bg-gray-100 dark:bg-gray-800 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition border border-gray-200 dark:border-darkBorder text-gray-800 dark:text-gray-100">
+          Disciplinas Obrigatórias (${obrigatorias.length})
+          <span class="accordion-chevron font-mono text-xs">V</span>
+        </summary>
+        <div class="pt-3 space-y-3 pb-1">
+          ${renderItems(obrigatorias)}
+        </div>
+      </details>
+    `;
+  }
+
+  if (condicionadas.length > 0) {
+    finalHTML += `
+      <details class="group mb-3">
+        <summary class="flex justify-between items-center font-bold cursor-pointer list-none p-4 text-sm bg-gray-100 dark:bg-gray-800 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition border border-gray-200 dark:border-darkBorder text-gray-800 dark:text-gray-100">
+          Escolha Condicionada (${condicionadas.length})
+          <span class="accordion-chevron font-mono text-xs">V</span>
+        </summary>
+        <div class="pt-3 space-y-3 pb-1">
+          ${renderItems(condicionadas)}
+        </div>
+      </details>
+    `;
+  }
+
+  container.innerHTML = finalHTML;
+}
+
+function startHoldLocks(event, codigo) {
+  // Impede que clicar no botão de copiar código ou no ícone acione o detalhe de segurar.
+  if (event.target.tagName === 'BUTTON' || event.target.closest('button')) {
+    return;
+  }
   
-  // Esconde o menu de sugestão após selecionar para não tampar a visualização
-  document.getElementById('planner-search-suggestions').classList.add('hidden');
+  timerLongPress = setTimeout(() => {
+    const m = disciplinas.find(d => d.codigo === codigo);
+    if (!m) return;
+    const trancadas = getLockedSubjects(codigo);
+
+    document.getElementById('locks-title').innerText = formatName(m);
+    const list = document.getElementById('locks-list');
+
+    if (!trancadas.length) {
+      list.innerHTML = `<p class="text-gray-500 text-center font-medium">Não tranca nenhuma disciplina.</p>`;
+    } else {
+      list.innerHTML = trancadas.map(t => `
+        <div class="p-2.5 bg-gray-100 dark:bg-gray-800 rounded-lg flex justify-between items-center">
+          <span class="font-semibold text-gray-800 dark:text-gray-200 text-xs">${formatName(t)}</span>
+          <span class="text-xs font-bold text-yellowTheme-600 dark:text-yellowTheme-400">(${displayPeriod(t)})</span>
+        </div>
+      `).join('');
+    }
+    openModal('modal-locks');
+  }, 500);
 }
 
 function isApta(m, concluidas) {
@@ -598,15 +881,14 @@ function buildSections() {
              class="subject-card status-default flex items-center p-4 mb-2 rounded-lg cursor-pointer no-select"
              onmousedown="startLongPress('${m.codigo}')" onmouseup="cancelLongPress()" onmouseleave="cancelLongPress()"
              ontouchstart="startLongPress('${m.codigo}')" ontouchend="cancelLongPress()">
-        <input type="checkbox" class="main-list-checkbox form-checkbox h-5 w-5 text-yellowTheme-600 rounded mr-4 focus:ring-yellowTheme-500"
+        <input type="checkbox" class="form-checkbox h-5 w-5 text-yellowTheme-600 rounded mr-4 focus:ring-yellowTheme-500"
                value="${m.codigo}" data-periodo="${periodo}"
                onchange="persistCheckedState(); updateDashboard(); applySelectedVisualization(getConcludedCodes());">
         <div class="flex-1 min-w-0">
           <div class="subject-name text-gray-800 dark:text-gray-100 leading-tight mb-1 truncate">${formatName(m)}</div>
           <div class="subject-meta truncate flex items-center gap-1.5">
             <span class="font-extrabold">${m.codigo}</span>
-            <!-- Botão de Copiar Código Próximo ao Código (Imagem 2) -->
-            <button type="button" onclick="copyCodeToClipboard('${m.codigo}', event)" title="Copiar código" class="p-0.5 text-gray-500 dark:text-gray-300 hover:text-yellowTheme-600 dark:hover:text-yellowTheme-400 transition-colors inline-flex items-center">
+            <button type="button" onclick="copyCodeToClipboard('${m.codigo}', event)" title="Copiar código" class="p-0.5 text-gray-500 dark:text-gray-300 hover:text-yellowTheme-600 dark:hover:text-yellowTheme-400 transition-colors inline-flex items-center bg-black/5 dark:bg-white/5 rounded">
               <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                 <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
@@ -636,7 +918,6 @@ function buildSections() {
   });
 }
 
-// Fechar caixas de sugestões ao clicar fora
 document.addEventListener('click', (e) => {
   const searchWrapper = document.getElementById('search-wrapper');
   const plannerSearchWrapper = document.getElementById('planner-search-wrapper');
@@ -649,14 +930,6 @@ document.addEventListener('click', (e) => {
   }
 });
 
-// Remove a barra de pesquisa sticky caso o usuário role até o topo manualmente
-window.addEventListener('scroll', () => {
-  const searchWrapper = document.getElementById('search-wrapper');
-  if (searchWrapper && searchWrapper.classList.contains('sticky-search-active') && window.scrollY < 50) {
-    searchWrapper.classList.remove('sticky-search-active');
-  }
-});
-
 document.addEventListener('DOMContentLoaded', () => {
   buildSections();
   restoreCheckedState();
@@ -666,83 +939,5 @@ document.addEventListener('DOMContentLoaded', () => {
   setupSearchInputs('search-input', 'clear-search-button', 'search-suggestions', filterMainSearch);
   setupSearchInputs('planner-search-input', 'planner-clear-search-button', 'planner-search-suggestions', filterPlannerSearch);
   
-  // Update UI components for theme since dark class might be pre-applied in head
   updateThemeUI();
-});
-
-
-// ====== PLANEJADOR DE GRADE ======
-function openPlannerModal() {
-  const input = document.getElementById('planner-search-input');
-  if (input) input.value = '';
-  filterPlannerSearch('');
-  openModal('modal-planner');
-}
-
-function populatePlanner(searchTerm = '') {
-  const concluidas = getConcludedCodes();
-  const obrigList = document.getElementById('planner-obrig-list');
-  const condList = document.getElementById('planner-cond-list');
-  if (!obrigList || !condList) return;
-
-  const normalized = expandSearchAliases(searchTerm);
-  const matches = disciplinas.filter(mat => {
-    if (concluidas.includes(mat.codigo)) return false;
-    if (normalized && !buildSearchIndex(mat).includes(normalized)) return false;
-    return normalized || isApta(mat, concluidas);
-  });
-
-  const makeCard = (mat) => {
-    const checked = concluidas.includes(mat.codigo);
-    return `
-      <label class="flex items-start gap-3 p-3 rounded-xl bg-white dark:bg-[#21242b] border border-gray-100 dark:border-darkBorder shadow-sm cursor-pointer no-select relative overflow-hidden transition-colors"
-             onmousedown="startLongPress('${mat.codigo}')"
-             onmouseup="cancelLongPress()"
-             onmouseleave="cancelLongPress()"
-             ontouchstart="startLongPress('${mat.codigo}')"
-             ontouchend="cancelLongPress()"
-             ontouchcancel="cancelLongPress()">
-        <input type="checkbox" value="${mat.codigo}" class="planner-checkbox mt-1 w-5 h-5 rounded border-gray-300 text-yellowTheme-500 focus:ring-yellowTheme-400 transition"
-               ${checked ? 'checked' : ''}
-               onchange="togglePlannerSubject(this, '${mat.codigo}')">
-        <div class="flex-1 min-w-0 pointer-events-none">
-          <div class="font-bold text-gray-800 dark:text-gray-100 subject-name-text flex items-center flex-wrap transition-colors">
-            ${formatName(mat)}${getCoreqHTML(mat)}
-          </div>
-          <div class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-            ${mat.codigo} • ${creditsOf(mat)} créd. • ${hoursOf(mat)}h
-          </div>
-        </div>
-      </label>
-    `;
-  };
-
-  const obrig = matches.filter(mat => !periodIsCond(mat.periodo));
-  const cond = matches.filter(mat => periodIsCond(mat.periodo));
-  obrigList.innerHTML = obrig.map(makeCard).join('') ||
-    '<p class="text-sm text-gray-500 font-medium p-2">Nenhuma disciplina obrigatória disponível para puxar.</p>';
-  condList.innerHTML = cond.map(makeCard).join('') ||
-    '<p class="text-sm text-gray-500 font-medium p-2">Nenhuma disciplina de escolha condicionada disponível para puxar.</p>';
-}
-
-function togglePlannerSubject(checkbox, codigo) {
-  const mainCheckbox = document.querySelector(`input.main-list-checkbox[value="${codigo}"]`);
-  if (!mainCheckbox) return;
-
-  mainCheckbox.checked = checkbox.checked;
-  persistCheckedState();
-  updateDashboard();
-  applySelectedVisualization(getConcludedCodes());
-
-  const search = document.getElementById('planner-search-input')?.value || '';
-  populatePlanner(search);
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-  const plannerSearch = document.getElementById('planner-search-input');
-  if (plannerSearch) {
-    plannerSearch.addEventListener('input', e => {
-      populatePlanner(e.target.value);
-    });
-  }
 });
