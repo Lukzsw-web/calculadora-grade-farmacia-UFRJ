@@ -1,9 +1,5 @@
 // Cadastro de disciplinas do Planejador Acadêmico.
-// Não altere os dados sem conferir o currículo oficial.
 
-// Ajustes de exibição e atalhos de pesquisa específicos do currículo de Farmácia.
-// Os dados das disciplinas abaixo permanecem separados desta configuração para evitar
-// misturar lógica de interface com dados curriculares.
 const disciplinaAjustes = {
   "FFW361": " (Agentes infecciosos)",
   "FFW362": " (Imunologia)",
@@ -52,7 +48,7 @@ const disciplinas = [
   {"periodo":"4","codigo":"IQG241","nome":"Química de Coordenações","pre":"IQG122","co":"","cred":2,"ch":30},
   {"periodo":"4","codigo":"IQO242","nome":"Química Orgânica Experimental FF","pre":"IQO230; IQO220","co":"","cred":2,"ch":60},
   {"periodo":"5","codigo":"FFW353","nome":"Gestão e Planejamento da Assistência Farmacêutica","pre":"FFW121","co":"","cred":4,"ch":60},
-  {"periodo":"5","codigo":"FFW351","nome":"Toxicologia Geral","pre":"FFW242","co":"","cred":2,"ch":30},
+  {"periodo":"5","codigo":"FFW351","nome":"Toxicologia Geral","pre":"FFW242","co":"FFW352","cred":2,"ch":30},
   {"periodo":"5","codigo":"FFW352","nome":"Química Farmacêutica II & Toxicológica","pre":"FFW242; FFW243","co":"FFW351","cred":2,"ch":30},
   {"periodo":"5","codigo":"IMW360","nome":"Microbiologia e Imunologia Fundamental","pre":"CFF122; BQM103","co":"","cred":5,"ch":90},
   {"periodo":"5","codigo":"FFW354","nome":"Produção e Controle de Qualidade de Produtos Farmacêuticos II","pre":"FFW241","co":"","cred":4,"ch":60},
@@ -103,10 +99,10 @@ const disciplinas = [
   {"periodo":"Escolha Condicionada","codigo":"FFP304","nome":"Introd à Quím de Prod Naturais","pre":"IQO230","co":"","cred":2,"ch":30},
   {"periodo":"Escolha Condicionada","codigo":"FFP004","nome":"Ctrl Micr. Drogas e Alim Orig Veg","pre":"FFW363","co":"","cred":2,"ch":45},
   {"periodo":"Escolha Condicionada","codigo":"FFP016","nome":"Tópicos Especiais em Produtos Naturais","pre":"FFW473","co":"","cred":2,"ch":30},
-  {"periodo":"Escolha Condicionada","codigo":"FFI013","nome":"Biocatal Processos Industriais","pre":"BQM103; IQO230","co":"FFI013","cred":2,"ch":30},
+  {"periodo":"Escolha Condicionada","codigo":"FFI013","nome":"Biocatal Processos Industriais","pre":"BQM103; IQO230","co":"","cred":2,"ch":30},
   {"periodo":"Escolha Condicionada","codigo":"FFM027","nome":"Cosmetologia","pre":"FFW483","co":"","cred":2,"ch":45},
   {"periodo":"Escolha Condicionada","codigo":"FFM022","nome":"Química Industr Farmacêutica","pre":"IQO230","co":"","cred":3,"ch":45},
-  {"periodo":"Escolha Condicionada","codigo":"FFM018","nome":"Téc de Purificação na Ind Farm","pre":"BQM103","co":"FFM018","cred":2,"ch":35},
+  {"periodo":"Escolha Condicionada","codigo":"FFM018","nome":"Téc de Purificação na Ind Farm","pre":"BQM103","co":"","cred":2,"ch":35},
   {"periodo":"Escolha Condicionada","codigo":"FFM415","nome":"Tecnologia Farmacêutica","pre":"FFW354","co":"","cred":4,"ch":90},
   {"periodo":"Escolha Condicionada","codigo":"FFM026","nome":"Tópicos Especiais em Cromatografia na Indústria Farmacêutica","pre":"FFW241","co":"","cred":1,"ch":30},
   {"periodo":"Escolha Condicionada","codigo":"FFW006","nome":"Tec Prod Hemocomp Hemoderiv","pre":"FFW355","co":"","cred":2,"ch":30},
