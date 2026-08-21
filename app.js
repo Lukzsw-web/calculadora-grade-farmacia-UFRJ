@@ -1,5 +1,6 @@
 const STORAGE_KEYS = {
   checked: 'farma_checked_v4',
+  plannerChecked: 'planner_checked_v1',
   theme: 'theme'
 };
 const PERIODO_COND = 'Escolha Condicionada';
@@ -43,7 +44,7 @@ const saveJSON = (key, value) => {
 };
 
 function formatName(mat) {
-  return mat.nome + (cifAjustes[mat.codigo] || '');
+  return mat.nome + (cifAjustes && cifAjustes[mat.codigo] ? cifAjustes[mat.codigo] : '');
 }
 
 function displayPeriod(mat) {
@@ -72,48 +73,18 @@ function buildSearchIndex(mat) {
 
 function expandSearchAliases(rawText) {
   let r = String(rawText || '').trim().toLowerCase();
-
-  if (r === 'orgexp') return normalizeStr('Química Orgânica Experimental');
-  if (r === 'f1') return normalizeStr('Farmacocinética e Farmacodinâmica');
-  if (r === 'exp') return normalizeStr('Experimental');
-
-  const replacements = [
-    [/\bcif\s*(1|i)\b/g, 'cuidado integrado em farmacia i'],
-    [/\bcif\s*(2|ii)\b/g, 'cuidado integrado em farmacia ii'],
-    [/\bcif\s*(3|iii)\b/g, 'cuidado integrado em farmacia iii'],
-    [/\bcif\s*(4|iv)\b/g, 'cuidado integrado em farmacia iv'],
-    [/\bcif\s*(5|v)\b/g, 'cuidado integrado em farmacia v'],
-    [/\bcif\s*(6|vi)\b/g, 'cuidado integrado em farmacia vi'],
-    [/\bcif\s*(7|vii)\b/g, 'cuidado integrado em farmacia vii'],
-    [/\bcif\b/g, 'cuidado integrado em farmacia'],
-
-    [/\bpcq\s*(1|i)\b/g, 'producao e controle de qualidade de produtos farmaceuticos i'],
-    [/\bpcq\s*(2|ii)\b/g, 'producao e controle de qualidade de produtos farmaceuticos ii'],
-    [/\bpcq\s*(3|iii)\b/g, 'producao e controle de qualidade de produtos farmaceuticos iii'],
-    [/\bpcq\s*(4|iv)\b/g, 'producao e controle de qualidade de produtos farmaceuticos iv'],
-    [/\bpcq\s*(5|v)\b/g, 'producao e controle de qualidade de produtos farmaceuticos v'],
-    [/\bpcq\s*(6|vi)\b/g, 'producao e controle de qualidade de produtos farmaceuticos vi'],
-    [/\bpcq\s*(7|vii)\b/g, 'producao e controle de qualidade de farmacia vii'],
-    [/\bpcq\b/g, 'producao e controle de qualidade'],
-
-    [/\bbqm\s*(1|i)\b/g, 'bioquimica i'],
-    [/\bbqm\s*(2|ii)\b/g, 'bioquimica ii'],
-    [/\bbqm\b/g, 'bioquimica'],
-
-    [/\bqfm\s*(1|i)\b/g, 'quimica farmaceutica e medicinal i'],
-    [/\bqfm\s*(2|ii)\b/g, 'quimica farmaceutica ii'],
-    [/\bqfm\b/g, 'quimica farmaceutica'],
-
-    [/\bfisqui\s*(1|i)\b/g, 'fisico-quimica i'],
-    [/\bfisqui\s*(2|ii)\b/g, 'fisico-quimica ii'],
-    [/\bfisqui\b/g, 'fisico-quimica']
-  ];
-
-  for (const [pattern, replacement] of replacements) {
-    r = r.replace(pattern, replacement);
-  }
-
-  return normalizeStr(r);
+  let norm = normalizeStr(r);
+  
+  if (norm.includes('orgexp')) norm = norm.replace('orgexp', normalizeStr('quimica organica experimental'));
+  if (norm.includes('f1')) norm = norm.replace('f1', normalizeStr('farmacocinetica e farmacodinamica'));
+  if (norm.includes('exp')) norm = norm.replace('exp', normalizeStr('experimental'));
+  if (norm.includes('cif')) norm = norm.replace('cif', normalizeStr('cuidado integrado em farmacia'));
+  if (norm.includes('pcq')) norm = norm.replace('pcq', normalizeStr('producao e controle de qualidade'));
+  if (norm.includes('bqm')) norm = norm.replace('bqm', normalizeStr('bioquimica'));
+  if (norm.includes('qfm')) norm = norm.replace('qfm', normalizeStr('quimica farmaceutica'));
+  if (norm.includes('fisqui')) norm = norm.replace('fisqui', normalizeStr('fisico-quimica'));
+  
+  return norm;
 }
 
 function getConcludedCodes() {
@@ -243,47 +214,39 @@ document.querySelectorAll('.modal-overlay').forEach(o => {
   });
 });
 
-async function copyCodeToClipboard(codigo, event) {
+async function copyTextToClipboard(text, prefixLabel, event) {
   if (event) event.stopPropagation();
 
   try {
     if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
-      await navigator.clipboard.writeText(codigo);
+      await navigator.clipboard.writeText(text);
     } else {
       const ta = document.createElement('textarea');
-      ta.value = codigo;
+      ta.value = text;
       ta.setAttribute('readonly', '');
       ta.style.position = 'fixed';
       ta.style.opacity = '0';
       document.body.appendChild(ta);
       ta.select();
-      const copied = document.execCommand('copy');
+      document.execCommand('copy');
       document.body.removeChild(ta);
-      if (!copied) throw new Error('Falha ao copiar pelo método alternativo.');
     }
-    showToast(codigo);
+    showToastCustom(`${prefixLabel} copiado com sucesso!`, text);
   } catch (error) {
-    console.warn('Não foi possível copiar o código.', error);
-    const msg = document.getElementById('toast-message');
-    if (msg) msg.textContent = 'Não foi possível copiar o código.';
-    const toast = document.getElementById('toast-copy');
-    if (toast) {
-      toast.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-4');
-      toast.classList.add('opacity-100', 'translate-y-0');
-      setTimeout(() => {
-        toast.classList.remove('opacity-100', 'translate-y-0');
-        toast.classList.add('opacity-0', 'pointer-events-none', 'translate-y-4');
-      }, 2500);
-    }
+    console.warn('Não foi possível copiar.', error);
   }
 }
 
-function showToast(codigo) {
+async function copyCodeToClipboard(codigo, event) {
+  await copyTextToClipboard(codigo, "Código", event);
+}
+
+function showToastCustom(msg, highlight) {
   const toast = document.getElementById('toast-copy');
   const msgEl = document.getElementById('toast-message');
   if (!toast || !msgEl) return;
   
-  msgEl.innerHTML = `Código <span class="text-yellow-600 dark:text-yellow-500 font-black px-1 tracking-wider bg-black/10 dark:bg-black/30 rounded">${codigo}</span> copiado com sucesso!`;
+  msgEl.innerHTML = `${msg.replace(highlight, `<span class="text-yellow-600 dark:text-yellow-500 font-black px-1 tracking-wider bg-black/10 dark:bg-black/30 rounded">${highlight}</span>`)}`;
   toast.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-4');
   toast.classList.add('opacity-100', 'translate-y-0');
   
@@ -417,7 +380,7 @@ async function compartilharGradePDF() {
   
   const concluidas = getConcludedCodes();
   doc.setFontSize(18);
-  doc.text("Planejamento Acadêmico - Farmácia UFRJ", 14, 20);
+  doc.text("Planejador Acadêmico - Farmácia UFRJ", 14, 20);
 
   doc.setFontSize(12);
   doc.text(`Disciplinas Concluídas: ${concluidas.length}`, 14, 30);
@@ -467,9 +430,6 @@ function setupSearchInputs(inputId, clearBtnId, suggestionsId, filterFn) {
       clearBtn.classList.remove('hidden');
     } else {
       clearBtn.classList.add('hidden');
-      if (inputId === 'search-input') {
-        document.getElementById('search-wrapper').classList.remove('sticky-search-active');
-      }
     }
     filterFn(input.value);
   });
@@ -480,10 +440,6 @@ function setupSearchInputs(inputId, clearBtnId, suggestionsId, filterFn) {
     filterFn('');
     document.getElementById(suggestionsId)?.classList.add('hidden');
     input.focus();
-    
-    if (inputId === 'search-input') {
-      document.getElementById('search-wrapper').classList.remove('sticky-search-active');
-    }
   });
 }
 
@@ -533,9 +489,6 @@ function autoSearchMain(codigo) {
   if (card) {
     const details = card.closest('details');
     if (details) details.open = true;
-    
-    document.getElementById('search-wrapper').classList.add('sticky-search-active');
-    
     card.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 }
@@ -616,29 +569,26 @@ function togglePlannerCheck(event, codigo) {
   const textDiv = document.getElementById(`planner-text-${codigo}`);
   const cardDiv = document.getElementById(`planner-card-${codigo}`);
 
+  let plannerChecks = loadJSON(STORAGE_KEYS.plannerChecked, []);
+
   if (isChecked) {
       cardDiv.classList.add('opacity-50', 'grayscale');
       textDiv.classList.add('line-through');
-      
-      const globalCb = document.querySelector(`.subject-card input[type="checkbox"][value="${codigo}"]`);
-      if (globalCb) globalCb.checked = true;
+      if (!plannerChecks.includes(codigo)) plannerChecks.push(codigo);
   } else {
       cardDiv.classList.remove('opacity-50', 'grayscale');
       textDiv.classList.remove('line-through');
-      
-      const globalCb = document.querySelector(`.subject-card input[type="checkbox"][value="${codigo}"]`);
-      if (globalCb) globalCb.checked = false;
+      plannerChecks = plannerChecks.filter(c => c !== codigo);
   }
 
-  persistCheckedState();
-  updateDashboard();
-  applySelectedVisualization(getConcludedCodes());
+  saveJSON(STORAGE_KEYS.plannerChecked, plannerChecks);
 }
 
 function renderPlannerList(query = '') {
   const container = document.getElementById('planner-list');
   const concluidas = getConcludedCodes();
   const normalized = expandSearchAliases(query);
+  const plannerChecks = loadJSON(STORAGE_KEYS.plannerChecked, []);
 
   const elegiveis = disciplinas.filter(m => {
     if (concluidas.includes(m.codigo)) return false;
@@ -667,23 +617,28 @@ function renderPlannerList(query = '') {
     
     let coReqHtml = '';
     if (m.co) {
-       coReqHtml = `<button type="button" onclick="showCoreqInfo(event, '${m.codigo}')" title="Ver Co-requisito" class="ml-2 inline-flex items-center justify-center w-[26px] h-[26px] rounded-full border-2 border-yellow-500 text-yellow-600 dark:text-yellow-400 font-black text-[12px] bg-yellow-50 dark:bg-yellow-900/30 hover:bg-yellow-100 dark:hover:bg-yellow-900/50 transition-colors shadow-sm ring-2 ring-yellow-200 dark:ring-yellow-800">C</button>`;
+       coReqHtml = `<button type="button" onclick="showCoreqInfo(event, '${m.codigo}')" title="Ver Co-requisito" class="ml-2 inline-flex items-center justify-center w-5 h-5 rounded-full border-2 border-yellow-500 text-yellow-600 dark:text-yellow-400 font-black text-[10px] bg-yellow-50 dark:bg-yellow-900/30 hover:bg-yellow-100 dark:hover:bg-yellow-900/50 transition-colors shadow-sm shrink-0">C</button>`;
     }
 
+    const isPlannerChecked = plannerChecks.includes(m.codigo);
+    const checkedAttr = isPlannerChecked ? 'checked' : '';
+    const cardClasses = isPlannerChecked ? 'opacity-50 grayscale' : '';
+    const textClasses = isPlannerChecked ? 'line-through' : '';
+
     return `
-      <div id="planner-card-${m.codigo}" class="p-3.5 bg-yellow-50 dark:bg-darkBg border border-yellowTheme-200 dark:border-darkBorder rounded-xl cursor-pointer hover:bg-yellow-100 dark:hover:bg-gray-800 transition no-select"
+      <div id="planner-card-${m.codigo}" class="p-3.5 bg-yellow-50 dark:bg-darkBg border border-yellowTheme-200 dark:border-darkBorder rounded-xl cursor-pointer hover:bg-yellow-100 dark:hover:bg-gray-800 transition no-select ${cardClasses}"
            onmousedown="startHoldLocks(event, '${m.codigo}')" onmouseup="cancelLongPress()" onmouseleave="cancelLongPress()"
            ontouchstart="startHoldLocks(event, '${m.codigo}')" ontouchend="cancelLongPress()">
         
         <div class="flex items-start gap-3">
            <div class="pt-0.5" onmousedown="event.stopPropagation()" ontouchstart="event.stopPropagation()">
-             <input type="checkbox" onchange="togglePlannerCheck(event, '${m.codigo}')" class="h-5 w-5 rounded border-gray-300 text-yellowTheme-600 focus:ring-yellowTheme-500 cursor-pointer shadow-sm">
+             <input type="checkbox" onchange="togglePlannerCheck(event, '${m.codigo}')" ${checkedAttr} class="h-5 w-5 rounded border-gray-300 text-yellowTheme-600 focus:ring-yellowTheme-500 cursor-pointer shadow-sm">
            </div>
            
-           <div class="flex-1 transition-all" id="planner-text-${m.codigo}">
+           <div class="flex-1 transition-all ${textClasses}" id="planner-text-${m.codigo}">
              <div class="font-bold text-yellowTheme-800 dark:text-yellowTheme-300 flex items-center justify-between">
-               <span class="flex items-center">${formatName(m)} ${coReqHtml}</span>
-               <button type="button" onclick="copyCodeToClipboard('${m.codigo}', event)" title="Copiar código" class="p-1 text-gray-400 hover:text-yellowTheme-600 dark:hover:text-yellowTheme-400 transition-colors bg-black/5 dark:bg-white/5 rounded-md">
+               <span class="flex items-center flex-wrap gap-y-1">${formatName(m)} ${coReqHtml}</span>
+               <button type="button" onclick="copyCodeToClipboard('${m.codigo}', event)" title="Copiar código" class="p-1 text-gray-400 hover:text-yellowTheme-600 dark:hover:text-yellowTheme-400 transition-colors bg-black/5 dark:bg-white/5 rounded-md shrink-0">
                  <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
@@ -704,7 +659,7 @@ function renderPlannerList(query = '') {
       <details class="group mb-3" open>
         <summary class="flex justify-between items-center font-bold cursor-pointer list-none p-4 text-sm bg-gray-100 dark:bg-gray-800 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition border border-gray-200 dark:border-darkBorder text-gray-800 dark:text-gray-100">
           Disciplinas Obrigatórias (${obrigatorias.length})
-          <span class="accordion-chevron font-mono text-xs">V</span>
+          <svg class="accordion-chevron w-5 h-5 text-gray-500 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
         </summary>
         <div class="pt-3 space-y-3 pb-1">
           ${renderItems(obrigatorias)}
@@ -718,7 +673,7 @@ function renderPlannerList(query = '') {
       <details class="group mb-3">
         <summary class="flex justify-between items-center font-bold cursor-pointer list-none p-4 text-sm bg-gray-100 dark:bg-gray-800 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition border border-gray-200 dark:border-darkBorder text-gray-800 dark:text-gray-100">
           Escolha Condicionada (${condicionadas.length})
-          <span class="accordion-chevron font-mono text-xs">V</span>
+          <svg class="accordion-chevron w-5 h-5 text-gray-500 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
         </summary>
         <div class="pt-3 space-y-3 pb-1">
           ${renderItems(condicionadas)}
@@ -806,7 +761,13 @@ function buildSections() {
     const div = document.createElement('div');
     div.className = 'mb-4 bg-white dark:bg-darkCard rounded-xl shadow-sm border border-gray-100 dark:border-darkBorder overflow-hidden';
 
-    const materiasHtml = periodosMap[periodo].map(m => `
+    const materiasHtml = periodosMap[periodo].map(m => {
+      let coReqHtml = '';
+      if (m.co) {
+        coReqHtml = `<button type="button" onclick="showCoreqInfo(event, '${m.codigo}')" title="Ver Co-requisito" class="ml-1.5 inline-flex items-center justify-center w-[20px] h-[20px] rounded-full border-2 border-yellow-500 text-yellow-600 dark:text-yellow-400 font-black text-[10px] bg-yellow-50 dark:bg-yellow-900/30 hover:bg-yellow-100 transition-colors shadow-sm ring-1 ring-yellow-200 dark:ring-yellow-800 shrink-0">C</button>`;
+      }
+
+      return `
       <label id="card-${m.codigo}" data-periodo="${periodo}" data-search="${buildSearchIndex(m)}"
              class="subject-card status-default flex items-center p-4 mb-2 rounded-lg cursor-pointer no-select"
              onmousedown="startLongPress('${m.codigo}')" onmouseup="cancelLongPress()" onmouseleave="cancelLongPress()"
@@ -815,7 +776,7 @@ function buildSections() {
                value="${m.codigo}" data-periodo="${periodo}"
                onchange="persistCheckedState(); updateDashboard(); applySelectedVisualization(getConcludedCodes());">
         <div class="flex-1 min-w-0">
-          <div class="subject-name text-gray-800 dark:text-gray-100 leading-tight mb-1 truncate">${formatName(m)}</div>
+          <div class="subject-name text-gray-800 dark:text-gray-100 leading-tight mb-1 truncate flex items-center">${formatName(m)} ${coReqHtml}</div>
           <div class="subject-meta truncate flex items-center gap-1.5">
             <span class="font-extrabold">${m.codigo}</span>
             <button type="button" onclick="copyCodeToClipboard('${m.codigo}', event)" title="Copiar código" class="p-0.5 text-gray-500 dark:text-gray-300 hover:text-yellowTheme-600 dark:hover:text-yellowTheme-400 transition-colors inline-flex items-center bg-black/5 dark:bg-white/5 rounded">
@@ -828,13 +789,13 @@ function buildSections() {
           </div>
         </div>
       </label>
-    `).join('');
+    `}).join('');
 
     div.innerHTML = `
       <details class="group" data-periodo="${periodo}" ${index === 0 ? 'open' : ''}>
         <summary class="flex justify-between items-center font-bold cursor-pointer list-none p-5 text-lg bg-yellow-50/50 dark:bg-darkBg hover:bg-yellow-100 dark:hover:bg-gray-800 transition-colors">
           ${tituloHtml}
-          <span class="accordion-chevron font-mono inline-block font-extrabold text-sm text-gray-500 dark:text-gray-400">V</span>
+          <svg class="accordion-chevron w-6 h-6 text-gray-500 dark:text-gray-400 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
         </summary>
         <div class="accordion-content p-5 border-t border-yellowTheme-100 dark:border-darkBorder">
           <div class="flex gap-2 mb-4">
