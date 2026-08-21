@@ -1,0 +1,342 @@
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body, .bg-white, .dark\:bg-darkCard, .dark\:bg-darkBg, .bg-gray-50, .subject-card {
+  transition: background-color 0.2s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1), color 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(202, 138, 4, 0.4);
+  border-radius: 10px;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(253, 224, 71, 0.2);
+}
+
+.no-select {
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+  user-select: none !important;
+  -webkit-touch-callout: none !important;
+}
+
+/* Barra flutuante constante e nativa, evita bugs de "pulo" no topo da página */
+.search-wrapper {
+  position: sticky !important;
+  top: 1rem !important;
+  z-index: 50 !important;
+}
+
+.modal-overlay {
+  display: flex;
+  opacity: 0;
+  pointer-events: none;
+  backdrop-filter: blur(8px);
+  background-color: rgba(0, 0, 0, 0.4);
+  transition: opacity 0.25s ease;
+}
+.modal-overlay.active {
+  opacity: 1 !important;
+  pointer-events: auto !important;
+}
+.modal-overlay.active .modal-content {
+  transform: scale(1);
+}
+
+details > summary {
+  list-style: none;
+}
+details > summary::-webkit-details-marker {
+  display: none;
+}
+details[open] summary ~ * {
+  animation: sweep 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes sweep {
+  0% { opacity: 0; transform: translateY(-6px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* Estilo para girar a setinha da sanfona (180º) */
+details[open] summary .accordion-chevron {
+  transform: rotate(180deg);
+}
+
+#accordions-container > div {
+  border-radius: 1.5rem !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.03), 0 4px 6px -4px rgba(0, 0, 0, 0.02) !important;
+  border: 1px solid rgba(0, 0, 0, 0.04) !important;
+  margin-bottom: 1.5rem !important;
+  background: #ffffff !important;
+  overflow: hidden;
+}
+.dark #accordions-container > div {
+  background: #1a1d24 !important;
+  border-color: rgba(255, 255, 255, 0.03) !important;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2) !important;
+}
+
+#accordions-container details summary {
+  padding: 1.5rem !important;
+  background: transparent !important;
+  color: inherit !important;
+  font-size: 1.125rem !important;
+  letter-spacing: -0.02em;
+}
+#accordions-container details summary:hover {
+  background: rgba(0,0,0,0.02) !important;
+}
+.dark #accordions-container details summary:hover {
+  background: rgba(255,255,255,0.02) !important;
+}
+
+#accordions-container .accordion-content button {
+  border-radius: 0.75rem !important;
+  padding: 0.75rem 1rem !important;
+}
+
+/* =========================================================
+   Correções visuais explícitas
+   ========================================================= */
+
+/* Barras de progresso: cores fixas para funcionar mesmo quando
+   as classes são aplicadas/atualizadas por JavaScript. */
+.progress-bar {
+  display: block !important;
+  min-width: 0;
+  height: 100%;
+  border-radius: 9999px;
+  transform-origin: left center;
+  will-change: width;
+}
+.progress-bar-obrig {
+  background: linear-gradient(90deg, #ca8a04 0%, #facc15 100%) !important;
+  background-color: #eab308 !important;
+  box-shadow: 0 0 14px rgba(234, 179, 8, 0.22);
+}
+.progress-bar-cond {
+  background: linear-gradient(90deg, #d97706 0%, #facc15 100%) !important;
+  background-color: #d97706 !important;
+  box-shadow: 0 0 14px rgba(217, 119, 6, 0.22);
+}
+.dark .progress-bar-obrig {
+  background: linear-gradient(90deg, #eab308 0%, #fde047 100%) !important;
+  background-color: #eab308 !important;
+}
+.dark .progress-bar-cond {
+  background: linear-gradient(90deg, #d97706 0%, #facc15 100%) !important;
+  background-color: #d97706 !important;
+}
+
+/* Cores reais dos balões/cartões de disciplinas. */
+.subject-card {
+  border: 1px solid rgba(17, 24, 39, 0.08);
+  background: #ffffff;
+}
+.subject-card.status-default {
+  background: #ffffff !important;
+  border-color: rgba(156, 163, 175, 0.28) !important;
+  color: #1f2937;
+}
+.subject-card.status-passed {
+  background: #dbeafe !important;
+  border-color: #93c5fd !important;
+  color: #1e3a8a;
+}
+.subject-card.status-eligible {
+  background: #d1fae5 !important;
+  border-color: #6ee7b7 !important;
+  color: #065f46;
+}
+.subject-card.status-blocked {
+  background: #fee2e2 !important;
+  border-color: #fca5a5 !important;
+  color: #991b1b;
+}
+.dark .subject-card.status-default {
+  background: #1a1d24 !important;
+  border-color: #2d313a !important;
+  color: #e5e7eb;
+}
+.dark .subject-card.status-passed {
+  background: rgba(30, 64, 175, 0.30) !important;
+  border-color: rgba(96, 165, 250, 0.58) !important;
+  color: #dbeafe;
+}
+.dark .subject-card.status-eligible {
+  background: rgba(6, 95, 70, 0.32) !important;
+  border-color: rgba(52, 211, 153, 0.54) !important;
+  color: #d1fae5;
+}
+.dark .subject-card.status-blocked {
+  background: rgba(127, 29, 29, 0.34) !important;
+  border-color: rgba(248, 113, 113, 0.55) !important;
+  color: #fee2e2;
+}
+
+/* Nome da matéria e botão de co-requisito permanecem na mesma linha,
+   quebrando de modo limpo apenas quando faltar espaço. */
+.subject-name {
+  overflow: visible !important;
+  text-overflow: clip !important;
+  white-space: normal !important;
+  min-width: 0;
+}
+.subject-name .coreq-button,
+.planner-coreq-button {
+  flex: 0 0 auto;
+}
+
+/* Botão C: pequeno, circular e imediatamente ao lado do nome. */
+.coreq-button,
+.planner-coreq-button {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 20px !important;
+  height: 20px !important;
+  min-width: 20px !important;
+  padding: 0 !important;
+  border-radius: 9999px !important;
+  border: 2px solid #eab308 !important;
+  color: #a16207 !important;
+  background: #fef9c3 !important;
+  font-size: 10px !important;
+  font-weight: 900 !important;
+  line-height: 1 !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  vertical-align: middle;
+  cursor: pointer;
+}
+.coreq-button:hover,
+.planner-coreq-button:hover {
+  background: #fef08a !important;
+  transform: scale(1.06);
+}
+.dark .coreq-button,
+.dark .planner-coreq-button {
+  color: #fde68a !important;
+  background: rgba(133, 77, 14, 0.35) !important;
+  border-color: #eab308 !important;
+}
+.dark .coreq-button:hover,
+.dark .planner-coreq-button:hover {
+  background: rgba(161, 98, 7, 0.45) !important;
+}
+
+/* Sugestões de pesquisa: caixa sólida no estilo de uma lista de resultados
+   do Google, sem texto "flutuando" no fundo da página. */
+.search-suggestions {
+  position: absolute !important;
+  top: calc(100% + 8px) !important;
+  left: 0 !important;
+  right: 0 !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 8px !important;
+  background: #ffffff !important;
+  color: #1f2937 !important;
+  border: 1px solid #e5e7eb !important;
+  border-radius: 1.25rem !important;
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.14) !important;
+  overflow: hidden !important;
+  z-index: 100 !important;
+}
+.dark .search-suggestions {
+  background: #1a1d24 !important;
+  color: #f3f4f6 !important;
+  border-color: #2d313a !important;
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.45) !important;
+}
+.search-suggestion {
+  display: flex !important;
+  align-items: center;
+  width: 100% !important;
+  min-height: 58px;
+  padding: 11px 14px !important;
+  background: transparent !important;
+  color: inherit !important;
+  border-radius: 0.95rem !important;
+  cursor: pointer;
+  transition: background-color 0.15s ease, transform 0.15s ease;
+}
+.search-suggestion:hover,
+.search-suggestion:focus {
+  background: #f3f4f6 !important;
+}
+.dark .search-suggestion:hover,
+.dark .search-suggestion:focus {
+  background: #232730 !important;
+}
+.search-suggestion-main {
+  min-width: 0;
+  width: 100%;
+}
+.search-suggestion-name {
+  font-weight: 700;
+  font-size: 0.95rem;
+  line-height: 1.25rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.search-suggestion-meta {
+  margin-top: 3px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #6b7280;
+}
+.dark .search-suggestion-meta {
+  color: #9ca3af;
+}
+
+/* Campo de pesquisa com aparência uniforme e sem borda duplicada. */
+.search-bar-shell {
+  border: 1px solid #e5e7eb !important;
+  overflow: visible !important;
+}
+.dark .search-bar-shell {
+  border-color: #2d313a !important;
+}
+.search-bar-shell:focus-within {
+  border-color: rgba(234, 179, 8, 0.72) !important;
+  box-shadow: 0 0 0 3px rgba(234, 179, 8, 0.13), 0 18px 45px rgba(0,0,0,0.10) !important;
+}
+.dark .search-bar-shell:focus-within {
+  border-color: rgba(250, 204, 21, 0.70) !important;
+  box-shadow: 0 0 0 3px rgba(250, 204, 21, 0.10), 0 18px 45px rgba(0,0,0,0.30) !important;
+}
+
+/* Espaçamento vertical do cabeçalho para afastar título/subtítulo dos botões. */
+header > h1 {
+  margin-top: 2.5rem !important;
+}
+header > p {
+  margin-top: 0.75rem !important;
+}
+
+/* Pequenos ajustes de segurança para o planner. */
+#planner-search-wrapper {
+  overflow: visible !important;
+}
+#planner-search-wrapper .search-suggestions {
+  position: absolute !important;
+}
+
+/* Acessibilidade/feedback do foco sem quebrar a função de clique. */
+.coreq-button:focus-visible,
+.planner-coreq-button:focus-visible,
+.search-suggestion:focus-visible {
+  outline: 3px solid rgba(234, 179, 8, 0.35);
+  outline-offset: 2px;
+}
+
