@@ -1,834 +1,523 @@
+"use strict";
+
+/**
+ * ==========================================
+ * 1. CONFIGURAÇÕES E ESTADO GLOBAL
+ * ==========================================
+ */
 const STORAGE_KEYS = {
-  checked: 'farma_checked_v4',
-  plannerChecked: 'planner_checked_v1',
-  theme: 'theme'
+    checked: 'farma_checked_v4',
+    plannerChecked: 'planner_checked_v1',
+    theme: 'theme'
 };
+
 const PERIODO_COND = 'Escolha Condicionada';
 const META_COND_CRED = 12;
 const META_COND_HORAS = 180;
 
+// Cálculos de carga e progresso
 const TOTAL_OBRIG_CRED = disciplinas
-  .filter(d => !periodIsCond(d.periodo))
-  .reduce((sum, d) => sum + creditsOf(d), 0);
+    .filter(d => d.periodo !== PERIODO_COND)
+    .reduce((sum, d) => sum + (parseInt(d.cred) || 0), 0);
 const TOTAL_GRAD_CRED_EQUIV = TOTAL_OBRIG_CRED + META_COND_CRED;
+const totalObrig = disciplinas.filter(d => d.periodo !== PERIODO_COND).length;
 
-let totalObrig = disciplinas.filter(d => !periodIsCond(d.periodo)).length;
-let totalCond = disciplinas.filter(d => periodIsCond(d.periodo)).length;
-
-const html = document.documentElement;
-let timerLongPress = null;
-let activeModalCount = 0;
-
-const normalizeStr = (s = '') =>
-  String(s)
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/\s+/g, '')
-    .toLowerCase();
-
-const loadJSON = (key, fallback) => {
-  try {
-    const raw = localStorage.getItem(key);
-    return raw ? JSON.parse(raw) : fallback;
-  } catch {
-    return fallback;
-  }
+// Estado SSoT (Single Source of Truth)
+const state = {
+    checked: new Set(JSON.parse(localStorage.getItem(STORAGE_KEYS.checked) || '[]')),
+    plannerChecked: new Set(JSON.parse(localStorage.getItem(STORAGE_KEYS.plannerChecked) || '[]'))
 };
 
-const saveJSON = (key, value) => {
-  try {
-    localStorage.setItem(key, JSON.stringify(value));
-  } catch (error) {
-    console.warn('Não foi possível salvar o estado local do aplicativo.', error);
-  }
-};
+// Dicionários para buscas O(1) e performance
+const discMap = new Map();
+const dependentesMap = new Map();
 
-function formatName(mat) {
-  return mat.nome + (disciplinaAjustes && disciplinaAjustes[mat.codigo] ? disciplinaAjustes[mat.codigo] : '');
-}
-
-function displayPeriod(mat) {
-  return mat.periodo === PERIODO_COND ? PERIODO_COND : `${mat.periodo}º Período`;
-}
-
-function extractCodes(str) {
-  return str ? (str.match(/[A-Z]{3}[A-Z0-9]{3}/g) || []) : [];
-}
-
-function periodIsCond(periodo) {
-  return periodo === PERIODO_COND;
-}
-
-function creditsOf(mat) {
-  return mat.cred || 4;
-}
-
-function hoursOf(mat) {
-  return mat.ch || creditsOf(mat) * 15;
-}
-
-function buildSearchIndex(mat) {
-  return normalizeStr([formatName(mat), mat.codigo, displayPeriod(mat), `${mat.periodo} periodo`].join(' '));
-}
-
-function expandSearchAliases(rawText) {
-  let r = String(rawText || '').trim().toLowerCase();
-  let norm = normalizeStr(r);
-  
-  if (typeof aliasesPesquisaDisciplinas === 'object' && aliasesPesquisaDisciplinas) {
-    Object.entries(aliasesPesquisaDisciplinas).forEach(([alias, target]) => {
-      if (norm.includes(alias)) norm = norm.replace(alias, normalizeStr(target));
-    });
-  }
-  
-  return norm;
-}
-
-function getConcludedCodes() {
-  return Array.from(document.querySelectorAll('.subject-card input[type="checkbox"]:checked')).map(cb => cb.value);
-}
-
-function persistCheckedState() {
-  saveJSON(STORAGE_KEYS.checked, getConcludedCodes());
-  const el = document.getElementById('save-status');
-  if (el) {
-    el.classList.remove('opacity-0');
-    setTimeout(() => el.classList.add('opacity-0'), 1600);
-  }
-}
-
-function confirmarLimparSelecao() {
-  const marcadas = getConcludedCodes();
-  if (!marcadas.length) return;
-  if (!confirm('Tem certeza que deseja desmarcar todas as disciplinas?')) return;
-  document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
-  persistCheckedState();
-  updateDashboard();
-  applySelectedVisualization([]);
-}
-
-function restoreCheckedState() {
-  const stored = loadJSON(STORAGE_KEYS.checked, []);
-  const set = new Set(stored);
-  document.querySelectorAll('.subject-card input[type="checkbox"]').forEach(cb => {
-    cb.checked = set.has(cb.value);
-  });
-}
-
-function resolveReqsColor(reqStr, concluidas) {
-  if (!reqStr) return "<span class='text-gray-500 font-normal'>Nenhum</span>";
-  const incompleteColor = html.classList.contains('dark') ? '#f87171' : '#ef4444';
-  const completedColor = html.classList.contains('dark') ? '#34d399' : '#10b981';
-
-  return extractCodes(reqStr).map(c => {
-    const m = disciplinas.find(d => d.codigo === c);
-    let label = m ? formatName(m) : c;
-    if (m && !periodIsCond(m.periodo)) label += ` (${displayPeriod(m)})`;
-    const color = concluidas.includes(c) ? completedColor : incompleteColor;
-    return `<span style="color:${color}" class="font-bold block mb-1">${label}</span>`;
-  }).join('');
-}
-
-function applyCardStatus(cardEl, status) {
-  cardEl.classList.remove('status-default', 'status-passed', 'status-eligible', 'status-blocked');
-  cardEl.classList.add(
-    status === 'passed' ? 'status-passed'
-      : status === 'eligible' ? 'status-eligible'
-      : status === 'blocked' ? 'status-blocked'
-      : 'status-default'
-  );
-}
-
-function setTheme(isDark) {
-  const css = document.createElement('style');
-  css.innerHTML = '* { transition: none !important; }';
-  document.head.appendChild(css);
-
-  if (isDark) {
-    html.classList.add('dark');
-    html.classList.remove('light');
-  } else {
-    html.classList.remove('dark');
-    html.classList.add('light');
-  }
-  localStorage.theme = isDark ? 'dark' : 'light';
-  updateThemeUI();
-
-  window.getComputedStyle(document.body).getPropertyValue('background-color');
-  
-  setTimeout(() => {
-    document.head.removeChild(css);
-  }, 50);
-}
-
-function updateThemeUI() {
-  const isDark = html.classList.contains('dark');
-  const thumb = document.getElementById('theme-toggle-thumb');
-  if (thumb) thumb.style.transform = isDark ? 'translateX(1.25rem)' : 'translateX(0)';
-
-  const label = document.getElementById('settings-theme-label');
-  if (label) label.textContent = isDark ? 'Modo escuro' : 'Modo claro';
-
-  document.getElementById('settings-theme-icon-sun')?.classList.toggle('hidden', isDark);
-  document.getElementById('settings-theme-icon-moon')?.classList.toggle('hidden', !isDark);
-}
-
-function toggleThemeFromSettings() {
-  setTheme(!html.classList.contains('dark'));
-}
-
-function openModal(id) {
-  const modal = document.getElementById(id);
-  if (!modal) return;
-  
-  if (!modal.classList.contains('active')) {
-    modal.classList.add('active');
-    activeModalCount++;
-  }
-  document.body.style.overflow = 'hidden';
-  
-  if (id === 'modal-planner') {
-    document.getElementById('planner-search-input').value = '';
-    filterPlannerSearch('');
-  }
-}
-
-function closeModal(id) {
-  const modal = document.getElementById(id);
-  if (!modal) return;
-  
-  if (modal.classList.contains('active')) {
-    modal.classList.remove('active');
-    activeModalCount = Math.max(0, activeModalCount - 1);
-  }
-  
-  if (activeModalCount === 0) {
-    document.body.style.overflow = '';
-  }
-}
-
-document.querySelectorAll('.modal-overlay').forEach(o => {
-  o.addEventListener('click', e => {
-    if (e.target === o) closeModal(o.id);
-  });
+disciplinas.forEach(d => {
+    discMap.set(d.codigo, d);
+    if (d.pre) {
+        d.pre.split(';').forEach(p => {
+            const req = p.trim();
+            if (!dependentesMap.has(req)) dependentesMap.set(req, []);
+            dependentesMap.get(req).push(d.codigo);
+        });
+    }
 });
 
-async function copyTextToClipboard(text, prefixLabel, event) {
-  if (event) event.stopPropagation();
+// Cache DOM principal
+const DOM = {
+    accordions: document.getElementById('accordions-container'),
+    plannerList: document.getElementById('planner-list'),
+    searchInput: document.getElementById('search-input'),
+    searchSuggestions: document.getElementById('search-suggestions'),
+    clearSearchBtn: document.getElementById('clear-search-button')
+};
 
-  try {
-    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
-      await navigator.clipboard.writeText(text);
-    } else {
-      const ta = document.createElement('textarea');
-      ta.value = text;
-      ta.setAttribute('readonly', '');
-      ta.style.position = 'fixed';
-      ta.style.opacity = '0';
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand('copy');
-      document.body.removeChild(ta);
+/**
+ * ==========================================
+ * 2. LÓGICA DE NEGÓCIO E UI
+ * ==========================================
+ */
+
+// Retorna se o aluno tem os pré-requisitos marcados
+function checkPrereqs(codigo) {
+    const d = discMap.get(codigo);
+    if (!d || !d.pre) return true;
+    return d.pre.split(';').every(p => state.checked.has(p.trim()));
+}
+
+// Determina o status lógico da disciplina
+function getSubjectStatus(codigo) {
+    if (state.checked.has(codigo)) return 'passed';
+    if (checkPrereqs(codigo)) return 'eligible';
+    return 'blocked';
+}
+
+// Desmarca recursivamente todas as disciplinas que dependiam da matéria desmarcada
+function uncheckDependents(codigo) {
+    const deps = dependentesMap.get(codigo);
+    if (deps) {
+        deps.forEach(dep => {
+            if (state.checked.has(dep)) {
+                state.checked.delete(dep);
+                uncheckDependents(dep); // Recursão segura
+            }
+        });
     }
-    showToastCustom(`${prefixLabel} copiado com sucesso!`, text);
-  } catch (error) {
-    console.warn('Não foi possível copiar.', error);
-  }
 }
 
-async function copyCodeToClipboard(codigo, event) {
-  await copyTextToClipboard(codigo, "Código", event);
-}
+// Atualiza barras de progresso, cores e estatísticas 
+function updateAllUI() {
+    let credObrig = 0, chObrig = 0, totalObrigFeitas = 0;
+    let credCond = 0, chCond = 0;
 
-function showToastCustom(msg, highlight) {
-  const toast = document.getElementById('toast-copy');
-  const msgEl = document.getElementById('toast-message');
-  if (!toast || !msgEl) return;
-  
-  msgEl.innerHTML = `${msg.replace(highlight, `<span class="text-yellow-600 dark:text-yellow-500 font-black px-1 tracking-wider bg-black/10 dark:bg-black/30 rounded">${highlight}</span>`)}`;
-  toast.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-4');
-  toast.classList.add('opacity-100', 'translate-y-0');
-  
-  setTimeout(() => {
-    toast.classList.remove('opacity-100', 'translate-y-0');
-    toast.classList.add('opacity-0', 'pointer-events-none', 'translate-y-4');
-  }, 2500);
-}
+    // Atualiza classes dos cards no DOM
+    document.querySelectorAll('.subject-card').forEach(card => {
+        const codigo = card.dataset.codigo;
+        const d = discMap.get(codigo);
+        const status = getSubjectStatus(codigo);
+        const isChecked = state.checked.has(codigo);
 
-function startLongPress(cod) {
-  timerLongPress = setTimeout(() => {
-    const m = disciplinas.find(d => d.codigo === cod);
-    if (!m) return;
-    const concluidas = getConcludedCodes();
-    document.getElementById('det-nome').innerText = formatName(m);
-    document.getElementById('det-cod').innerText = m.codigo;
-    document.getElementById('det-per').innerText = displayPeriod(m);
-    document.getElementById('det-cred').innerText = creditsOf(m);
-    document.getElementById('det-ch').innerText = `${hoursOf(m)} Horas`;
-    document.getElementById('det-pre').innerHTML = resolveReqsColor(m.pre, concluidas);
-    document.getElementById('det-co').innerHTML = resolveReqsColor(m.co, concluidas);
-    
-    const copyBtn = document.getElementById('det-copy-btn');
-    if (copyBtn) {
-      copyBtn.onclick = (e) => copyCodeToClipboard(m.codigo, e);
-    }
-
-    openModal('modal-details');
-  }, 600);
-}
-
-function cancelLongPress() {
-  clearTimeout(timerLongPress);
-  timerLongPress = null;
-}
-
-function marcarTudo(p) {
-  if (p === PERIODO_COND) {
-    if (!confirm('Tem certeza que deseja marcar todas de Escolha Condicionada?')) return;
-  }
-  document.querySelectorAll(`.subject-card input[data-periodo="${p}"]`).forEach(cb => cb.checked = true);
-  persistCheckedState();
-  updateDashboard();
-  applySelectedVisualization(getConcludedCodes());
-}
-
-function limparTudo(p) {
-  document.querySelectorAll(`.subject-card input[data-periodo="${p}"]`).forEach(cb => cb.checked = false);
-  persistCheckedState();
-  updateDashboard();
-  applySelectedVisualization(getConcludedCodes());
-}
-
-function getSelectedCondStats() {
-  let condCred = 0, condHoras = 0, condCount = 0;
-  document.querySelectorAll('.subject-card input[type="checkbox"]:checked').forEach(c => {
-    const m = disciplinas.find(d => d.codigo === c.value);
-    if (m && periodIsCond(m.periodo)) {
-      condCount++;
-      condCred += creditsOf(m);
-      condHoras += hoursOf(m);
-    }
-  });
-  return { condCred, condHoras, condCount };
-}
-
-function updateDashboard() {
-  let dObrig = 0, dCond = 0, tCred = 0, tHr = 0, obrigCredFeitos = 0;
-
-  document.querySelectorAll('.subject-card input[type="checkbox"]:checked').forEach(c => {
-    const m = disciplinas.find(d => d.codigo === c.value);
-    if (!m) return;
-    const baseCred = creditsOf(m);
-    const baseHor = hoursOf(m);
-
-    if (periodIsCond(c.dataset.periodo)) dCond++;
-    else {
-      dObrig++;
-      obrigCredFeitos += baseCred;
-    }
-    tCred += baseCred;
-    tHr += baseHor;
-  });
-
-  document.getElementById('count-obrig-feitas-painel').textContent = dObrig;
-  document.getElementById('count-obrig-total-painel').textContent = totalObrig;
-
-  document.getElementById('count-obrig-feitas').textContent = dObrig;
-  document.getElementById('count-obrig-faltam').textContent = Math.max(0, totalObrig - dObrig);
-
-  const pObrig = totalObrig ? Math.round((dObrig / totalObrig) * 100) : 0;
-  document.getElementById('percent-obrig').textContent = pObrig + '%';
-  document.getElementById('bar-obrig').style.width = Math.min(100, pObrig) + '%';
-
-  document.getElementById('count-cond-feitas').textContent = dCond;
-  document.getElementById('count-cond-faltam').textContent = Math.max(0, totalCond - dCond);
-
-  const { condCred, condHoras } = getSelectedCondStats();
-  document.getElementById('text-cond-progress').textContent = `${condCred} créd. • ${condHoras}h`;
-
-  const pCondCred = (condCred / META_COND_CRED) * 100;
-  const pCondHoras = (condHoras / META_COND_HORAS) * 100;
-  const pCond = Math.min(100, Math.min(pCondCred, pCondHoras));
-  document.getElementById('bar-cond').style.width = pCond + '%';
-
-  if (condCred >= META_COND_CRED && condHoras >= META_COND_HORAS) {
-    document.getElementById('text-cond-meta').classList.add('hidden');
-    document.getElementById('icon-cond-exclamation').classList.remove('hidden');
-  } else {
-    document.getElementById('text-cond-meta').classList.remove('hidden');
-    document.getElementById('icon-cond-exclamation').classList.add('hidden');
-  }
-
-  const condProgress = Math.min(1, condCred / META_COND_CRED, condHoras / META_COND_HORAS);
-  const creditosEquivalentes = obrigCredFeitos + (META_COND_CRED * condProgress);
-  const percent = Math.min(100, Math.round((creditosEquivalentes / TOTAL_GRAD_CRED_EQUIV) * 100));
-  
-  document.getElementById('percent-total').textContent = `${percent}%`;
-  document.getElementById('total-creditos').textContent = tCred;
-  document.getElementById('total-horas').textContent = tHr;
-}
-
-async function compartilharGradePDF() {
-  if (!window.jspdf || typeof window.jspdf.jsPDF !== 'function') {
-    alert('Não foi possível carregar o gerador de PDF. Verifique sua conexão com a internet e tente novamente.');
-    return;
-  }
-
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
-  
-  const concluidas = getConcludedCodes();
-  doc.setFontSize(18);
-  doc.text("Planejador Acadêmico - Farmácia UFRJ", 14, 20);
-
-  doc.setFontSize(12);
-  doc.text(`Disciplinas Concluídas: ${concluidas.length}`, 14, 30);
-  
-  let y = 40;
-  disciplinas.forEach(m => {
-    if (concluidas.includes(m.codigo)) {
-      if (y > 280) { doc.addPage(); y = 20; }
-      doc.setFontSize(10);
-      doc.text(`[X] ${m.codigo} - ${formatName(m)} (${displayPeriod(m)})`, 14, y);
-      y += 7;
-    }
-  });
-
-  const pdfBlob = doc.output('blob');
-  const file = new File([pdfBlob], 'grade-academica.pdf', { type: 'application/pdf' });
-
-  if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-    try {
-      await navigator.share({
-        files: [file],
-        title: 'Minha Grade Acadêmica',
-        text: 'Confira minhas disciplinas concluídas.'
-      });
-    } catch (e) {
-      doc.save('grade-academica.pdf');
-    }
-  } else {
-    doc.save('grade-academica.pdf');
-  }
-}
-
-function setupSearchInputs(inputId, clearBtnId, suggestionsId, filterFn) {
-  const input = document.getElementById(inputId);
-  const clearBtn = document.getElementById(clearBtnId);
-  if (!input || !clearBtn) return;
-
-  const searchButton = inputId === 'search-input'
-    ? document.getElementById('search-button')
-    : document.getElementById('planner-search-button');
-  if (searchButton) {
-    searchButton.addEventListener('click', () => input.focus());
-  }
-
-  input.addEventListener('input', () => {
-    if (input.value.trim().length > 0) {
-      clearBtn.classList.remove('hidden');
-    } else {
-      clearBtn.classList.add('hidden');
-    }
-    filterFn(input.value);
-  });
-
-  clearBtn.addEventListener('click', () => {
-    input.value = '';
-    clearBtn.classList.add('hidden');
-    filterFn('');
-    document.getElementById(suggestionsId)?.classList.add('hidden');
-    input.focus();
-  });
-}
-
-function filterMainSearch(query) {
-  const normalized = expandSearchAliases(query);
-  let visibleCount = 0;
-  
-  document.querySelectorAll('.subject-card').forEach(card => {
-    const visible = normalized === '' || card.dataset.search.includes(normalized);
-    card.style.display = visible ? 'flex' : 'none';
-    if (visible) visibleCount++;
-  });
-
-  const suggestionsBox = document.getElementById('search-suggestions');
-  if (!suggestionsBox) return;
-  if (!query.trim()) {
-    suggestionsBox.classList.add('hidden');
-    return;
-  }
-
-  const matches = disciplinas.filter(m => buildSearchIndex(m).includes(normalized)).slice(0, 5);
-  if (matches.length > 0) {
-    suggestionsBox.innerHTML = matches.map(m => `
-      <div class="search-suggestion" onclick="autoSearchMain('${m.codigo}')">
-        <div class="search-suggestion-main">
-          <div class="search-suggestion-name">${formatName(m)}</div>
-          <div class="search-suggestion-meta">${m.codigo} • ${displayPeriod(m)}</div>
-        </div>
-      </div>
-    `).join('');
-    suggestionsBox.classList.remove('hidden');
-  } else {
-    suggestionsBox.classList.add('hidden');
-  }
-}
-
-function autoSearchMain(codigo) {
-  const m = disciplinas.find(d => d.codigo === codigo);
-  if (!m) return;
-  
-  const input = document.getElementById('search-input');
-  input.value = formatName(m);
-  document.getElementById('clear-search-button').classList.remove('hidden');
-  filterMainSearch(formatName(m));
-  document.getElementById('search-suggestions').classList.add('hidden');
-
-  const card = document.getElementById(`card-${codigo}`);
-  if (card) {
-    const details = card.closest('details');
-    if (details) details.open = true;
-    card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }
-}
-
-function filterPlannerSearch(query) {
-  renderPlannerList(query);
-  
-  const normalized = expandSearchAliases(query);
-  const suggestionsBox = document.getElementById('planner-search-suggestions');
-  
-  if (!query.trim()) {
-    suggestionsBox.classList.add('hidden');
-    return;
-  }
-  
-  const concluidas = getConcludedCodes();
-  const matches = disciplinas.filter(m => {
-    if (concluidas.includes(m.codigo)) return false;
-    return buildSearchIndex(m).includes(normalized);
-  }).slice(0, 5);
-
-  if (matches.length > 0) {
-    suggestionsBox.innerHTML = matches.map(m => `
-      <div class="search-suggestion" onclick="autoSearchPlanner('${m.codigo}')">
-        <div class="search-suggestion-main">
-          <div class="search-suggestion-name">${formatName(m)}</div>
-          <div class="search-suggestion-meta">${m.codigo} • ${displayPeriod(m)}</div>
-        </div>
-      </div>
-    `).join('');
-    suggestionsBox.classList.remove('hidden');
-  } else {
-    suggestionsBox.classList.add('hidden');
-  }
-}
-
-function autoSearchPlanner(codigo) {
-  const m = disciplinas.find(d => d.codigo === codigo);
-  if (!m) return;
-  const input = document.getElementById('planner-search-input');
-  input.value = formatName(m);
-  document.getElementById('planner-clear-search-button').classList.remove('hidden');
-  filterPlannerSearch(formatName(m));
-  document.getElementById('planner-search-suggestions').classList.add('hidden');
-}
-
-function getLockedSubjects(codigo) {
-  return disciplinas.filter(m => {
-    const preList = extractCodes(m.pre);
-    const coList = extractCodes(m.co);
-    return preList.includes(codigo) || coList.includes(codigo);
-  }).sort((a, b) => {
-    const pa = parseInt(a.periodo, 10) || 99;
-    const pb = parseInt(b.periodo, 10) || 99;
-    return pa - pb;
-  });
-}
-
-function showCoreqInfo(event, codigo) {
-  event.stopPropagation();
-  const m = disciplinas.find(d => d.codigo === codigo);
-  if(!m || !m.co) return;
-
-  const coNames = extractCodes(m.co).map(c => {
-    const mat = disciplinas.find(d => d.codigo === c);
-    const name = mat ? formatName(mat) : c;
-    return `<span class="text-yellowTheme-600 dark:text-yellowTheme-400 font-bold">${name}</span>`;
-  }).join(', ');
-
-  document.getElementById('coreq-title').innerText = formatName(m);
-  document.getElementById('coreq-desc').innerHTML = `Essa matéria possui ${coNames} como co-requisito, ou seja, devem ser cursadas simultaneamente no mesmo período.`;
-  openModal('modal-coreq');
-}
-
-function togglePlannerCheck(event, codigo) {
-  event.stopPropagation();
-  const isChecked = event.target.checked;
-  const textDiv = document.getElementById(`planner-text-${codigo}`);
-  const cardDiv = document.getElementById(`planner-card-${codigo}`);
-
-  let plannerChecks = loadJSON(STORAGE_KEYS.plannerChecked, []);
-
-  if (isChecked) {
-      cardDiv.classList.add('opacity-50', 'grayscale');
-      textDiv.classList.add('line-through');
-      if (!plannerChecks.includes(codigo)) plannerChecks.push(codigo);
-  } else {
-      cardDiv.classList.remove('opacity-50', 'grayscale');
-      textDiv.classList.remove('line-through');
-      plannerChecks = plannerChecks.filter(c => c !== codigo);
-  }
-
-  saveJSON(STORAGE_KEYS.plannerChecked, plannerChecks);
-}
-
-function renderPlannerList(query = '') {
-  const container = document.getElementById('planner-list');
-  const concluidas = getConcludedCodes();
-  const normalized = expandSearchAliases(query);
-  const plannerChecks = loadJSON(STORAGE_KEYS.plannerChecked, []);
-
-  const elegiveis = disciplinas.filter(m => {
-    if (concluidas.includes(m.codigo)) return false;
-    
-    const preOK = extractCodes(m.pre).every(c => concluidas.includes(c));
-    const coOK = extractCodes(m.co).every(c => concluidas.includes(c));
-    const isApta = preOK && coOK;
-
-    if (normalized) {
-      return buildSearchIndex(m).includes(normalized);
-    } else {
-      return isApta;
-    }
-  });
-
-  if (!elegiveis.length) {
-    container.innerHTML = `<p class="text-center text-gray-500 py-6 font-medium">Nenhuma disciplina encontrada.</p>`;
-    return;
-  }
-
-  const obrigatorias = elegiveis.filter(m => !periodIsCond(m.periodo));
-  const condicionadas = elegiveis.filter(m => periodIsCond(m.periodo));
-
-  const renderItems = (items) => items.map(m => {
-    const trancadas = getLockedSubjects(m.codigo);
-    
-    let coReqHtml = '';
-    if (m.co) {
-       coReqHtml = `<button type="button" onclick="showCoreqInfo(event, '${m.codigo}')" title="Ver Co-requisito" class="planner-coreq-button">C</button>`;
-    }
-
-    const isPlannerChecked = plannerChecks.includes(m.codigo);
-    const checkedAttr = isPlannerChecked ? 'checked' : '';
-    const cardClasses = isPlannerChecked ? 'opacity-50 grayscale' : '';
-    const textClasses = isPlannerChecked ? 'line-through' : '';
-
-    return `
-      <div id="planner-card-${m.codigo}" class="p-3.5 bg-yellow-50 dark:bg-darkBg border border-yellowTheme-200 dark:border-darkBorder rounded-xl cursor-pointer hover:bg-yellow-100 dark:hover:bg-gray-800 transition no-select ${cardClasses}"
-           onmousedown="startHoldLocks(event, '${m.codigo}')" onmouseup="cancelLongPress()" onmouseleave="cancelLongPress()"
-           ontouchstart="startHoldLocks(event, '${m.codigo}')" ontouchend="cancelLongPress()">
+        // Atualização visual
+        card.className = `subject-card p-4 rounded-2xl flex items-center gap-4 transition-all duration-300 relative overflow-hidden group select-none status-${status}`;
         
-        <div class="flex items-start gap-3">
-           <div class="pt-0.5" onmousedown="event.stopPropagation()" ontouchstart="event.stopPropagation()">
-             <input type="checkbox" onchange="togglePlannerCheck(event, '${m.codigo}')" ${checkedAttr} class="h-5 w-5 rounded border-gray-300 text-yellowTheme-600 focus:ring-yellowTheme-500 cursor-pointer shadow-sm">
-           </div>
-           
-           <div class="flex-1 transition-all ${textClasses}" id="planner-text-${m.codigo}">
-             <div class="font-bold text-yellowTheme-800 dark:text-yellowTheme-300 flex items-center justify-between">
-               <span class="flex items-center flex-wrap gap-1.5 min-w-0">${formatName(m)} ${coReqHtml}</span>
-               <button type="button" onclick="copyCodeToClipboard('${m.codigo}', event)" title="Copiar código" class="p-1 text-gray-400 hover:text-yellowTheme-600 dark:hover:text-yellowTheme-400 transition-colors bg-black/5 dark:bg-white/5 rounded-md shrink-0">
-                 <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                   <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                   <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                 </svg>
-               </button>
-             </div>
-             <div class="text-xs text-yellowTheme-600 dark:text-yellowTheme-400 mt-0.5"><span class="font-bold">${m.codigo}</span> • ${displayPeriod(m)}</div>
-             <div class="text-xs font-semibold text-red-500 mt-1">Tranca ${trancadas.length} disciplina(s)</div>
-           </div>
-        </div>
-      </div>`;
-  }).join('');
+        const checkbox = card.querySelector('input[type="checkbox"]');
+        if (checkbox) {
+            checkbox.checked = isChecked;
+            checkbox.disabled = status === 'blocked';
+        }
 
-  let finalHTML = '';
+        // Estatísticas
+        if (isChecked && d) {
+            if (d.periodo === PERIODO_COND) {
+                credCond += parseInt(d.cred) || 0;
+                chCond += parseInt(d.ch) || 0;
+            } else {
+                credObrig += parseInt(d.cred) || 0;
+                chObrig += parseInt(d.ch) || 0;
+                totalObrigFeitas++;
+            }
+        }
+    });
 
-  if (obrigatorias.length > 0) {
-    finalHTML += `
-      <details class="group mb-3" open>
-        <summary class="flex justify-between items-center font-bold cursor-pointer list-none p-4 text-sm bg-gray-100 dark:bg-gray-800 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition border border-gray-200 dark:border-darkBorder text-gray-800 dark:text-gray-100">
-          Disciplinas Obrigatórias (${obrigatorias.length})
-          <svg class="accordion-chevron w-5 h-5 text-gray-500 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-        </summary>
-        <div class="pt-3 space-y-3 pb-1">
-          ${renderItems(obrigatorias)}
-        </div>
-      </details>
-    `;
-  }
-
-  if (condicionadas.length > 0) {
-    finalHTML += `
-      <details class="group mb-3">
-        <summary class="flex justify-between items-center font-bold cursor-pointer list-none p-4 text-sm bg-gray-100 dark:bg-gray-800 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition border border-gray-200 dark:border-darkBorder text-gray-800 dark:text-gray-100">
-          Escolha Condicionada (${condicionadas.length})
-          <svg class="accordion-chevron w-5 h-5 text-gray-500 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-        </summary>
-        <div class="pt-3 space-y-3 pb-1">
-          ${renderItems(condicionadas)}
-        </div>
-      </details>
-    `;
-  }
-
-  container.innerHTML = finalHTML;
-}
-
-function startHoldLocks(event, codigo) {
-  if (event.target.tagName === 'BUTTON' || event.target.closest('button')) {
-    return;
-  }
-  
-  timerLongPress = setTimeout(() => {
-    const m = disciplinas.find(d => d.codigo === codigo);
-    if (!m) return;
-    const trancadas = getLockedSubjects(codigo);
-
-    document.getElementById('locks-title').innerText = formatName(m);
-    const list = document.getElementById('locks-list');
+    // Atualizando o Header e Painel
+    document.getElementById('total-creditos').textContent = credObrig + credCond;
+    document.getElementById('total-horas').textContent = chObrig + chCond;
     
-    let desc = document.getElementById('locks-desc');
-    if(!desc) {
-      desc = document.createElement('p');
-      desc.id = 'locks-desc';
-      desc.className = 'text-xs font-medium text-gray-500 mb-4';
-      document.getElementById('locks-title').after(desc);
-    }
+    document.getElementById('count-obrig-feitas-painel').textContent = totalObrigFeitas;
+    document.getElementById('count-obrig-total-painel').textContent = totalObrig;
 
-    if (!trancadas.length) {
-      desc.innerText = "";
-      list.innerHTML = `<p class="text-gray-500 text-center font-medium">Não tranca nenhuma disciplina.</p>`;
+    const percentTotal = Math.min(100, Math.round(((credObrig + credCond) / TOTAL_GRAD_CRED_EQUIV) * 100));
+    document.getElementById('percent-total').textContent = `${percentTotal}%`;
+
+    // Barra Obrigatórias
+    const percObrig = Math.min(100, Math.round((totalObrigFeitas / totalObrig) * 100));
+    document.getElementById('bar-obrig').style.width = `${percObrig}%`;
+    document.getElementById('percent-obrig').textContent = `${percObrig}%`;
+    document.getElementById('count-obrig-feitas').textContent = totalObrigFeitas;
+    document.getElementById('count-obrig-faltam').textContent = totalObrig - totalObrigFeitas;
+
+    // Barra Condicionadas
+    const percCond = Math.min(100, Math.round((credCond / META_COND_CRED) * 100));
+    document.getElementById('bar-cond').style.width = `${percCond}%`;
+    document.getElementById('text-cond-progress').textContent = `${credCond} créd. • ${chCond}h`;
+
+    if (credCond >= META_COND_CRED && chCond >= META_COND_HORAS) {
+        document.getElementById('icon-cond-exclamation').classList.remove('hidden');
     } else {
-      desc.innerText = "Essa matéria tranca as seguintes matérias:";
-      list.innerHTML = trancadas.map(t => `
-        <div class="p-2.5 bg-gray-100 dark:bg-gray-800 rounded-lg flex justify-between items-center">
-          <span class="font-semibold text-gray-800 dark:text-gray-200 text-xs">${formatName(t)}</span>
-          <span class="text-xs font-bold text-yellowTheme-600 dark:text-yellowTheme-400">(${displayPeriod(t)})</span>
-        </div>
-      `).join('');
+        document.getElementById('icon-cond-exclamation').classList.add('hidden');
     }
-    openModal('modal-locks');
-  }, 500);
 }
 
-function isApta(m, concluidas) {
-  const pR = extractCodes(m.pre);
-  const cR = extractCodes(m.co);
-  return pR.every(r => concluidas.includes(r)) && cR.every(r => concluidas.includes(r));
+function saveState() {
+    localStorage.setItem(STORAGE_KEYS.checked, JSON.stringify([...state.checked]));
+    localStorage.setItem(STORAGE_KEYS.plannerChecked, JSON.stringify([...state.plannerChecked]));
+    showSaveToast();
 }
 
-function applySelectedVisualization(concluidas) {
-  disciplinas.forEach(m => {
-    const c = document.getElementById(`card-${m.codigo}`);
-    if (c) applyCardStatus(c, concluidas.includes(m.codigo) ? 'passed' : (isApta(m, concluidas) ? 'eligible' : 'blocked'));
-  });
-}
+/**
+ * ==========================================
+ * 3. RENDERIZAÇÃO DOM E COMPONENTES
+ * ==========================================
+ */
 
-function buildSections() {
-  const periodosMap = {};
-  disciplinas.forEach(d => {
-    if (!periodosMap[d.periodo]) periodosMap[d.periodo] = [];
-    periodosMap[d.periodo].push(d);
-  });
-
-  const periodosKeys = Object.keys(periodosMap).sort((a, b) => {
-    if (a === PERIODO_COND) return 1;
-    if (b === PERIODO_COND) return -1;
-    return parseInt(a, 10) - parseInt(b, 10);
-  });
-
-  const container = document.getElementById('accordions-container');
-  container.innerHTML = '';
-
-  periodosKeys.forEach((periodo, index) => {
-    let tituloRaw = periodo === PERIODO_COND ? periodo : `${periodo}º Período`;
+function createSubjectCardHTML(d, context = 'main') {
+    const ajuste = disciplinaAjustes[d.codigo] || '';
+    const temCoreq = !!d.co;
+    const isPlanner = context === 'planner';
     
-    const tituloHtml = periodo === PERIODO_COND
-      ? `<span class="flex items-center gap-2">${tituloRaw} <button onclick="event.preventDefault(); openModal('modal-cond-info')" class="text-yellowTheme-600 dark:text-yellowTheme-400 hover:scale-110 transition-transform"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" /></svg></button></span>`
-      : `<span>${tituloRaw}</span>`;
-
-    const div = document.createElement('div');
-    div.className = 'mb-4 bg-white dark:bg-darkCard rounded-xl shadow-sm border border-gray-100 dark:border-darkBorder overflow-hidden';
-
-    const materiasHtml = periodosMap[periodo].map(m => {
-      let coReqHtml = '';
-      if (m.co) {
-        coReqHtml = `<button type="button" onclick="showCoreqInfo(event, '${m.codigo}')" title="Ver Co-requisito" class="coreq-button">C</button>`;
-      }
-
-      return `
-      <label id="card-${m.codigo}" data-periodo="${periodo}" data-search="${buildSearchIndex(m)}"
-             class="subject-card status-default flex items-center p-4 mb-2 rounded-lg cursor-pointer no-select"
-             onmousedown="startLongPress('${m.codigo}')" onmouseup="cancelLongPress()" onmouseleave="cancelLongPress()"
-             ontouchstart="startLongPress('${m.codigo}')" ontouchend="cancelLongPress()">
-        <input type="checkbox" class="form-checkbox h-5 w-5 text-yellowTheme-600 rounded mr-4 focus:ring-yellowTheme-500"
-               value="${m.codigo}" data-periodo="${periodo}"
-               onchange="persistCheckedState(); updateDashboard(); applySelectedVisualization(getConcludedCodes());">
-        <div class="flex-1 min-w-0">
-          <div class="subject-name text-gray-800 dark:text-gray-100 leading-tight mb-1 flex items-center gap-1.5 flex-wrap">${formatName(m)} ${coReqHtml}</div>
-          <div class="subject-meta truncate flex items-center gap-1.5">
-            <span class="font-extrabold">${m.codigo}</span>
-            <button type="button" onclick="copyCodeToClipboard('${m.codigo}', event)" title="Copiar código" class="p-0.5 text-gray-500 dark:text-gray-300 hover:text-yellowTheme-600 dark:hover:text-yellowTheme-400 transition-colors inline-flex items-center bg-black/5 dark:bg-white/5 rounded">
-              <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-              </svg>
-            </button>
-            • ${creditsOf(m)} créd. • ${hoursOf(m)} Horas.
-          </div>
+    return `
+    <label class="subject-card w-full text-left" data-codigo="${d.codigo}">
+        <div class="flex-shrink-0 relative flex items-center justify-center">
+            <input type="checkbox" value="${d.codigo}" class="peer sr-only">
+            <div class="w-6 h-6 rounded-md border-2 border-gray-300 dark:border-gray-600 peer-checked:bg-green-500 peer-checked:border-green-500 flex items-center justify-center transition-all bg-white dark:bg-darkCard">
+                <svg class="w-4 h-4 text-white opacity-0 peer-checked:opacity-100 scale-50 peer-checked:scale-100 transition-all duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"></path></svg>
+            </div>
         </div>
-      </label>
-    `}).join('');
-
-    div.innerHTML = `
-      <details class="group" data-periodo="${periodo}" ${index === 0 ? 'open' : ''}>
-        <summary class="flex justify-between items-center font-bold cursor-pointer list-none p-5 text-lg bg-yellow-50/50 dark:bg-darkBg hover:bg-yellow-100 dark:hover:bg-gray-800 transition-colors">
-          ${tituloHtml}
-          <svg class="accordion-chevron w-6 h-6 text-gray-500 dark:text-gray-400 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-        </summary>
-        <div class="accordion-content p-5 border-t border-yellowTheme-100 dark:border-darkBorder">
-          <div class="flex gap-2 mb-4">
-            <button onclick="marcarTudo('${periodo}')" class="flex-1 bg-yellowTheme-100 dark:bg-yellowTheme-900/40 text-yellowTheme-700 dark:text-yellowTheme-300 py-2 rounded-lg text-sm font-bold hover:bg-yellowTheme-200 transition">Marcar Tudo</button>
-            <button onclick="limparTudo('${periodo}')" class="flex-1 bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 py-2 rounded-lg text-sm font-bold hover:bg-red-200 transition">Limpar Tudo</button>
-          </div>
-          ${materiasHtml}
+        <div class="flex-1 min-w-0 flex flex-col justify-center py-1">
+            <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="subject-name text-sm font-bold text-gray-800 dark:text-gray-100 leading-tight">
+                    ${d.nome} <span class="text-xs opacity-70">${ajuste}</span>
+                    ${temCoreq ? `<button type="button" class="coreq-button ml-1" data-codigo="${d.codigo}" aria-label="Ver correquisito">C</button>` : ''}
+                </span>
+            </div>
+            <div class="flex items-center gap-2 mt-1 text-[0.7rem] font-bold text-gray-400">
+                <span class="uppercase tracking-wider font-extrabold text-yellowTheme-600 dark:text-yellowTheme-500">${d.codigo}</span>
+                <span>•</span><span>${d.cred} CR</span><span>•</span><span>${d.ch}H</span>
+            </div>
         </div>
-      </details>`;
-    container.appendChild(div);
-  });
+    </label>`;
 }
 
-document.addEventListener('click', (e) => {
-  const searchWrapper = document.getElementById('search-wrapper');
-  const plannerSearchWrapper = document.getElementById('planner-search-wrapper');
-  
-  if (searchWrapper && !searchWrapper.contains(e.target)) {
-    document.getElementById('search-suggestions')?.classList.add('hidden');
-  }
-  if (plannerSearchWrapper && !plannerSearchWrapper.contains(e.target)) {
-    document.getElementById('planner-search-suggestions')?.classList.add('hidden');
-  }
+function buildAccordions() {
+    DOM.accordions.innerHTML = '';
+    
+    const periods = {};
+    disciplinas.forEach(d => {
+        if (!periods[d.periodo]) periods[d.periodo] = [];
+        periods[d.periodo].push(d);
+    });
+
+    const sortedPeriods = Object.keys(periods).sort((a, b) => {
+        if (a === PERIODO_COND) return 1;
+        if (b === PERIODO_COND) return -1;
+        return parseInt(a) - parseInt(b);
+    });
+
+    const fragment = document.createDocumentFragment();
+
+    sortedPeriods.forEach(p => {
+        const title = p === PERIODO_COND ? 'Escolha Condicionada' : `${p}º Período`;
+        const divWrap = document.createElement('div');
+        divWrap.innerHTML = `
+            <details class="group">
+                <summary class="flex justify-between items-center cursor-pointer select-none">
+                    <span class="font-black text-gray-800 dark:text-gray-100">${title}</span>
+                    <div class="flex items-center gap-3">
+                        <span class="text-xs font-bold text-gray-400 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-md">${periods[p].length} mat.</span>
+                        <svg class="accordion-chevron w-5 h-5 text-gray-400 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </div>
+                </summary>
+                <div class="accordion-content px-4 pb-4 space-y-2">
+                    ${periods[p].map(d => createSubjectCardHTML(d, 'main')).join('')}
+                </div>
+            </details>
+        `;
+        fragment.appendChild(divWrap);
+    });
+    
+    DOM.accordions.appendChild(fragment);
+}
+
+function buildPlanner() {
+    // Exibe apenas as 'eligible' (prontas pra cursar) e que não foram feitas
+    const prontas = disciplinas.filter(d => getSubjectStatus(d.codigo) === 'eligible' && !state.checked.has(d.codigo));
+    
+    if (prontas.length === 0) {
+        DOM.plannerList.innerHTML = `<div class="text-center p-6 text-gray-500 font-medium text-sm">Nenhuma disciplina liberada para puxar no momento.</div>`;
+        return;
+    }
+
+    DOM.plannerList.innerHTML = prontas.map(d => createSubjectCardHTML(d, 'planner')).join('');
+    
+    // Restaura visualmente estado das checkbox do planner
+    DOM.plannerList.querySelectorAll('.subject-card').forEach(card => {
+        const checkbox = card.querySelector('input');
+        if (state.plannerChecked.has(card.dataset.codigo)) {
+            checkbox.checked = true;
+        }
+    });
+}
+
+/**
+ * ==========================================
+ * 4. EVENT DELEGATION & LISTENERS
+ * ==========================================
+ */
+
+function handleGlobalClicks(e) {
+    // Tratamento Botão Correquisito (C)
+    const btnC = e.target.closest('.coreq-button');
+    if (btnC) {
+        e.preventDefault();
+        openCoreqModal(btnC.dataset.codigo);
+        return;
+    }
+}
+
+// Interações no Grid Principal
+DOM.accordions.addEventListener('click', handleGlobalClicks);
+DOM.accordions.addEventListener('change', (e) => {
+    if (e.target.matches('input[type="checkbox"]')) {
+        const cod = e.target.value;
+        if (e.target.checked) {
+            state.checked.add(cod);
+        } else {
+            state.checked.delete(cod);
+            uncheckDependents(cod); // Fix: Cascata lógica
+        }
+        saveState();
+        updateAllUI();
+    }
 });
 
-document.addEventListener('DOMContentLoaded', () => {
-  buildSections();
-  restoreCheckedState();
-  updateDashboard();
-  applySelectedVisualization(getConcludedCodes());
-
-  setupSearchInputs('search-input', 'clear-search-button', 'search-suggestions', filterMainSearch);
-  setupSearchInputs('planner-search-input', 'planner-clear-search-button', 'planner-search-suggestions', filterPlannerSearch);
-  
-  updateThemeUI();
+// Interações no Planner
+DOM.plannerList.addEventListener('click', handleGlobalClicks);
+DOM.plannerList.addEventListener('change', (e) => {
+    if (e.target.matches('input[type="checkbox"]')) {
+        if (e.target.checked) state.plannerChecked.add(e.target.value);
+        else state.plannerChecked.delete(e.target.value);
+        saveState();
+    }
 });
+
+// Setup Long Press & Click Direito (Para ver quem tranca)
+function setupLongPress(element) {
+    let timer;
+    element.addEventListener('touchstart', e => {
+        const card = e.target.closest('.subject-card');
+        if (!card || e.target.closest('.coreq-button') || e.target.type === 'checkbox') return;
+        timer = setTimeout(() => openLocksModal(card.dataset.codigo), 600);
+    }, { passive: true });
+    
+    element.addEventListener('touchend', () => clearTimeout(timer));
+    element.addEventListener('touchmove', () => clearTimeout(timer), { passive: true });
+    
+    element.addEventListener('contextmenu', e => {
+        const card = e.target.closest('.subject-card');
+        if (card && !e.target.closest('.coreq-button') && e.target.type !== 'checkbox') {
+            e.preventDefault();
+            openLocksModal(card.dataset.codigo);
+        }
+    });
+}
+setupLongPress(DOM.accordions);
+setupLongPress(DOM.plannerList);
+
+/**
+ * ==========================================
+ * 5. MODAIS E UTILITÁRIOS 
+ * ==========================================
+ */
+
+window.openModal = (id) => {
+    const m = document.getElementById(id);
+    if(m) {
+        if(id === 'modal-planner') buildPlanner();
+        m.classList.add('active');
+        document.body.style.overflow = 'hidden';
+    }
+};
+
+window.closeModal = (id) => {
+    const m = document.getElementById(id);
+    if(m) {
+        m.classList.remove('active');
+        document.body.style.overflow = '';
+    }
+};
+
+// Fecha modal clicando fora ou com ESC
+document.addEventListener('click', e => {
+    if (e.target.classList.contains('modal-overlay')) closeModal(e.target.id);
+});
+document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') document.querySelectorAll('.modal-overlay.active').forEach(m => closeModal(m.id));
+});
+
+window.confirmarLimparSelecao = () => {
+    if (confirm("Tem certeza que deseja apagar todo o seu progresso?")) {
+        state.checked.clear();
+        state.plannerChecked.clear();
+        saveState();
+        updateAllUI();
+    }
+};
+
+// Funções dos Modais Informativos (Coreq e Locks)
+function openCoreqModal(codigo) {
+    const d = discMap.get(codigo);
+    document.getElementById('coreq-title').textContent = `Correquisito: ${codigo}`;
+    
+    if (d && d.co) {
+        const names = d.co.split(';').map(c => {
+            const req = discMap.get(c.trim());
+            return req ? `${c.trim()} - ${req.nome}` : c.trim();
+        }).join('<br>');
+        document.getElementById('coreq-desc').innerHTML = `Você também deve estar inscrito em:<br><br><strong class="text-blue-500">${names}</strong>`;
+    }
+    openModal('modal-coreq');
+}
+
+function openLocksModal(codigo) {
+    const deps = dependentesMap.get(codigo) || [];
+    document.getElementById('locks-title').textContent = codigo;
+    document.getElementById('locks-desc').textContent = deps.length > 0 
+        ? 'Esta disciplina tranca as seguintes matérias:' 
+        : 'Esta disciplina não tranca nenhuma outra matéria.';
+        
+    document.getElementById('locks-list').innerHTML = deps.map(depCod => {
+        const dep = discMap.get(depCod);
+        return `<div class="bg-gray-50 dark:bg-[#15171b] border border-gray-100 dark:border-darkBorder p-3 rounded-xl mb-2">
+            <span class="font-bold text-gray-800 dark:text-gray-100 block">${depCod}</span>
+            <span class="text-xs text-gray-500">${dep.nome}</span>
+        </div>`;
+    }).join('');
+    
+    openModal('modal-locks');
+}
+
+// Toasts e Copy Clipboard
+let toastTimeout;
+function showSaveToast(msg = "Salvo") {
+    const status = document.getElementById('save-status');
+    if (!status) return;
+    status.innerHTML = `<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg> ${msg}`;
+    status.classList.remove('opacity-0', 'scale-95');
+    status.classList.add('opacity-100', 'scale-100');
+    
+    clearTimeout(toastTimeout);
+    toastTimeout = setTimeout(() => {
+        status.classList.add('opacity-0', 'scale-95');
+        status.classList.remove('opacity-100', 'scale-100');
+    }, 2000);
+}
+
+window.copyTextToClipboard = (text, name, event) => {
+    navigator.clipboard.writeText(text).then(() => {
+        const t = document.getElementById('toast-copy');
+        document.getElementById('toast-message').textContent = `${name} copiado!`;
+        t.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-4');
+        setTimeout(() => t.classList.add('opacity-0', 'pointer-events-none', 'translate-y-4'), 2500);
+    });
+};
+
+/**
+ * ==========================================
+ * 6. SISTEMA DE BUSCA (Debounced)
+ * ==========================================
+ */
+
+function setupSearch(inputEl, clearBtnEl, listEl) {
+    let debounceTimer;
+    
+    const handleInput = (e) => {
+        clearTimeout(debounceTimer);
+        const term = e.target.value.toLowerCase().trim();
+        
+        if (!term) {
+            clearBtnEl.classList.add('hidden');
+            listEl.classList.add('hidden');
+            return;
+        }
+        
+        clearBtnEl.classList.remove('hidden');
+        
+        debounceTimer = setTimeout(() => {
+            const matches = disciplinas.filter(d => 
+                d.nome.toLowerCase().includes(term) || 
+                d.codigo.toLowerCase().includes(term)
+            ).slice(0, 10);
+            
+            if (matches.length > 0) {
+                listEl.innerHTML = matches.map(d => `
+                    <div class="search-suggestion" onclick="openLocksModal('${d.codigo}')">
+                        <div class="search-suggestion-main flex flex-col justify-center">
+                            <span class="search-suggestion-name text-gray-800 dark:text-gray-100">${d.nome}</span>
+                            <span class="search-suggestion-meta">${d.codigo} • ${d.periodo === PERIODO_COND ? 'Eletiva' : d.periodo + 'º Per.'}</span>
+                        </div>
+                    </div>
+                `).join('');
+                listEl.classList.remove('hidden');
+            } else {
+                listEl.innerHTML = `<div class="p-4 text-sm text-gray-500 font-medium text-center">Nenhum resultado.</div>`;
+                listEl.classList.remove('hidden');
+            }
+        }, 200);
+    };
+
+    inputEl.addEventListener('input', handleInput);
+    clearBtnEl.addEventListener('click', () => {
+        inputEl.value = '';
+        inputEl.dispatchEvent(new Event('input'));
+        inputEl.focus();
+    });
+}
+setupSearch(DOM.searchInput, DOM.clearSearchBtn, DOM.searchSuggestions);
+setupSearch(document.getElementById('planner-search-input'), document.getElementById('planner-clear-search-button'), document.getElementById('planner-search-suggestions'));
+
+
+/**
+ * ==========================================
+ * 7. TEMA & PDF (Integração)
+ * ==========================================
+ */
+
+window.updateThemeUI = () => {
+    const isDark = document.documentElement.classList.contains('dark');
+    document.getElementById('settings-theme-icon-sun')?.classList.toggle('hidden', isDark);
+    document.getElementById('settings-theme-icon-moon')?.classList.toggle('hidden', !isDark);
+    if(document.getElementById('settings-theme-label')) document.getElementById('settings-theme-label').textContent = isDark ? 'Modo escuro' : 'Modo claro';
+    if(document.getElementById('theme-toggle-thumb')) document.getElementById('theme-toggle-thumb').style.transform = isDark ? 'translateX(1.5rem)' : 'translateX(0)';
+};
+
+window.toggleThemeFromSettings = () => {
+    const isDark = document.documentElement.classList.contains('dark');
+    document.documentElement.classList.toggle('dark', !isDark);
+    document.documentElement.classList.toggle('light', isDark);
+    localStorage.setItem('theme', isDark ? 'light' : 'dark');
+    updateThemeUI();
+};
+
+window.compartilharGradePDF = () => {
+    if (!window.jspdf) return alert("Erro: O gerador de PDF não foi carregado.");
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(16);
+    doc.text("Planejamento Acadêmico - Farmácia", 20, 20);
+    
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(12);
+    
+    const feitasObrig = [...state.checked].filter(c => discMap.has(c) && discMap.get(c).periodo !== PERIODO_COND).length;
+    doc.text(`Disciplinas Obrigatórias: ${feitasObrig} de ${totalObrig}`, 20, 40);
+    doc.text(`Progresso Geral (Estimado): ${document.getElementById('percent-total').textContent}`, 20, 50);
+    
+    doc.save("Meu_Progresso_Farmacia.pdf");
+    showSaveToast("PDF Baixado!");
+};
+
+/**
+ * ==========================================
+ * INICIALIZAÇÃO
+ * ==========================================
+ */
+function init() {
+    buildAccordions();
+    updateAllUI();
+    updateThemeUI();
+}
+
+// Dispara inicialização
+init();
