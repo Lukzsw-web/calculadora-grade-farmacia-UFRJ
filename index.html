@@ -153,7 +153,8 @@
             </div>
           </div>
           <div class="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-3 shadow-inner overflow-hidden">
-            <div id="bar-cond" class="progress-bar progress-bar-cond h-full rounded-full transition-all duration-700 ease-out" style="width: 0%;"></div>
+            <!-- Aplicação do Degradê Solicitado -->
+            <div id="bar-cond" class="progress-bar progress-bar-cond h-full rounded-full transition-all duration-700 ease-out bg-[linear-gradient(to_right,#5491BE,#EAF6FC)]" style="width: 0%;"></div>
           </div>
         </div>
       </div>
@@ -301,7 +302,6 @@
           <svg class="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
         </button>
         
-        <!-- Novo Botão de Sugestões -->
         <button class="w-full flex items-center justify-between bg-gray-50 dark:bg-[#15171b] hover:bg-gray-100 dark:hover:bg-[#1a1c22] p-4 rounded-2xl transition-all border border-gray-200/60 dark:border-darkBorder/60 group" type="button" onclick="openModal('modal-sugestao')">
           <div class="flex items-center gap-4">
             <div class="p-2.5 bg-white dark:bg-darkBg rounded-xl shadow-sm border border-gray-100 dark:border-darkBorder group-hover:scale-110 transition-transform">
@@ -369,157 +369,167 @@
             </div>
             <svg class="accordion-chevron w-5 h-5 text-gray-400 transition-transform duration-300 group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
           </summary>
-          <div class="p-4 pt-0 text-sm text-gray-600 dark:text-gray-300 font-medium space-y-2 mt-2">
-            <p>Informações de contato ficarão disponíveis aqui em breve.</p>
+          <!-- Aqui está a renderização super aprimorada da aba de "Contatos Importantes" em formato de cards internos -->
+          <div class="p-4 pt-0 text-sm text-gray-600 dark:text-gray-300 font-medium space-y-4 mt-2">
+            
+            <div class="bg-white dark:bg-[#1a1c22] rounded-xl p-4 border border-gray-100 dark:border-gray-700 shadow-sm">
+              <h4 class="font-black text-gray-800 dark:text-white text-base mb-1">Departamento de Biotecnologia Farmacêutica (BIOTECFAR)</h4>
+              <p class="text-xs text-gray-500 mb-3">Chefe de Departamento: Profª Yraima Cordeiro</p>
+              <ul class="space-y-2 text-xs">
+                <li><strong>Ana Luiza Palhares de Miranda</strong> - analuisapharma60@gmail.com</li>
+                <li><strong>Cláudia Pinto Figueiredo</strong> - claufig@gmail.com</li>
+                <li><strong>Daniela Uziel</strong> - daniela.uziel@ufrj.br</li>
+                <li><strong>David Majerowicz</strong> - majerowicz@gmail.com</li>
+                <li><strong>Diego Allonso R.S. Silva</strong> - diegoallonso@pharma.ufrj.br | diegoallonso@gmail.com</li>
+                <li><strong>Evelin Andrade Manoel</strong> - biorecados@yahoo.com.br</li>
+                <li><strong>Giselle Fazzioni Passos</strong> - gfazzioni@yahoo.com.br</li>
+                <li><strong>Heitor Affonso de Paula Neto</strong> - heitorapneto@gmail.com</li>
+                <li><strong>Mariana Juliani do Amaral</strong> - mjdoamaral@farmacia.ufrj.br</li>
+                <li><strong>Mauro Sola Penna</strong> - msolapenna@me.com</li>
+                <li><strong>Patricia Zancan</strong> - pzancan@me.com</li>
+                <li><strong>Renato Sampaio Carvalho</strong> - rscarvalho@pharma.ufrj.br</li>
+                <li><strong>Robson da Costa</strong> - rbsndcst@gmail.com</li>
+                <li><strong>Yraima Cordeiro</strong> - yraima@pharma.ufrj.br | yraimacordeiro@gmail.com</li>
+              </ul>
+            </div>
+
+            <div class="bg-white dark:bg-[#1a1c22] rounded-xl p-4 border border-gray-100 dark:border-gray-700 shadow-sm">
+              <h4 class="font-black text-gray-800 dark:text-white text-base mb-1">Departamento de Análises Clínicas e Toxicológicas (DACT)</h4>
+              <p class="text-xs text-gray-500 mb-1">LOCAL: Bloco A, Sala 16, 2º andar</p>
+              <p class="text-xs text-gray-500 mb-3">Chefe de Departamento: Profª Aloa Machado de Souza</p>
+              <ul class="space-y-2 text-xs">
+                <li><strong>Alexandre dos Santos Pyrrho</strong> - pyrrho@pharma.ufrj.br</li>
+                <li><strong>Aloa Machado de Souza</strong> - Aloa.machado@gmail.com</li>
+                <li><strong>André Luiz Costa de Araújo</strong> - alcaraujo@gmail.com</li>
+                <li><strong>Flavia Serra Frattani Ferreira</strong> - flaviafrattani@pharma.ufrj.br</li>
+                <li><strong>Helena Keiko Toma</strong> - hktoma@globo.com | lacmac@pharma.ufrj.br</li>
+                <li><strong>Hilton Antonio Mata dos Santos</strong> - hilton@pharma.ufrj.br</li>
+                <li><strong>Janayna Albuquerque dos Santos</strong> - janayna@pharma.ufrj.br</li>
+                <li><strong>Lilian de Oliveira Moreira</strong> - lilian@pharma.ufrj.br</li>
+                <li><strong>Lívia Cristina Liporagi</strong> - liporagi@pharma.ufrj.br</li>
+                <li><strong>Luciana Pereira Rangel</strong> - luprangel@gmail.com</li>
+                <li><strong>Luciana Wermelinger</strong> - lwserrao@pharma.ufrj.br</li>
+                <li><strong>Marcelo de Padula</strong> - marcelo@pharma.ufrj.br</li>
+                <li><strong>Mario Gandra</strong> - mariogandra@gmail.com</li>
+                <li><strong>Nancy dos Santos Barbi</strong> - nancybarbi@yahoo.com.br</li>
+                <li><strong>Pablo Trindade</strong> - pablotrindade@gmail.com</li>
+                <li><strong>Paulo Murillo Neufeld</strong> - pmneufeld@pharma.ufrj.br | pmneufeld@yahoo.com.br</li>
+                <li><strong>Plínio Cunha</strong> - pliniocs@yahoo.com.br</li>
+                <li><strong>Priscilla Chistina Olsen</strong> - priolsen@pharma.ufrj.br</li>
+                <li><strong>Reginaldo Almeida da Trindade</strong> - rtrindade@pharma.ufrj.br</li>
+                <li><strong>Roseli Vigio Ribeiro</strong> - rvigioribeiro@pharma.ufrj.br</li>
+                <li><strong>Sergio Lisboa Machado</strong> - machadosl@globo.com</li>
+                <li><strong>Virginia Martins Carvalho</strong> - mcfarm@gmail.com</li>
+              </ul>
+            </div>
+
+            <div class="bg-white dark:bg-[#1a1c22] rounded-xl p-4 border border-gray-100 dark:border-gray-700 shadow-sm">
+              <h4 class="font-black text-gray-800 dark:text-white text-base mb-1">Departamento de Produtos Naturais e Alimentos (DPNA)</h4>
+              <p class="text-xs text-gray-500 mb-1">LOCAL: Bloco A, Sala 16, 2º andar</p>
+              <p class="text-xs text-gray-500 mb-3">Chefe de Departamento: Profª Juliana Villela Paulino</p>
+              <ul class="space-y-2 text-xs">
+                <li><strong>Juliana Villela Paulino</strong> - jvillelapaulino@pharma.ufrj.br | jvillelapaulino@yahoo.com.br</li>
+              </ul>
+            </div>
+
+            <div class="bg-white dark:bg-[#1a1c22] rounded-xl p-4 border border-gray-100 dark:border-gray-700 shadow-sm">
+              <h4 class="font-black text-gray-800 dark:text-white text-base mb-3">Instituto de Química</h4>
+              <ul class="space-y-2 text-xs">
+                <li><strong>Alexandre Braga da Rocha</strong> - rocha@iq.ufrj.br</li>
+                <li><strong>Alexandre Guedes Torres</strong> - torres@iq.ufrj.br</li>
+                <li><strong>Ana Lúcia de Lima</strong> - analima@iq.ufrj.br</li>
+                <li><strong>Anita Ferreira do Valle</strong> - avalle@iq.ufrj.br</li>
+                <li><strong>Annelise Casellato</strong> - casellato@iq.ufrj.br [Vice do Depto. de Química Inorgânica]</li>
+                <li><strong>Antonio Carlos de Oliveira Guerra</strong> - acog@iq.ufrj.br</li>
+                <li><strong>Carlos Adam Conte Junior</strong> - conte@iq.ufrj.br [Vice-diretor do IQ]</li>
+                <li><strong>Carlos Alberto da Silva Riehl</strong> - riehl@iq.ufrj.br</li>
+                <li><strong>Carlos Eduardo Rodrigues de Paula</strong> - carlosdepaula@iq.ufrj.br</li>
+                <li><strong>Carlos Roland Kaiser</strong> - kaiser@iq.ufrj.br</li>
+                <li><strong>Cássia Curan Turci</strong> - cassia@iq.ufrj.br</li>
+                <li><strong>Celeste Yara dos Santos Siqueira</strong> - celesteyara@iq.ufrj.br [Chefe do Depto. de Química Analítica]</li>
+                <li><strong>Cláudia Moraes de Rezende</strong> - crezende@iq.ufrj.br</li>
+                <li><strong>Cláudio Cerqueira Lopes</strong> - claudioc@iq.ufrj.br</li>
+                <li><strong>Cláudio José de Araújo Mota</strong> - cmota@iq.ufrj.br</li>
+                <li><strong>Cristiane Dinis Ano Bom</strong> - anobom@iq.ufrj.br</li>
+                <li><strong>Daniel Perrone Moreira</strong> - danielperronemoreira@iq.ufrj.br</li>
+                <li><strong>Débora de Almeida Azevedo</strong> - debora@iq.ufrj.br</li>
+                <li><strong>Denise Maria Guimarães Freire</strong> - freire@iq.ufrj.br</li>
+                <li><strong>Elba Pinto da Silva Bon</strong> - elba1996@iq.ufrj.br</li>
+                <li><strong>Elis Cristina Araújo Eleutherio</strong> - eliscael@iq.ufrj.br</li>
+                <li><strong>Elizabeth Roditi Lachter</strong> - lachter@iq.ufrj.br [Chefe do Depto. de Química Orgânica]</li>
+                <li><strong>Fernando Henrique Cincotto</strong> - fernandocincotto@iq.ufrj.br</li>
+                <li><strong>Gerardo Gerson Bezerra de Souza</strong> - gerson@iq.ufrj.br</li>
+                <li><strong>Guilherme Cordeiro da Graça de Oliveira</strong> - cordeiro@iq.ufrj.br</li>
+                <li><strong>João Francisco Cajaíba da Silva</strong> - cajaiba@iq.ufrj.br</li>
+                <li><strong>Joel Jones Junior</strong> - jjones@iq.ufrj.br</li>
+                <li><strong>Joaquim Fernando Mendes da Silva</strong> - joaquim@iq.ufrj.br</li>
+                <li><strong>José Celestino de Barros Neto</strong> - jbarros@iq.ufrj.br</li>
+                <li><strong>Júlio Carlos Afonso</strong> - julio@iq.ufrj.br [Vice do Depto. de Química Analítica]</li>
+                <li><strong>Jussara Lopes de Miranda</strong> - jussara@iq.ufrj.br</li>
+                <li><strong>Lígia Maria Marino Valente</strong> - valente@iq.ufrj.br</li>
+                <li><strong>Luciana Pizzatti Barboza</strong> - pizzatti@iq.ufrj.br</li>
+                <li><strong>Lucidalva dos Santos Pinheiro</strong> - lucidalva@iq.ufrj.br</li>
+                <li><strong>Luiz Claudio dos Santos Ribeiro</strong> - luiz.oberti@uol.com.br</li>
+                <li><strong>Magaly Girão Albuquerque</strong> - magaly@iq.ufrj.br</li>
+                <li><strong>Magno Rodrigues Junqueira</strong> - magnojunqueira@iq.ufrj.br</li>
+                <li><strong>Maiara Oliveira Salles</strong> - maiara@iq.ufrj.br</li>
+                <li><strong>Marcelo Maciel Pereira</strong> - maciel@iq.ufrj.br</li>
+                <li><strong>Márcia Nogueira da Silva de la Cruz</strong> - marcianogueira@iq.ufrj.br</li>
+                <li><strong>Márcia Regina Soares da Silva</strong> - marcia@iq.ufrj.br [Chefe do Depto. de Bioquímica]</li>
+                <li><strong>Marciela Scarpellini</strong> - marciela@iq.ufrj.br</li>
+                <li><strong>Marcio Contrucci Saraiva de Mattos</strong> - mmattos@iq.ufrj.br</li>
+                <li><strong>Marcos Dias Pereira</strong> - marcosdp@iq.ufrj.br</li>
+                <li><strong>Mauro dos Santos de Carvalho</strong> - mauro@iq.ufrj.br</li>
+                <li><strong>Nanci Câmara de Lucas Garden</strong> - nancicl@iq.ufrj.br</li>
+                <li><strong>Pedro Nothaft Romano</strong> - pedroromano@iq.ufrj.br</li>
+                <li><strong>Rafael Dias Mesquita</strong> - rdmesquita@iq.ufrj.br</li>
+                <li><strong>Ricardo Erthal Santelli</strong> - santelli@iq.ufrj.br</li>
+                <li><strong>Ricardo Rodrigues de Oliveira Junior</strong> - rrjunior@iq.ufrj.br [Vice do Depto. de Físico-Química]</li>
+                <li><strong>Roberto Marchiori</strong> - r_marchi@iq.ufrj.br</li>
+                <li><strong>Roberto Salgado Amado</strong> - roberto@iq.ufrj.br</li>
+                <li><strong>Rosane Aguiar da Silva San Gil</strong> - rsangil@iq.ufrj.br</li>
+                <li><strong>Sabrina Baptista Ferreira</strong> - sabrinab@iq.ufrj.br</li>
+                <li><strong>Sérgio de Paula Machado</strong> - sergiopm@iq.ufrj.br</li>
+                <li><strong>Thaís Delazare</strong> - thdelazare@iq.ufrj.br</li>
+                <li><strong>Thiago Messias Cardozo</strong> - thiago@iq.ufrj.br</li>
+                <li><strong>Victor de Oliveira Rodrigues</strong> - vicerodrigues@iq.ufrj.br</li>
+                <li><strong>Vinícius Figueiredo Sardela</strong> - viniciussardela@iq.ufrj.br</li>
+                <li><strong>Viviane Gomes Teixeira</strong> - vgomes@iq.ufrj.br</li>
+              </ul>
+            </div>
+            
           </div>
         </details>
       </div>
     </div>
   </div>
 
-  <!-- Novo Modal de Sugestões -->
   <div id="modal-sugestao" class="fixed inset-0 modal-overlay justify-center items-center z-[100] transition-opacity opacity-0 pointer-events-none">
     <div class="bg-white dark:bg-darkCard w-[90%] max-w-sm rounded-[2rem] p-8 shadow-2xl relative border border-gray-100 dark:border-darkBorder text-center modal-content transform scale-95 transition-all duration-300" onclick="event.stopPropagation()">
       <button aria-label="Fechar" onclick="closeModal('modal-sugestao')" class="absolute top-5 right-5 text-gray-400 hover:text-red-500 bg-gray-50 dark:bg-gray-800 hover:bg-red-50 p-2 rounded-full transition-colors" type="button">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
       </button>
       <div class="mx-auto w-12 h-12 bg-yellow-100 dark:bg-yellow-900/30 text-yellowTheme-600 dark:text-yellowTheme-400 rounded-full flex items-center justify-center mb-5">
-        <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path>
-        </svg>
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
       </div>
-      <h3 class="text-2xl font-black text-gray-800 dark:text-white mb-4">Feedback</h3>
-      <p class="font-medium text-gray-600 dark:text-gray-300 text-sm leading-relaxed mb-5">
-        Possui alguma sugestão ou deseja reportar um bug? Por favor mande sua ideia para o e-mail:
-      </p>
-      
-      <div class="flex items-center justify-center gap-2 bg-gray-50 dark:bg-[#15171b] p-3 rounded-xl border border-gray-100 dark:border-darkBorder">
-        <span class="text-yellow-500 font-bold text-sm select-all">lucas.vambora1@gmail.com</span>
-        <button type="button" onclick="copyTextToClipboard('lucas.vambora1@gmail.com', 'E-mail', event)" title="Copiar E-mail" class="p-1.5 text-gray-400 hover:text-yellowTheme-600 dark:hover:text-yellowTheme-400 transition-colors bg-black/5 dark:bg-white/5 rounded-md">
-          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-          </svg>
-        </button>
-      </div>
+      <h3 class="text-2xl font-black text-gray-800 dark:text-white mb-4">Sugestões e Bugs</h3>
+      <p class="font-medium text-gray-600 dark:text-gray-300 leading-relaxed text-sm">Encontrou algum problema ou tem uma ideia para melhorar o planejador? Entre em contato e ajude a evoluir o sistema!</p>
     </div>
   </div>
 
-  <div id="modal-planner" class="fixed inset-0 modal-overlay justify-center items-center z-[80] transition-opacity opacity-0 pointer-events-none">
-    <div class="bg-white dark:bg-darkCard w-[95%] max-w-2xl rounded-[2rem] p-5 md:p-7 shadow-2xl relative border border-gray-100 dark:border-darkBorder max-h-[90vh] flex flex-col modal-content transform scale-95 transition-all duration-300" onclick="event.stopPropagation()">
-      <div class="flex justify-between items-start mb-2">
-        <div>
-          <h3 class="text-2xl font-black text-gray-800 dark:text-white flex items-center gap-2">
-            Planejador de Grade
-            <button onclick="openModal('modal-planner-info')" class="text-yellowTheme-500 hover:text-yellowTheme-600 transition-colors" aria-label="Informações do Planejador">
-              <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" /></svg>
-            </button>
-          </h3>
-        </div>
-        <button aria-label="Fechar" onclick="closeModal('modal-planner')" class="text-gray-400 hover:text-red-500 bg-gray-50 dark:bg-gray-800 hover:bg-red-50 p-2 rounded-full transition-colors flex-shrink-0">
-          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
-        </button>
-      </div>
-
-      <div id="planner-search-wrapper" class="search-wrapper relative my-5 z-20">
-        <div class="search-bar-shell relative flex items-center shadow-md shadow-gray-200/50 dark:shadow-black/40 rounded-full bg-gray-50 dark:bg-[#1a1d24] transition-transform hover:scale-[1.01] duration-200 border border-gray-200 dark:border-darkBorder">
-          <button id="planner-search-button" class="search-button absolute left-5 text-yellowTheme-500" type="button" aria-label="Pesquisar">
-            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path>
-            </svg>
-          </button>
-          <input type="text" id="planner-search-input" placeholder="Buscar nas disciplinas..." autocomplete="off" class="search-input w-full pl-12 pr-12 py-3.5 bg-transparent border-none rounded-full text-gray-800 dark:text-gray-100 font-medium focus:outline-none focus:ring-2 focus:ring-yellowTheme-400 transition-all placeholder-gray-400 dark:placeholder-gray-500">
-          <button id="planner-clear-search-button" class="absolute right-5 text-gray-400 hover:text-red-500 transition-colors hidden" type="button" aria-label="Limpar texto">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path>
-            </svg>
-          </button>
-        </div>
-        <div id="planner-search-suggestions" class="search-suggestions hidden" role="listbox"></div>
-      </div>
-
-      <div id="planner-list" class="flex-1 overflow-y-auto space-y-3 pr-2 scrollbar-thin"></div>
-    </div>
-  </div>
-
-  <div id="modal-planner-info" class="fixed inset-0 modal-overlay justify-center items-center z-[90] transition-opacity opacity-0 pointer-events-none">
+  <!-- Modal novo do balão de quantidade de matérias do período -->
+  <div id="modal-period-count" class="fixed inset-0 modal-overlay justify-center items-center z-[110] transition-opacity opacity-0 pointer-events-none">
     <div class="bg-white dark:bg-darkCard w-[90%] max-w-sm rounded-[2rem] p-8 shadow-2xl relative border border-gray-100 dark:border-darkBorder text-center modal-content transform scale-95 transition-all duration-300" onclick="event.stopPropagation()">
-      <button aria-label="Fechar" onclick="closeModal('modal-planner-info')" class="absolute top-5 right-5 text-gray-400 hover:text-red-500 bg-gray-50 dark:bg-gray-800 hover:bg-red-50 p-2 rounded-full transition-colors">
+      <button aria-label="Fechar" onclick="closeModal('modal-period-count')" class="absolute top-5 right-5 text-gray-400 hover:text-red-500 bg-gray-50 dark:bg-gray-800 hover:bg-red-50 p-2 rounded-full transition-colors" type="button">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
       </button>
-      <div class="mx-auto w-12 h-12 bg-yellow-100 dark:bg-yellow-900/30 text-yellowTheme-600 dark:text-yellowTheme-400 rounded-full flex items-center justify-center mb-5">
-        <svg class="w-6 h-6" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" /></svg>
+      <div class="mx-auto w-12 h-12 bg-blue-100 dark:bg-blue-900/30 text-blue-500 rounded-full flex items-center justify-center mb-5">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
       </div>
-      <h3 class="text-2xl font-black text-gray-800 dark:text-white mb-4">Planejador de Grade</h3>
-      <ul class="text-left text-sm text-gray-600 dark:text-gray-300 space-y-3 font-medium">
-        <li class="flex items-start gap-2">
-          <svg class="w-5 h-5 text-yellowTheme-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-          <span>Exibe <b>apenas as matérias disponíveis</b> que você já possui os pré-requisitos para cursar.</span>
-        </li>
-        <li class="flex items-start gap-2">
-          <svg class="w-5 h-5 text-yellowTheme-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-          <span>Use a barra de pesquisa para localizar qualquer matéria não cursada.</span>
-        </li>
-        <li class="flex items-start gap-2">
-          <svg class="w-5 h-5 text-yellowTheme-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-          <span><b>O uso do quadradinho ao lado da disciplina tem a finalidade de organização.</b> Clique nele para você saber que já puxou aquela matéria na sua grade atual e não se perder.</span>
-        </li>
-        <li class="flex items-start gap-2">
-          <svg class="w-5 h-5 text-yellowTheme-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"></path></svg>
-          <span><b>Clique e segure</b> em uma disciplina para visualizar quais outras matérias ela <b>tranca</b>.</span>
-        </li>
-      </ul>
+      <h3 class="text-2xl font-black text-gray-800 dark:text-white mb-4">Matérias do Período</h3>
+      <p id="period-count-text" class="font-medium text-gray-600 dark:text-gray-300 leading-relaxed text-sm">Esse período contém X matérias.</p>
     </div>
   </div>
-
-  <div id="modal-cond-info" class="fixed inset-0 modal-overlay justify-center items-center z-[90] transition-opacity opacity-0 pointer-events-none">
-    <div class="bg-white dark:bg-darkCard w-[90%] max-w-sm rounded-[2rem] p-8 shadow-2xl relative border border-gray-100 dark:border-darkBorder text-center modal-content transform scale-95 transition-all duration-300" onclick="event.stopPropagation()">
-      <button aria-label="Fechar" onclick="closeModal('modal-cond-info')" class="absolute top-5 right-5 text-gray-400 hover:text-red-500 bg-gray-50 dark:bg-gray-800 hover:bg-red-50 p-2 rounded-full transition-colors">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
-      </button>
-      <h3 class="text-2xl font-black text-gray-800 dark:text-white mb-6">Escolha Condicionada</h3>
-      <p class="font-medium text-gray-600 dark:text-gray-300 text-sm text-left mb-4">
-        Disciplinas de Escolha Condicionada são as eletivas do currículo novo. Basicamente você precisa ter 12 créditos e 180 horas dessas matérias para se formar.
-      </p>
-      <div class="bg-yellow-50 dark:bg-yellow-900/30 rounded-xl p-3 border border-yellow-200 dark:border-yellow-700/50 flex items-start gap-3 mt-4">
-        <svg class="w-6 h-6 text-yellow-600 dark:text-yellow-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-        <p class="font-bold text-gray-800 dark:text-gray-100 text-xs text-left">
-          O uso desse site é puramente de caráter auxiliar e não substitui a consulta do BOA.
-        </p>
-      </div>
-    </div>
-  </div>
-
-  <div id="modal-locks" class="fixed inset-0 modal-overlay justify-center items-center z-[100] transition-opacity opacity-0 pointer-events-none">
-    <div class="bg-white dark:bg-darkCard w-[90%] max-w-sm rounded-[2rem] p-6 shadow-2xl relative border border-gray-100 dark:border-darkBorder text-center modal-content transform scale-95 transition-all duration-300" onclick="event.stopPropagation()">
-      <button aria-label="Fechar" onclick="closeModal('modal-locks')" class="absolute top-5 right-5 text-gray-400 hover:text-red-500 bg-gray-50 dark:bg-gray-800 hover:bg-red-50 p-2 rounded-full transition-colors">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
-      </button>
-      <div class="mx-auto w-12 h-12 bg-red-100 dark:bg-red-900/30 text-red-500 rounded-full flex items-center justify-center mb-4">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0110 0v4"></path>
-        </svg>
-      </div>
-      <h3 id="locks-title" class="text-xl font-black text-gray-800 dark:text-white mb-1"></h3>
-      <p id="locks-desc" class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-4"></p>
-      <div id="locks-list" class="space-y-2 text-left max-h-60 overflow-y-auto pr-2 scrollbar-thin"></div>
-    </div>
-  </div>
-
-  <div id="modal-coreq" class="fixed inset-0 modal-overlay justify-center items-center z-[100] transition-opacity opacity-0 pointer-events-none">
-    <div class="bg-white dark:bg-darkCard w-[90%] max-w-sm rounded-[2rem] p-6 shadow-2xl relative border border-gray-100 dark:border-darkBorder text-center modal-content transform scale-95 transition-all duration-300" onclick="event.stopPropagation()">
-      <button aria-label="Fechar" onclick="closeModal('modal-coreq')" class="absolute top-5 right-5 text-gray-400 hover:text-red-500 bg-gray-50 dark:bg-gray-800 hover:bg-red-50 p-2 rounded-full transition-colors">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
-      </button>
-      <div class="mx-auto w-12 h-12 bg-blue-100 dark:bg-blue-900/30 text-blue-500 rounded-full flex items-center justify-center mb-4 border-4 border-blue-200 dark:border-blue-800/50">
-        <span class="text-xl font-black">C</span>
-      </div>
-      <h3 id="coreq-title" class="text-xl font-black text-gray-800 dark:text-white mb-4"></h3>
-      <p id="coreq-desc" class="text-sm font-medium text-gray-600 dark:text-gray-300 text-left"></p>
-    </div>
-  </div>
-
-  <script src="disciplinas.js"></script>
-  <script src="app.js"></script>
+  
 </body>
 </html>
