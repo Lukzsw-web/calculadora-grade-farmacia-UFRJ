@@ -29,7 +29,6 @@ body, .bg-white, .dark\:bg-darkCard, .dark\:bg-darkBg, .bg-gray-50, .subject-car
   -webkit-touch-callout: none !important;
 }
 
-/* Barra flutuante constante e nativa, evita bugs de "pulo" no topo da página */
 .search-wrapper {
   position: sticky !important;
   top: 1rem !important;
@@ -66,7 +65,6 @@ details[open] summary ~ * {
   100% { opacity: 1; transform: translateY(0); }
 }
 
-/* Estilo para girar a setinha da sanfona (180º) */
 details[open] summary .accordion-chevron {
   transform: rotate(180deg);
 }
@@ -86,10 +84,9 @@ details[open] summary .accordion-chevron {
 }
 
 #accordions-container details summary {
-  padding: 1.5rem !important;
+  padding: 1.25rem 1.5rem !important;
   background: transparent !important;
   color: inherit !important;
-  font-size: 1.125rem !important;
   letter-spacing: -0.02em;
 }
 #accordions-container details summary:hover {
@@ -104,12 +101,6 @@ details[open] summary .accordion-chevron {
   padding: 0.75rem 1rem !important;
 }
 
-/* =========================================================
-   Correções visuais explícitas
-   ========================================================= */
-
-/* Barras de progresso: cores fixas para funcionar mesmo quando
-   as classes são aplicadas/atualizadas por JavaScript. */
 .progress-bar {
   display: block !important;
   min-width: 0;
@@ -123,21 +114,21 @@ details[open] summary .accordion-chevron {
   background-color: #eab308 !important;
   box-shadow: 0 0 14px rgba(234, 179, 8, 0.22);
 }
+/* NOVA COR: Azul Degradê para Condicionadas */
 .progress-bar-cond {
-  background: linear-gradient(90deg, #d97706 0%, #facc15 100%) !important;
-  background-color: #d97706 !important;
-  box-shadow: 0 0 14px rgba(217, 119, 6, 0.22);
+  background: linear-gradient(90deg, #5491BE 0%, #EAF6FC 100%) !important;
+  background-color: #5491BE !important;
+  box-shadow: 0 0 14px rgba(84, 145, 190, 0.3);
 }
 .dark .progress-bar-obrig {
   background: linear-gradient(90deg, #eab308 0%, #fde047 100%) !important;
   background-color: #eab308 !important;
 }
 .dark .progress-bar-cond {
-  background: linear-gradient(90deg, #d97706 0%, #facc15 100%) !important;
-  background-color: #d97706 !important;
+  background: linear-gradient(90deg, #5491BE 0%, #EAF6FC 100%) !important;
+  background-color: #5491BE !important;
 }
 
-/* Cores reais dos balões/cartões de disciplinas. */
 .subject-card {
   border: 1px solid rgba(17, 24, 39, 0.08);
   background: #ffffff;
@@ -183,8 +174,6 @@ details[open] summary .accordion-chevron {
   color: #fee2e2;
 }
 
-/* Nome da matéria e botão de co-requisito permanecem na mesma linha,
-   quebrando de modo limpo apenas quando faltar espaço. */
 .subject-name {
   overflow: visible !important;
   text-overflow: clip !important;
@@ -196,7 +185,6 @@ details[open] summary .accordion-chevron {
   flex: 0 0 auto;
 }
 
-/* Botão C: pequeno, circular e imediatamente ao lado do nome. */
 .coreq-button,
 .planner-coreq-button {
   display: inline-flex !important;
@@ -233,8 +221,6 @@ details[open] summary .accordion-chevron {
   background: rgba(161, 98, 7, 0.45) !important;
 }
 
-/* Sugestões de pesquisa: caixa sólida no estilo de uma lista de resultados
-   do Google, sem texto "flutuando" no fundo da página. */
 .search-suggestions {
   position: absolute !important;
   top: calc(100% + 8px) !important;
@@ -299,7 +285,6 @@ details[open] summary .accordion-chevron {
   color: #9ca3af;
 }
 
-/* Campo de pesquisa com aparência uniforme e sem borda duplicada. */
 .search-bar-shell {
   border: 1px solid #e5e7eb !important;
   overflow: visible !important;
@@ -316,27 +301,15 @@ details[open] summary .accordion-chevron {
   box-shadow: 0 0 0 3px rgba(250, 204, 21, 0.10), 0 18px 45px rgba(0,0,0,0.30) !important;
 }
 
-/* Espaçamento vertical do cabeçalho para afastar título/subtítulo dos botões. */
-header > h1 {
-  margin-top: 2.5rem !important;
-}
-header > p {
-  margin-top: 0.75rem !important;
-}
+header > h1 { margin-top: 2.5rem !important; }
+header > p { margin-top: 0.75rem !important; }
 
-/* Pequenos ajustes de segurança para o planner. */
-#planner-search-wrapper {
-  overflow: visible !important;
-}
-#planner-search-wrapper .search-suggestions {
-  position: absolute !important;
-}
+#planner-search-wrapper { overflow: visible !important; }
+#planner-search-wrapper .search-suggestions { position: absolute !important; }
 
-/* Acessibilidade/feedback do foco sem quebrar a função de clique. */
 .coreq-button:focus-visible,
 .planner-coreq-button:focus-visible,
 .search-suggestion:focus-visible {
   outline: 3px solid rgba(234, 179, 8, 0.35);
   outline-offset: 2px;
 }
-
