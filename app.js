@@ -44,7 +44,7 @@ const saveJSON = (key, value) => {
 };
 
 function formatName(mat) {
-  return mat.nome + (disciplinaAjustes && disciplinaAjustes[mat.codigo] ? disciplinaAjustes[mat.codigo] : '');
+  return mat.nome + (typeof disciplinaAjustes !== 'undefined' && disciplinaAjustes[mat.codigo] ? disciplinaAjustes[mat.codigo] : '');
 }
 
 function displayPeriod(mat) {
@@ -314,14 +314,17 @@ function getSelectedCondStats() {
 
 function updateDashboard() {
   let dObrig = 0, dCond = 0, tCred = 0, tHr = 0, obrigCredFeitos = 0;
+  
+  // Otimização: buscar apenas uma vez os itens
+  const concluidas = getConcludedCodes();
 
-  document.querySelectorAll('.subject-card input[type="checkbox"]:checked').forEach(c => {
-    const m = disciplinas.find(d => d.codigo === c.value);
+  concluidas.forEach(codigo => {
+    const m = disciplinas.find(d => d.codigo === codigo);
     if (!m) return;
     const baseCred = creditsOf(m);
     const baseHor = hoursOf(m);
 
-    if (periodIsCond(c.dataset.periodo)) dCond++;
+    if (periodIsCond(m.periodo)) dCond++;
     else {
       dObrig++;
       obrigCredFeitos += baseCred;
@@ -563,6 +566,16 @@ function showCoreqInfo(event, codigo) {
   openModal('modal-coreq');
 }
 
+// Nova função para abrir balão de quantidade de matérias
+function showPeriodCount(event, count) {
+  if (event) event.stopPropagation();
+  const textEl = document.getElementById('period-count-text');
+  if (textEl) {
+    textEl.innerText = `Esse período contém ${count} matérias.`;
+  }
+  openModal('modal-period-count');
+}
+
 function togglePlannerCheck(event, codigo) {
   event.stopPropagation();
   const isChecked = event.target.checked;
@@ -767,6 +780,7 @@ function buildSections() {
         coReqHtml = `<button type="button" onclick="showCoreqInfo(event, '${m.codigo}')" title="Ver Co-requisito" class="coreq-button">C</button>`;
       }
 
+      // Adição dos tamanhos de fontes hierarquizados conforme solicitado.
       return `
       <label id="card-${m.codigo}" data-periodo="${periodo}" data-search="${buildSearchIndex(m)}"
              class="subject-card status-default flex items-center p-4 mb-2 rounded-lg cursor-pointer no-select"
@@ -776,16 +790,19 @@ function buildSections() {
                value="${m.codigo}" data-periodo="${periodo}"
                onchange="persistCheckedState(); updateDashboard(); applySelectedVisualization(getConcludedCodes());">
         <div class="flex-1 min-w-0">
-          <div class="subject-name text-gray-800 dark:text-gray-100 leading-tight mb-1 flex items-center gap-1.5 flex-wrap">${formatName(m)} ${coReqHtml}</div>
-          <div class="subject-meta truncate flex items-center gap-1.5">
-            <span class="font-extrabold">${m.codigo}</span>
-            <button type="button" onclick="copyCodeToClipboard('${m.codigo}', event)" title="Copiar código" class="p-0.5 text-gray-500 dark:text-gray-300 hover:text-yellowTheme-600 dark:hover:text-yellowTheme-400 transition-colors inline-flex items-center bg-black/5 dark:bg-white/5 rounded">
+          <div class="subject-name text-base md:text-lg font-bold text-gray-800 dark:text-gray-100 leading-tight mb-1 flex items-center gap-1.5 flex-wrap">
+            ${formatName(m)} ${coReqHtml}
+          </div>
+          <div class="subject-meta truncate flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
+            <span class="font-extrabold text-sm text-gray-700 dark:text-gray-300">${m.codigo}</span>
+            <button type="button" onclick="copyCodeToClipboard('${m.codigo}', event)" title="Copiar código" class="p-0.5 ml-0.5 text-gray-400 hover:text-yellowTheme-600 dark:hover:text-yellowTheme-400 transition-colors inline-flex items-center bg-black/5 dark:bg-white/5 rounded">
               <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                 <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
               </svg>
             </button>
-            • ${creditsOf(m)} créd. • ${hoursOf(m)} Horas.
+            <span class="mx-1">•</span> <span class="text-xs">${creditsOf(m)} créd.</span>
+            <span class="mx-1">•</span> <span class="text-xs">${hoursOf(m)} Horas</span>
           </div>
         </div>
       </label>
@@ -795,7 +812,12 @@ function buildSections() {
       <details class="group" data-periodo="${periodo}" ${index === 0 ? 'open' : ''}>
         <summary class="flex justify-between items-center font-bold cursor-pointer list-none p-5 text-lg bg-yellow-50/50 dark:bg-darkBg hover:bg-yellow-100 dark:hover:bg-gray-800 transition-colors">
           ${tituloHtml}
-          <svg class="accordion-chevron w-6 h-6 text-gray-500 dark:text-gray-400 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+          <div class="flex items-center gap-3">
+             <button type="button" onclick="showPeriodCount(event, ${periodosMap[periodo].length})" class="bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs px-2.5 py-1 rounded-full shadow-sm hover:scale-105 transition-transform border border-transparent dark:border-gray-600">
+               ${periodosMap[periodo].length} mat
+             </button>
+             <svg class="accordion-chevron w-6 h-6 text-gray-500 dark:text-gray-400 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+          </div>
         </summary>
         <div class="accordion-content p-5 border-t border-yellowTheme-100 dark:border-darkBorder">
           <div class="flex gap-2 mb-4">
@@ -822,6 +844,21 @@ document.addEventListener('click', (e) => {
 });
 
 document.addEventListener('DOMContentLoaded', () => {
+  
+  // Patch de Correção: Configura o correquisito para Química Farmacêutica e Medicinal I sem mexer no script base.
+  if (typeof disciplinas !== 'undefined') {
+    const qfm1 = disciplinas.find(d => d.nome && d.nome.toLowerCase().includes('química farmacêutica e medicinal i'));
+    if (qfm1) {
+      const macf = disciplinas.find(d => d.nome && d.nome.toLowerCase().includes('métodos computacionais aplicados'));
+      const coCode = macf ? macf.codigo : 'MACF';
+      if (!qfm1.co) {
+        qfm1.co = coCode;
+      } else if (!qfm1.co.includes(coCode)) {
+        qfm1.co += `, ${coCode}`;
+      }
+    }
+  }
+
   buildSections();
   restoreCheckedState();
   updateDashboard();
