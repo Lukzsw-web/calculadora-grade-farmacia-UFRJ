@@ -199,7 +199,10 @@ document.querySelectorAll('.modal-overlay').forEach(o => {
 });
 
 async function copyTextToClipboard(text, prefixLabel, event) {
-  if (event) event.stopPropagation();
+  if (event) {
+    event.stopPropagation();
+    event.preventDefault();
+  }
   try {
     if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
       await navigator.clipboard.writeText(text);
@@ -365,7 +368,6 @@ function updateDashboard() {
   if(tHorasNode) tHorasNode.textContent = tHr;
 }
 
-// Criação dos Cards com as novas fontes para evitar vazamento visual
 function createSubjectCardHTML(mat) {
   const checked = getConcludedCodes().includes(mat.codigo) ? 'checked' : '';
   let coreqBtn = '';
@@ -392,7 +394,7 @@ function createSubjectCardHTML(mat) {
           <div class="flex items-center gap-1">
             <span class="text-[0.80rem] md:text-sm font-semibold text-yellowTheme-600 dark:text-yellowTheme-400">${mat.codigo}</span>
             <button type="button" class="p-1 text-gray-400 hover:text-yellowTheme-600" onclick="copyCodeToClipboard('${mat.codigo}', event)" title="Copiar">
-              <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+              <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2-2v1"></path></svg>
             </button>
           </div>
           <span class="text-gray-300 dark:text-gray-600">|</span>
@@ -408,32 +410,16 @@ function createSubjectCardHTML(mat) {
   </label>`;
 }
 
-function showPeriodInfo(periodName, count, event) {
+function showCondInfo(event) {
   event.stopPropagation();
   event.preventDefault();
   const title = document.getElementById('period-info-title');
   const desc = document.getElementById('period-info-desc');
-  if(title) title.textContent = periodName;
-  if(desc) desc.textContent = `Esse período contém ${count} matéria${count > 1 ? 's' : ''}.`;
+  if(title) title.textContent = "Escolha Condicionada";
+  if(desc) {
+    desc.innerHTML = `Disciplinas de Escolha Condicionada são as eletivas do currículo novo. Basicamente você precisa ter 12 créditos e 180 horas dessas matérias para se formar.<br><br><strong>Atenção:</strong> uso desse site é puramente de caráter auxiliar e não substitui a consulta do BOA.`;
+  }
   openModal('modal-period-info');
-}
-
-function renderContatos() {
-  const container = document.getElementById('contatos-content');
-  if (!container || typeof contatosImportantes === 'undefined') return;
-
-  container.innerHTML = contatosImportantes.map(grupo => `
-    <div class="bg-gray-50 dark:bg-[#15171b] p-4 rounded-xl border border-gray-100 dark:border-darkBorder">
-      <h4 class="font-bold text-lg text-yellowTheme-600 dark:text-yellowTheme-400 ${grupo.chefe ? 'mb-1' : 'mb-2'}">${grupo.nome}</h4>
-      ${grupo.chefe ? `<p class="text-sm font-semibold ${grupo.local ? 'mb-1' : 'mb-3'}">${grupo.chefe}</p>` : ''}
-      ${grupo.local ? `<p class="text-xs text-gray-500 mb-3">${grupo.local}</p>` : ''}
-      <ul class="text-xs space-y-2 text-left flex-wrap">
-        ${grupo.professores.map(p => `
-          <li><b>${p.nome}</b> - <a href="mailto:${p.email}" class="text-blue-500 hover:underline">${p.email}</a>${p.extras.length ? ` | ${p.extras.join(' | ')}` : ''}${p.cargo ? ` ${p.cargo}` : ''}</li>
-        `).join('')}
-      </ul>
-    </div>
-  `).join('');
 }
 
 function renderAccordions() {
@@ -457,15 +443,23 @@ function renderAccordions() {
     const list = periods[p];
     const displayP = p === PERIODO_COND ? PERIODO_COND : `${p}º Período`;
     const count = list.length;
+    const isCond = p === PERIODO_COND;
     
+    const infoBtn = isCond ? `
+      <button type="button" class="ml-2 text-blue-500 hover:text-blue-700 flex-shrink-0" onclick="showCondInfo(event)" title="Informações">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+      </button>` : '';
+
     htmlContent += `
     <details class="group bg-gray-50 dark:bg-[#15171b] rounded-2xl border border-gray-200/60 dark:border-darkBorder/60 overflow-hidden">
       <summary class="flex items-center justify-between p-4 md:p-5 cursor-pointer font-bold text-gray-800 dark:text-gray-100 list-none select-none hover:bg-gray-100 dark:hover:bg-[#1a1c22] transition-colors rounded-t-2xl">
-        <span class="text-base md:text-lg">${displayP}</span>
+        <div class="flex items-center text-base md:text-lg">
+          ${displayP} ${infoBtn}
+        </div>
         <div class="flex items-center gap-2 md:gap-3">
-          <button type="button" class="bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-[0.65rem] md:text-xs font-bold px-2 py-1 md:px-2.5 md:py-1 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors shadow-sm" onclick="showPeriodInfo('${displayP}', ${count}, event)">
-            ${count} mat
-          </button>
+          <span class="bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-[0.65rem] md:text-xs font-bold px-2 py-1 md:px-2.5 md:py-1 rounded-lg shadow-sm">
+            ${count} Matéria${count > 1 ? 's' : ''}
+          </span>
           <svg class="accordion-chevron w-5 h-5 text-gray-400 transition-transform duration-300 group-open:rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
         </div>
       </summary>
@@ -492,15 +486,12 @@ function renderAccordions() {
 
 function checkReqs(reqsString, concluidas) {
   if (!reqsString) return true;
-
   const groups = reqsString
     .replace(/;/g, ' E ')
     .split(/\s+OU\s+/i)
     .map(group => group.trim())
     .filter(Boolean);
-
   if (!groups.length) return true;
-
   return groups.some(group => {
     const requiredCodes = extractCodes(group);
     if (!requiredCodes.length) return false;
@@ -522,36 +513,238 @@ function applySelectedVisualization(concluidas) {
   });
 }
 
-async function compartilharGradePDF() {
-  if (!window.jspdf || typeof window.jspdf.jsPDF !== 'function') {
-    alert('Não foi possível carregar o gerador de PDF. Verifique sua conexão com a internet e tente novamente.');
-    return;
-  }
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
-  
-  const concluidas = getConcludedCodes();
-  doc.setFontSize(18);
-  doc.text("Planejador Acadêmico - Farmácia UFRJ", 14, 20);
-
-  doc.setFontSize(12);
-  doc.text(`Disciplinas Concluídas: ${concluidas.length}`, 14, 30);
-  
-  let y = 40;
-  disciplinas.forEach(m => {
-    if (concluidas.includes(m.codigo)) {
-      if (y > 280) { doc.addPage(); y = 20; }
-      doc.text(`- ${m.nome} (${m.codigo})`, 14, y);
-      y += 7;
-    }
-  });
-  
-  doc.save('Grade_Farmacia_UFRJ.pdf');
+// ----------------------------------------------------
+// PLANEJAR GRADE LOGIC
+// ----------------------------------------------------
+function openPlanner() {
+  renderPlanner();
+  openModal('modal-planner');
 }
 
-// Inicialização Principal
+function renderPlanner() {
+  const containerObrig = document.getElementById('planner-obrig-container');
+  const containerCond = document.getElementById('planner-cond-container');
+  if (!containerObrig || !containerCond) return;
+
+  const concluidas = getConcludedCodes();
+  const disponiveis = disciplinas.filter(d => !concluidas.includes(d.codigo) && checkReqs(d.pre, concluidas));
+  
+  const obrig = disponiveis.filter(d => !periodIsCond(d.periodo));
+  const cond = disponiveis.filter(d => periodIsCond(d.periodo));
+
+  if (obrig.length > 0) {
+    containerObrig.innerHTML = obrig.map(m => createPlannerCard(m)).join('');
+  } else {
+    containerObrig.innerHTML = '<p class="text-gray-500 text-sm italic py-2">Nenhuma obrigatória disponível para puxar.</p>';
+  }
+
+  if (cond.length > 0) {
+    containerCond.innerHTML = cond.map(m => createPlannerCard(m)).join('');
+  } else {
+    containerCond.innerHTML = '<p class="text-gray-500 text-sm italic py-2">Nenhuma condicionada disponível para puxar.</p>';
+  }
+  
+  restorePlannerCheckedState();
+}
+
+function createPlannerCard(mat) {
+  return `
+  <label class="planner-card block p-3 rounded-xl cursor-pointer relative mb-2 select-none bg-white dark:bg-darkCard border border-gray-200 dark:border-darkBorder transition-all duration-200"
+         data-codigo="${mat.codigo}"
+         onmousedown="startPlannerLongPress('${mat.codigo}')" 
+         onmouseup="cancelPlannerLongPress()" 
+         onmouseleave="cancelPlannerLongPress()"
+         ontouchstart="startPlannerLongPress('${mat.codigo}')" 
+         ontouchend="cancelPlannerLongPress()" 
+         ontouchcancel="cancelPlannerLongPress()">
+    <div class="flex items-center justify-between gap-2">
+      <div class="flex-1 min-w-0">
+        <span class="planner-subject-name text-sm md:text-base font-bold leading-tight text-gray-800 dark:text-gray-100">${formatName(mat)}</span>
+        <div class="flex items-center gap-2 mt-1 flex-wrap">
+          <span class="text-[0.75rem] font-semibold text-yellowTheme-600 dark:text-yellowTheme-400">${mat.codigo}</span>
+          <span class="text-gray-300 dark:text-gray-600">|</span>
+          <span class="text-[0.75rem] font-medium text-gray-500">${creditsOf(mat)} Créd.</span>
+        </div>
+      </div>
+      <div class="flex items-center">
+        <input type="checkbox" value="${mat.codigo}" onchange="togglePlannerCard(this)" class="w-5 h-5 rounded border-gray-300 text-yellowTheme-500 focus:ring-yellowTheme-500 dark:border-gray-600 dark:bg-gray-700">
+      </div>
+    </div>
+  </label>`;
+}
+
+function togglePlannerCard(checkbox) {
+  const card = checkbox.closest('.planner-card');
+  if (checkbox.checked) {
+    card.classList.add('line-through', 'opacity-50');
+  } else {
+    card.classList.remove('line-through', 'opacity-50');
+  }
+  persistPlannerCheckedState();
+}
+
+function persistPlannerCheckedState() {
+  const checkedBoxes = Array.from(document.querySelectorAll('.planner-card input[type="checkbox"]:checked')).map(cb => cb.value);
+  saveJSON(STORAGE_KEYS.plannerChecked, checkedBoxes);
+}
+
+function restorePlannerCheckedState() {
+  const stored = loadJSON(STORAGE_KEYS.plannerChecked, []);
+  document.querySelectorAll('.planner-card input[type="checkbox"]').forEach(cb => {
+    cb.checked = stored.includes(cb.value);
+    togglePlannerCard(cb);
+  });
+}
+
+let timerPlannerLongPress = null;
+function startPlannerLongPress(cod) {
+  timerPlannerLongPress = setTimeout(() => {
+    const m = disciplinas.find(d => d.codigo === cod);
+    if (!m) return;
+    
+    const trancadas = disciplinas.filter(d => {
+        if (!d.pre) return false;
+        return extractCodes(d.pre).includes(cod);
+    });
+
+    const titleEl = document.getElementById('planner-det-title');
+    const listEl = document.getElementById('planner-det-list');
+    
+    if (!titleEl || !listEl) return;
+
+    if (trancadas.length === 0) {
+        titleEl.textContent = `A matéria ${m.nome} não tranca nenhuma matéria!`;
+        listEl.innerHTML = '';
+    } else if (trancadas.length === 1) {
+        titleEl.textContent = `A matéria ${m.nome} tranca a seguinte matéria:`;
+        listEl.innerHTML = `<li class="mt-2 text-sm text-gray-600 dark:text-gray-300">- ${trancadas[0].nome} (${trancadas[0].codigo})</li>`;
+    } else {
+        titleEl.textContent = `A matéria ${m.nome} tranca as seguintes matérias:`;
+        listEl.innerHTML = trancadas.map(t => `<li class="mt-2 text-sm text-gray-600 dark:text-gray-300">- ${t.nome} (${t.codigo})</li>`).join('');
+    }
+    
+    openModal('modal-planner-details');
+  }, 600);
+}
+
+function cancelPlannerLongPress() {
+  clearTimeout(timerPlannerLongPress);
+  timerPlannerLongPress = null;
+}
+
+
+// ----------------------------------------------------
+// CONTATOS SEARCH LOGIC
+// ----------------------------------------------------
+function renderContatos() {
+  renderContatosFiltered(contatosImportantes);
+}
+
+function renderContatosFiltered(dataToRender) {
+  const container = document.getElementById('contatos-content');
+  if (!container || typeof contatosImportantes === 'undefined') return;
+
+  if (Array.isArray(dataToRender) && dataToRender.length === 0) {
+      container.innerHTML = '<p class="text-center text-gray-500 mt-4">Nenhum professor encontrado.</p>';
+      return;
+  }
+
+  // Identifica se os dados passados já estão no formato original agrupado ou se é uma lista linear de professores do filtro
+  let htmlResult = '';
+  if (dataToRender[0] && dataToRender[0].professores) {
+      // Formato original (agrupado)
+      htmlResult = dataToRender.map(grupo => buildContatoCard(grupo.nome, grupo.chefe, grupo.local, grupo.professores)).join('');
+  } else {
+      // Formato de lista filtrada
+      const grouped = {};
+      dataToRender.forEach(p => {
+          if(!grouped[p.grupo]) grouped[p.grupo] = [];
+          grouped[p.grupo].push(p);
+      });
+      htmlResult = Object.keys(grouped).map(grupoNome => buildContatoCard(grupoNome, '', '', grouped[grupoNome])).join('');
+  }
+
+  container.innerHTML = htmlResult;
+}
+
+function buildContatoCard(nomeGrupo, chefe, local, professores) {
+  return `
+    <div class="bg-gray-50 dark:bg-[#15171b] p-4 rounded-xl border border-gray-100 dark:border-darkBorder">
+      <h4 class="font-bold text-lg text-yellowTheme-600 dark:text-yellowTheme-400 ${chefe ? 'mb-1' : 'mb-2'}">${nomeGrupo}</h4>
+      ${chefe ? `<p class="text-sm font-semibold ${local ? 'mb-1' : 'mb-3'}">${chefe}</p>` : ''}
+      ${local ? `<p class="text-xs text-gray-500 mb-3">${local}</p>` : ''}
+      <ul class="text-xs space-y-2 text-left flex-wrap">
+        ${professores.map(p => `
+          <li><b>${p.nome}</b> - <a href="mailto:${p.email}" class="text-blue-500 hover:underline">${p.email}</a>${p.extras && p.extras.length ? ` | ${p.extras.join(' | ')}` : ''}${p.cargo ? ` ${p.cargo}` : ''}</li>
+        `).join('')}
+      </ul>
+    </div>
+  `;
+}
+
+function initContatosSearch() {
+  const input = document.getElementById('contatos-search-input');
+  const suggestions = document.getElementById('contatos-search-suggestions');
+  
+  if(!input || !suggestions) return;
+  
+  input.addEventListener('input', (e) => {
+      const val = normalizeStr(e.target.value);
+      if(!val) {
+          suggestions.classList.add('hidden');
+          renderContatos(); 
+          return;
+      }
+      
+      let allProfs = [];
+      contatosImportantes.forEach(g => {
+          g.professores.forEach(p => {
+              allProfs.push({ ...p, grupo: g.nome });
+          });
+      });
+      
+      const matched = allProfs.filter(p => normalizeStr(p.nome).includes(val) || normalizeStr(p.email).includes(val));
+      
+      if (matched.length > 0) {
+          suggestions.innerHTML = matched.slice(0, 5).map(p => `
+              <div class="p-3 border-b border-gray-100 dark:border-darkBorder cursor-pointer hover:bg-gray-50 dark:hover:bg-[#1a1c22]" onclick="selectContatoSearch('${p.nome}')">
+                  <p class="font-bold text-sm text-gray-800 dark:text-gray-100">${p.nome}</p>
+                  <p class="text-[0.65rem] text-gray-500">${p.email}</p>
+              </div>
+          `).join('');
+          suggestions.classList.remove('hidden');
+      } else {
+          suggestions.innerHTML = '<div class="p-3 text-sm text-gray-500">Nenhum professor encontrado.</div>';
+          suggestions.classList.remove('hidden');
+      }
+      
+      renderContatosFiltered(matched);
+  });
+  
+  document.addEventListener('click', (e) => {
+      if(!input.contains(e.target) && !suggestions.contains(e.target)) {
+          suggestions.classList.add('hidden');
+      }
+  });
+}
+
+function selectContatoSearch(nome) {
+  const input = document.getElementById('contatos-search-input');
+  if(input) input.value = nome;
+  document.getElementById('contatos-search-suggestions').classList.add('hidden');
+  
+  let allProfs = [];
+  contatosImportantes.forEach(g => g.professores.forEach(p => allProfs.push({ ...p, grupo: g.nome })));
+  const matched = allProfs.filter(p => p.nome === nome);
+  renderContatosFiltered(matched);
+}
+
+// ----------------------------------------------------
+// CORE INIT
+// ----------------------------------------------------
 document.addEventListener('DOMContentLoaded', () => {
   renderContatos();
+  initContatosSearch();
   renderAccordions();
   restoreCheckedState();
   updateDashboard();
