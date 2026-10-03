@@ -1,4 +1,4 @@
-
+// --- CONSTANTES E ESTADO GLOBAL REATIVO ---
 const STORAGE_KEYS = {
   checked: 'farma_checked_v4',
   plannerChecked: 'planner_checked_v1',
@@ -16,16 +16,33 @@ const TOTAL_GRAD_CRED_EQUIV = TOTAL_OBRIG_CRED + META_COND_CRED;
 let totalObrig = (typeof disciplinas !== 'undefined' ? disciplinas : []).filter(d => !periodIsCond(d.periodo)).length;
 let totalCond = (typeof disciplinas !== 'undefined' ? disciplinas : []).filter(d => periodIsCond(d.periodo)).length;
 
+// Estado centralizado e reativo (evita leituras desnecessárias do DOM querySelectorAll(':checked'))
+const appState = {
+  concluidas: new Set()
+};
+
 const html = document.documentElement;
 let timerLongPress = null;
 let activeModalCount = 0;
+let previousActiveElement = null; // Para Focus Trap
 
+// --- UTILITÁRIOS BASE ---
 const normalizeStr = (s = '') =>
-  String(s)
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/\s+/g, '')
-    .toLowerCase();
+  String(s).normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '').toLowerCase();
+
+function escapeHTML(value = '') {
+  return String(value).replace(/[&<>"']/g, ch => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[ch]));
+}
+
+function debounce(func, wait) {
+  let timeout;
+  return function(...args) {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func.apply(this, args), wait);
+  };
+}
 
 const loadJSON = (key, fallback) => {
   try {
@@ -41,6 +58,7 @@ const saveJSON = (key, value) => {
     localStorage.setItem(key, JSON.stringify(value));
   } catch (error) {
     console.warn('Não foi possível salvar.', error);
+    showToastError('Erro ao salvar localmente. O armazenamento pode estar cheio.');
   }
 };
 
@@ -56,8 +74,7 @@ function extractCodes(str) {
   return str ? (str.match(/[A-Z]{3}[A-Z0-9]{3}|MACF/g) || []) : [];
 }
 
-// Índices internos de desempenho. Não alteram nem duplicam a fonte de dados;
-// apenas evitam buscas repetidas por toda a lista de disciplinas.
+// --- ÍNDICES E ESTRUTURAS DE DADOS RÁPIDAS ---
 const disciplinasPorCodigo = new Map();
 const preRequisitosPorCodigo = new Map();
 const corequisitosPorCodigo = new Map();
@@ -66,7 +83,6 @@ const buscaIndexPorCodigo = new Map();
 
 function inicializarIndicesDisciplinas() {
   if (typeof disciplinas === 'undefined' || !Array.isArray(disciplinas)) return;
-
   disciplinasPorCodigo.clear();
   preRequisitosPorCodigo.clear();
   corequisitosPorCodigo.clear();
@@ -81,10 +97,7 @@ function inicializarIndicesDisciplinas() {
   });
 
   disciplinas.forEach(d => {
-    const relacionados = [
-      ...preRequisitosPorCodigo.get(d.codigo),
-      ...corequisitosPorCodigo.get(d.codigo)
-    ];
+    const relacionados = [...preRequisitosPorCodigo.get(d.codigo), ...corequisitosPorCodigo.get(d.codigo)];
     relacionados.forEach(codigo => {
       if (!dependentesPorCodigo.has(codigo)) dependentesPorCodigo.set(codigo, new Set());
       dependentesPorCodigo.get(codigo).add(d.codigo);
@@ -98,20 +111,13 @@ function getDisciplinaByCode(codigo) {
 
 inicializarIndicesDisciplinas();
 
-function periodIsCond(periodo) {
-  return periodo === PERIODO_COND;
-}
+function periodIsCond(periodo) { return periodo === PERIODO_COND; }
+function creditsOf(mat) { return mat.cred || 4; }
+function hoursOf(mat) { return mat.ch || creditsOf(mat) * 15; }
 
-function creditsOf(mat) {
-  return mat.cred || 4;
-}
-
-function hoursOf(mat) {
-  return mat.ch || creditsOf(mat) * 15;
-}
-
+// Agora utilizamos O(1) do appState ao invés de buscar do DOM
 function getConcludedCodes() {
-  return Array.from(document.querySelectorAll('.subject-card input[type="checkbox"]:checked')).map(cb => cb.value);
+  return Array.from(appState.concluidas);
 }
 
 function getCoreqRelatedCodes(codigo) {
@@ -121,8 +127,6 @@ function getCoreqRelatedCodes(codigo) {
   while (queue.length) {
     const current = queue.shift();
     const direct = new Set(corequisitosPorCodigo.get(current) || []);
-
-    // Também encontra a disciplina que declara o código atual como co-requisito.
     (dependentesPorCodigo.get(current) || []).forEach(dependente => {
       const coCodes = corequisitosPorCodigo.get(dependente) || [];
       if (coCodes.includes(current)) direct.add(dependente);
@@ -135,20 +139,23 @@ function getCoreqRelatedCodes(codigo) {
       }
     });
   }
-
   return Array.from(related);
 }
 
 function getCheckboxByCode(codigo) {
-  return Array.from(document.querySelectorAll('.subject-card input[type="checkbox"]')).find(cb => cb.value === codigo) || null;
+  return document.querySelector(`.subject-card input[type="checkbox"][value="${CSS.escape(codigo)}"]`);
 }
 
+// Gerenciamento Reativo
 function setSubjectChecked(codigo, checked, originCodigo = codigo, showAutoToast = false) {
-  const cb = getCheckboxByCode(codigo);
-  if (!cb) return false;
+  const changed = appState.concluidas.has(codigo) !== checked;
+  if (!changed) return false;
 
-  const changed = cb.checked !== checked;
-  cb.checked = checked;
+  if (checked) appState.concluidas.add(codigo);
+  else appState.concluidas.delete(codigo);
+
+  const cb = getCheckboxByCode(codigo);
+  if (cb) cb.checked = checked;
 
   if (checked && showAutoToast && codigo !== originCodigo) {
     const autoMat = getDisciplinaByCode(codigo);
@@ -157,8 +164,7 @@ function setSubjectChecked(codigo, checked, originCodigo = codigo, showAutoToast
       showCoreqAutoToast(formatName(autoMat), formatName(originMat));
     }
   }
-
-  return changed;
+  return true;
 }
 
 function synchronizeCorequisites(originCodigo, checked, showAutoToast = false) {
@@ -169,11 +175,12 @@ function synchronizeCorequisites(originCodigo, checked, showAutoToast = false) {
 
 function handleSubjectCheckboxChange(cb, options = {}) {
   const codigo = cb.value;
-  const related = synchronizeCorequisites(codigo, cb.checked, options.showAutoToast !== false);
+  synchronizeCorequisites(codigo, cb.checked, options.showAutoToast !== false);
+  setSubjectChecked(codigo, cb.checked); // Garante que a raiz está certa no appState
+
   persistCheckedState();
   updateDashboard();
   applySelectedVisualization(getConcludedCodes());
-  return related;
 }
 
 function persistCheckedState() {
@@ -185,26 +192,28 @@ function persistCheckedState() {
   }
 }
 
-function confirmarLimparSelecao() {
-  const marcadas = getConcludedCodes();
-  if (!marcadas.length) return;
-  if (!confirm('Tem certeza que deseja desmarcar todas as disciplinas?')) return;
-  document.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
-  persistCheckedState();
-  updateDashboard();
-  applySelectedVisualization([]);
-}
-
 function restoreCheckedState() {
   const stored = loadJSON(STORAGE_KEYS.checked, []);
-  const set = new Set(stored);
+  appState.concluidas = new Set(stored);
+  
+  // Atualiza as checkbox no DOM baseadas no estado
   document.querySelectorAll('.subject-card input[type="checkbox"]').forEach(cb => {
-    cb.checked = set.has(cb.value);
+    cb.checked = appState.concluidas.has(cb.value);
   });
 
-  // Mantém os co-requisitos sincronizados mesmo com uma seleção antiga salva.
-  Array.from(set).forEach(codigo => synchronizeCorequisites(codigo, true, false));
+  Array.from(appState.concluidas).forEach(codigo => synchronizeCorequisites(codigo, true, false));
   persistCheckedState();
+}
+
+function confirmarLimparSelecao() {
+  if (appState.concluidas.size === 0) return;
+  showConfirmModal('Resetar Seleção', 'Tem certeza que deseja desmarcar TODAS as disciplinas? Essa ação não pode ser desfeita.', () => {
+    appState.concluidas.clear();
+    document.querySelectorAll('.subject-card input[type="checkbox"]').forEach(cb => cb.checked = false);
+    persistCheckedState();
+    updateDashboard();
+    applySelectedVisualization([]);
+  });
 }
 
 function resolveReqsColor(reqStr, concluidas) {
@@ -214,8 +223,8 @@ function resolveReqsColor(reqStr, concluidas) {
 
   return extractCodes(reqStr).map(c => {
     const m = getDisciplinaByCode(c);
-    let label = m ? formatName(m) : c;
-    if (m && !periodIsCond(m.periodo)) label += ` (${displayPeriod(m)})`;
+    let label = m ? escapeHTML(formatName(m)) : escapeHTML(c);
+    if (m && !periodIsCond(m.periodo)) label += ` (${escapeHTML(displayPeriod(m))})`;
     const color = concluidas.includes(c) ? completedColor : incompleteColor;
     return `<span style="color:${color}" class="font-bold block mb-1">${label}</span>`;
   }).join('');
@@ -223,14 +232,10 @@ function resolveReqsColor(reqStr, concluidas) {
 
 function applyCardStatus(cardEl, status) {
   cardEl.classList.remove('status-default', 'status-passed', 'status-eligible', 'status-blocked');
-  cardEl.classList.add(
-    status === 'passed' ? 'status-passed'
-      : status === 'eligible' ? 'status-eligible'
-      : status === 'blocked' ? 'status-blocked'
-      : 'status-default'
-  );
+  cardEl.classList.add(`status-${status}`);
 }
 
+// --- THEMING ---
 function setTheme(isDark, persist = true) {
   const css = document.createElement('style');
   css.innerHTML = '* { transition: none !important; }';
@@ -250,20 +255,11 @@ function setTheme(isDark, persist = true) {
   updateThemeUI();
 
   window.getComputedStyle(document.body).getPropertyValue('background-color');
-  
-  setTimeout(() => {
-    document.head.removeChild(css);
-  }, 50);
+  setTimeout(() => document.head.removeChild(css), 50);
 }
 
 function updateThemeUI() {
   const isDark = html.classList.contains('dark');
-  const thumb = document.getElementById('theme-toggle-thumb');
-  if (thumb) thumb.style.transform = isDark ? 'translateX(1.25rem)' : 'translateX(0)';
-
-  const label = document.getElementById('settings-theme-label');
-  if (label) label.textContent = isDark ? 'Modo escuro' : 'Modo claro';
-
   const sun = document.getElementById('settings-theme-icon-sun');
   const moon = document.getElementById('settings-theme-icon-moon');
   if (sun) sun.classList.toggle('hidden', isDark);
@@ -274,39 +270,98 @@ function toggleThemeFromSettings() {
   setTheme(!html.classList.contains('dark'));
 }
 
+function initSettings() {
+  const media = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+  const storedTheme = localStorage.getItem('theme');
+  if (storedTheme === 'dark' || storedTheme === 'light') {
+    setTheme(storedTheme === 'dark');
+  } else {
+    setTheme(Boolean(media?.matches), false);
+  }
+  media?.addEventListener?.('change', event => {
+    if (!localStorage.getItem('theme')) setTheme(event.matches, false);
+  });
+}
+
+// --- MODALS E A11Y FOCUS TRAP ---
 function openModal(id) {
   const modal = document.getElementById(id);
-  if (!modal) return;
-  if (!modal.classList.contains('active')) {
-    modal.classList.add('active');
-    activeModalCount++;
-  }
+  if (!modal || modal.classList.contains('active')) return;
+  previousActiveElement = document.activeElement;
+  modal.classList.add('active');
+  modal.classList.remove('hidden');
+  activeModalCount++;
   document.body.style.overflow = 'hidden';
+  modal.setAttribute('tabindex', '-1');
+  modal.focus();
 }
 
 function closeModal(id) {
   const modal = document.getElementById(id);
-  if (!modal) return;
-  if (modal.classList.contains('active')) {
-    modal.classList.remove('active');
-    activeModalCount = Math.max(0, activeModalCount - 1);
-  }
-  if (activeModalCount === 0) {
-    document.body.style.overflow = '';
-  }
+  if (!modal || !modal.classList.contains('active')) return;
+  modal.classList.remove('active');
+  activeModalCount = Math.max(0, activeModalCount - 1);
+  if (activeModalCount === 0) document.body.style.overflow = '';
+  if (previousActiveElement) previousActiveElement.focus();
 }
+
+function showConfirmModal(title, message, onConfirm) {
+  const titleEl = document.getElementById('modal-confirm-title');
+  const descEl = document.getElementById('modal-confirm-desc');
+  const okBtn = document.getElementById('modal-confirm-ok');
+  
+  if (titleEl) titleEl.textContent = title;
+  if (descEl) descEl.textContent = message;
+  
+  const handleConfirm = () => {
+    if (onConfirm) onConfirm();
+    closeModal('modal-confirm');
+    okBtn.removeEventListener('click', handleConfirm);
+  };
+  
+  okBtn.onclick = handleConfirm; // Sobrescreve para previnir bugs
+  openModal('modal-confirm');
+}
+
+// Focus trap handling para melhor A11y
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.modal-overlay.active').forEach(m => closeModal(m.id));
+  }
+  if (e.key === 'Tab' && activeModalCount > 0) {
+    const activeModal = document.querySelector('.modal-overlay.active');
+    if (!activeModal) return;
+    const focusableEls = activeModal.querySelectorAll('a[href], button:not([disabled]), textarea:not([disabled]), input[type="text"]:not([disabled]), input[type="radio"]:not([disabled]), input[type="checkbox"]:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])');
+    if(focusableEls.length === 0) return;
+    
+    const firstFocusableEl = focusableEls[0];
+    const lastFocusableEl = focusableEls[focusableEls.length - 1];
+
+    if (e.shiftKey) {
+      if (document.activeElement === firstFocusableEl) {
+        lastFocusableEl.focus();
+        e.preventDefault();
+      }
+    } else {
+      if (document.activeElement === lastFocusableEl) {
+        firstFocusableEl.focus();
+        e.preventDefault();
+      }
+    }
+  }
+});
 
 document.querySelectorAll('.modal-overlay').forEach(o => {
   o.addEventListener('click', e => {
     if (e.target === o) closeModal(o.id);
   });
+  const cancelBtn = o.querySelector('#modal-confirm-cancel');
+  if(cancelBtn) cancelBtn.addEventListener('click', () => closeModal(o.id));
 });
 
+// --- CLIPBOARD E TOASTS ---
 async function copyTextToClipboard(text, prefixLabel, event) {
-  if (event) {
-    event.stopPropagation();
-    event.preventDefault();
-  }
+  if (event) { event.stopPropagation(); event.preventDefault(); }
   try {
     if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
       await navigator.clipboard.writeText(text);
@@ -324,63 +379,12 @@ async function copyTextToClipboard(text, prefixLabel, event) {
     showToastCustom(`${prefixLabel} copiado com sucesso!`, text);
   } catch (error) {
     console.warn('Não foi possível copiar.', error);
+    showToastError('Erro ao copiar para a área de transferência.');
   }
 }
 
 async function copyCodeToClipboard(codigo, event) {
   await copyTextToClipboard(codigo, "Código", event);
-}
-
-function showCoreqInfo(event, codigo) {
-  if (event) {
-    event.stopPropagation();
-    event.preventDefault();
-  }
-
-  const m = getDisciplinaByCode(codigo);
-  if (!m || !m.co) return;
-
-  const coNames = extractCodes(m.co).map(c => {
-    const mat = getDisciplinaByCode(c);
-    const name = mat ? formatName(mat) : c;
-    const period = mat ? displayPeriod(mat) : '';
-    const suffix = period ? ` (${period})` : '';
-    return `<span class="coreq-name-highlight">${name}</span><span class="coreq-period-highlight">${suffix}</span>`;
-  }).join(', ');
-
-  const titleEl = document.getElementById('coreq-title');
-  const descEl = document.getElementById('coreq-desc');
-
-  if (titleEl) titleEl.innerText = formatName(m);
-  if (descEl) {
-    descEl.innerHTML = `Essa matéria possui ${coNames} como co-requisito, ou seja, devem ser cursadas simultaneamente no mesmo período.`;
-  }
-
-  openModal('modal-coreq');
-}
-
-function showCoreqAutoToast(autoName, originName) {
-  const toast = document.getElementById('toast-copy');
-  const msgEl = document.getElementById('toast-message');
-  if (!toast || !msgEl) return;
-
-  const esc = (value) => String(value)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
-
-  msgEl.innerHTML = `A matéria <span class="toast-coreq-name">${esc(autoName)}</span> foi marcada automaticamente por ser correquesito de <span class="toast-coreq-name">${esc(originName)}</span>`;
-
-  toast.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-4');
-  toast.classList.add('opacity-100', 'translate-y-0');
-
-  clearTimeout(window.__toastTimer);
-  window.__toastTimer = setTimeout(() => {
-    toast.classList.remove('opacity-100', 'translate-y-0');
-    toast.classList.add('opacity-0', 'pointer-events-none', 'translate-y-4');
-  }, 3000);
 }
 
 function showToastCustom(msg, highlight = '') {
@@ -389,9 +393,9 @@ function showToastCustom(msg, highlight = '') {
   if (!toast || !msgEl) return;
 
   if (highlight) {
-    const safeMsg = String(msg);
-    const safeHighlight = String(highlight);
-    msgEl.innerHTML = safeMsg.replace(safeHighlight, `<span class="text-yellow-600 dark:text-yellow-500 font-black px-1 tracking-wider bg-black/10 dark:bg-black/30 rounded">${safeHighlight}</span>`);
+    const safeMsg = escapeHTML(msg);
+    const safeHighlight = escapeHTML(highlight);
+    msgEl.innerHTML = safeMsg.replace(safeHighlight, `<span class="text-yellow-400 font-black px-1 tracking-wider bg-black/30 rounded">${safeHighlight}</span>`);
   } else {
     msgEl.textContent = msg;
   }
@@ -406,12 +410,69 @@ function showToastCustom(msg, highlight = '') {
   }, 2500);
 }
 
+function showToastError(msg) {
+  const toast = document.getElementById('toast-error');
+  const msgEl = document.getElementById('toast-error-message');
+  if (!toast || !msgEl) return;
+
+  msgEl.textContent = msg;
+  toast.classList.remove('hidden', 'opacity-0', 'translate-y-[-1rem]');
+  toast.classList.add('opacity-100', 'translate-y-0');
+
+  clearTimeout(window.__toastErrTimer);
+  window.__toastErrTimer = setTimeout(() => {
+    toast.classList.remove('opacity-100', 'translate-y-0');
+    toast.classList.add('opacity-0', 'translate-y-[-1rem]');
+    setTimeout(() => toast.classList.add('hidden'), 300);
+  }, 3500);
+}
+
+function showCoreqInfo(event, codigo) {
+  if (event) { event.stopPropagation(); event.preventDefault(); }
+  const m = getDisciplinaByCode(codigo);
+  if (!m || !m.co) return;
+
+  const coNames = extractCodes(m.co).map(c => {
+    const mat = getDisciplinaByCode(c);
+    const name = mat ? escapeHTML(formatName(mat)) : escapeHTML(c);
+    const period = mat ? escapeHTML(displayPeriod(mat)) : '';
+    return `<span class="coreq-name-highlight">${name}</span><span class="coreq-period-highlight">${period ? ` (${period})` : ''}</span>`;
+  }).join(', ');
+
+  const titleEl = document.getElementById('coreq-title');
+  const descEl = document.getElementById('coreq-desc');
+  if (titleEl) titleEl.innerText = formatName(m);
+  if (descEl) descEl.innerHTML = `Essa matéria possui ${coNames} como co-requisito, cursadas simultaneamente.`;
+  openModal('modal-coreq');
+}
+
+function showCoreqAutoToast(autoName, originName) {
+  const toast = document.getElementById('toast-copy');
+  const msgEl = document.getElementById('toast-message');
+  if (!toast || !msgEl) return;
+
+  msgEl.innerHTML = `A matéria <span class="text-yellow-400 font-bold">${escapeHTML(autoName)}</span> foi marcada por ser correquesito de <span class="text-yellow-400 font-bold">${escapeHTML(originName)}</span>`;
+
+  toast.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-4');
+  toast.classList.add('opacity-100', 'translate-y-0');
+
+  clearTimeout(window.__toastTimer);
+  window.__toastTimer = setTimeout(() => {
+    toast.classList.remove('opacity-100', 'translate-y-0');
+    toast.classList.add('opacity-0', 'pointer-events-none', 'translate-y-4');
+  }, 3000);
+}
+
+// --- LONG PRESS INTERACTION ---
 let longPressPointer = null;
 let longPressStartX = 0;
 let longPressStartY = 0;
 
 function startLongPress(cod, event) {
+  // Ignora clique com o botão direito (event.button !== 0 para MouseEvents)
+  if (event && event.button !== undefined && event.button !== 0) return;
   if (event && event.target?.closest && (event.target.closest('button') || event.target.closest('input'))) return;
+  
   cancelLongPress();
   longPressPointer = event?.pointerId ?? null;
   longPressStartX = event?.clientX ?? 0;
@@ -449,54 +510,54 @@ function cancelLongPress() {
   longPressPointer = null;
 }
 
-function handleSubjectCardClick(event) {
-  if (event && event.target && event.target.closest && (event.target.closest('button') || event.target.closest('input'))) {
-    return;
-  }
-  if (suppressNextSubjectCardClick) {
-      event.preventDefault();
-    event.stopPropagation();
-  }
-}
-
+// --- CORE DASHBOARD & CARDS ---
 function marcarTudo(p) {
-  if (p === PERIODO_COND && !confirm('Tem certeza que deseja marcar todas de Escolha Condicionada?')) return;
-  document.querySelectorAll(`.subject-card input[data-periodo="${p}"]`).forEach(cb => { cb.checked = true; synchronizeCorequisites(cb.value, true, false); });
-  persistCheckedState();
-  updateDashboard();
-  applySelectedVisualization(getConcludedCodes());
+  const processMarcar = () => {
+    let mudou = false;
+    document.querySelectorAll(`.subject-card input[data-periodo="${CSS.escape(p)}"]`).forEach(cb => {
+      if(setSubjectChecked(cb.value, true)) mudou = true;
+      synchronizeCorequisites(cb.value, true, false);
+    });
+    if(mudou) {
+      persistCheckedState();
+      updateDashboard();
+      applySelectedVisualization(getConcludedCodes());
+    }
+  };
+
+  if (p === PERIODO_COND) {
+    showConfirmModal('Marcar Condicionadas?', 'Tem certeza que deseja marcar todas as disciplinas de Escolha Condicionada?', processMarcar);
+  } else {
+    processMarcar();
+  }
 }
 
 function limparTudo(p) {
-  document.querySelectorAll(`.subject-card input[data-periodo="${p}"]`).forEach(cb => { cb.checked = false; synchronizeCorequisites(cb.value, false, false); });
+  document.querySelectorAll(`.subject-card input[data-periodo="${CSS.escape(p)}"]`).forEach(cb => {
+    setSubjectChecked(cb.value, false);
+    synchronizeCorequisites(cb.value, false, false);
+  });
   persistCheckedState();
   updateDashboard();
   applySelectedVisualization(getConcludedCodes());
 }
 
-function getSelectedCondStats() {
-  let condCred = 0, condHoras = 0, condCount = 0;
-  document.querySelectorAll('.subject-card input[type="checkbox"]:checked').forEach(c => {
-    const m = getDisciplinaByCode(c.value);
-    if (m && periodIsCond(m.periodo)) {
-      condCount++;
-      condCred += creditsOf(m);
-      condHoras += hoursOf(m);
-    }
-  });
-  return { condCred, condHoras, condCount };
-}
-
 function updateDashboard() {
+  // Reatividade baseada no appState, ZERO chamadas repetidas ao DOM
   let dObrig = 0, dCond = 0, tCred = 0, tHr = 0, obrigCredFeitos = 0;
-  document.querySelectorAll('.subject-card input[type="checkbox"]:checked').forEach(c => {
-    const m = getDisciplinaByCode(c.value);
+  let condCred = 0, condHoras = 0;
+
+  appState.concluidas.forEach(codigo => {
+    const m = getDisciplinaByCode(codigo);
     if (!m) return;
     const baseCred = creditsOf(m);
     const baseHor = hoursOf(m);
 
-    if (periodIsCond(c.dataset.periodo)) dCond++;
-    else {
+    if (periodIsCond(m.periodo)) {
+      dCond++;
+      condCred += baseCred;
+      condHoras += baseHor;
+    } else {
       dObrig++;
       obrigCredFeitos += baseCred;
     }
@@ -504,30 +565,19 @@ function updateDashboard() {
     tHr += baseHor;
   });
 
-  const countObrigPainel = document.getElementById('count-obrig-feitas-painel');
-  if(countObrigPainel) countObrigPainel.textContent = dObrig;
-  const countObrigTotal = document.getElementById('count-obrig-total-painel');
-  if(countObrigTotal) countObrigTotal.textContent = totalObrig;
-
-  const countObrigFeitas = document.getElementById('count-obrig-feitas');
-  if(countObrigFeitas) countObrigFeitas.textContent = dObrig;
-  const countObrigFaltam = document.getElementById('count-obrig-faltam');
-  if(countObrigFaltam) countObrigFaltam.textContent = Math.max(0, totalObrig - dObrig);
-
+  const updateEl = (id, val) => { const e = document.getElementById(id); if (e) e.textContent = val; };
+  
+  updateEl('count-obrig-feitas', dObrig);
+  updateEl('count-obrig-faltam', Math.max(0, totalObrig - dObrig));
+  
   const pObrig = totalObrig ? Math.round((dObrig / totalObrig) * 100) : 0;
-  const percentObrig = document.getElementById('percent-obrig');
-  if(percentObrig) percentObrig.textContent = pObrig + '%';
+  updateEl('percent-obrig', pObrig + '%');
   const barObrig = document.getElementById('bar-obrig');
   if(barObrig) barObrig.style.width = Math.min(100, pObrig) + '%';
 
-  const countCondFeitas = document.getElementById('count-cond-feitas');
-  if(countCondFeitas) countCondFeitas.textContent = dCond;
-  const countCondFaltam = document.getElementById('count-cond-faltam');
-  if(countCondFaltam) countCondFaltam.textContent = Math.max(0, totalCond - dCond);
-
-  const { condCred, condHoras } = getSelectedCondStats();
-  const condProgressText = document.getElementById('text-cond-progress');
-  if(condProgressText) condProgressText.textContent = `${condCred} créd. • ${condHoras}h`;
+  updateEl('count-cond-feitas', dCond);
+  updateEl('count-cond-faltam', Math.max(0, totalCond - dCond));
+  updateEl('text-cond-progress', `${condCred} créd. • ${condHoras}h`);
 
   const pCondCred = (condCred / META_COND_CRED) * 100;
   const pCondHoras = (condHoras / META_COND_HORAS) * 100;
@@ -549,41 +599,38 @@ function updateDashboard() {
   const creditosEquivalentes = obrigCredFeitos + (META_COND_CRED * condProgress);
   const percent = Math.min(100, Math.round((creditosEquivalentes / TOTAL_GRAD_CRED_EQUIV) * 100));
   
-  const percentTotal = document.getElementById('percent-total');
-  if(percentTotal) percentTotal.textContent = `${percent}%`;
-  
-  const tCreditosNode = document.getElementById('total-creditos');
-  if(tCreditosNode) tCreditosNode.textContent = tCred;
-  
-  const tHorasNode = document.getElementById('total-horas');
-  if(tHorasNode) tHorasNode.textContent = tHr;
+  updateEl('percent-total', `${percent}%`);
+  updateEl('total-creditos', tCred);
+  updateEl('total-horas', tHr);
 }
 
 function createSubjectCardHTML(mat) {
-  const checked = getConcludedCodes().includes(mat.codigo) ? 'checked' : '';
+  const isChecked = appState.concluidas.has(mat.codigo);
+  const checkedAttr = isChecked ? 'checked' : '';
   let coreqBtn = '';
+  
   if (mat.co) {
-    coreqBtn = `<button class="coreq-button" type="button" onclick="showCoreqInfo(event, '${mat.codigo}')" title="Ver co-requisito" aria-label="Ver co-requisito">C</button>`;
+    coreqBtn = `<button class="coreq-button ml-2 p-1 text-yellowTheme-600 bg-yellow-100 dark:bg-yellow-900/30 rounded font-bold text-[0.65rem] hover:bg-yellow-200" type="button" onclick="showCoreqInfo(event, '${escapeHTML(mat.codigo)}')" title="Ver co-requisito" aria-label="Ver co-requisito">CO</button>`;
   }
 
   return `
-  <div class="subject-card block p-3 rounded-xl relative mb-2 select-none"
-       data-codigo="${mat.codigo}" data-periodo="${mat.periodo}"
-       onpointerdown="startLongPress('${mat.codigo}', event)"
+  <div class="subject-card block p-3 rounded-xl relative mb-2 select-none border border-transparent dark:bg-darkCard/50 transition-colors"
+       data-codigo="${escapeHTML(mat.codigo)}" data-periodo="${escapeHTML(mat.periodo)}"
+       onpointerdown="startLongPress('${escapeHTML(mat.codigo)}', event)"
        onpointermove="handleLongPressMove(event)"
        onpointerup="cancelLongPress()"
        onpointercancel="cancelLongPress()"
        onpointerleave="cancelLongPress()">
     <div class="flex items-start justify-between gap-2">
       <div class="flex-1 min-w-0">
-        <div class="flex items-center flex-wrap gap-1.5">
-          <span class="subject-name text-sm md:text-base font-bold leading-tight text-gray-800 dark:text-gray-100">${formatName(mat)}</span>
+        <div class="flex items-center flex-wrap gap-1">
+          <span class="subject-name text-sm md:text-base font-bold leading-tight text-gray-800 dark:text-gray-100">${escapeHTML(formatName(mat))}</span>
           ${coreqBtn}
         </div>
         <div class="flex items-center gap-2 mt-1.5 flex-wrap">
           <div class="flex items-center gap-1">
-            <span class="text-[0.80rem] md:text-sm font-semibold text-yellowTheme-600 dark:text-yellowTheme-400">${mat.codigo}</span>
-            <button type="button" class="copy-code-button p-1 text-gray-400 hover:text-yellowTheme-600" onclick="copyCodeToClipboard('${mat.codigo}', event)" title="Copiar código" aria-label="Copiar código">
+            <span class="text-[0.80rem] md:text-sm font-semibold text-yellowTheme-600 dark:text-yellowTheme-400">${escapeHTML(mat.codigo)}</span>
+            <button type="button" class="copy-code-button p-1 text-gray-400 hover:text-yellowTheme-600" onclick="copyCodeToClipboard('${escapeHTML(mat.codigo)}', event)" title="Copiar código" aria-label="Copiar código">
               <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
             </button>
           </div>
@@ -593,8 +640,15 @@ function createSubjectCardHTML(mat) {
           <span class="text-[0.65rem] md:text-xs font-medium text-gray-500 dark:text-gray-400">${hoursOf(mat)}h</span>
         </div>
       </div>
-      <div class="flex items-center h-full pt-1">
-        <input type="checkbox" value="${mat.codigo}" data-periodo="${mat.periodo}" ${checked} class="w-5 h-5 rounded border-gray-300 text-yellowTheme-500 focus:ring-yellowTheme-500 dark:border-gray-600 dark:bg-gray-700" aria-label="Marcar ${formatName(mat)}">
+      <div class="flex items-center flex-col justify-center gap-2 pt-1">
+        <input type="checkbox" value="${escapeHTML(mat.codigo)}" data-periodo="${escapeHTML(mat.periodo)}" ${checkedAttr} class="w-5 h-5 rounded border-gray-300 text-yellowTheme-500 focus:ring-yellowTheme-500 dark:border-gray-600 dark:bg-gray-700" aria-label="Marcar ${escapeHTML(formatName(mat))}">
+        
+        <!-- Indicadores Visuais p/ Acessibilidade (Daltônicos) -->
+        <span class="status-indicator pointer-events-none" aria-hidden="true">
+          <svg class="status-icon-check w-4 h-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+          <svg class="status-icon-unlock w-4 h-4 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"></path></svg>
+          <svg class="status-icon-lock w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+        </span>
       </div>
     </div>
   </div>`;
@@ -634,7 +688,7 @@ function renderAccordions() {
     const isCond = p === PERIODO_COND;
     
     const infoBtn = isCond ? `
-      <button type="button" class="ml-2 text-blue-500 hover:text-blue-700 flex-shrink-0" onclick="showCondInfo(event)" title="Informações">
+      <button type="button" class="ml-2 text-purple-500 hover:text-purple-700 flex-shrink-0" onclick="showCondInfo(event)" title="Informações" aria-label="Informações sobre condicionadas">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
       </button>` : '';
 
@@ -653,8 +707,8 @@ function renderAccordions() {
       </summary>
       <div class="p-4 pt-2 space-y-2 accordion-content border-t border-gray-100 dark:border-darkBorder/50">
         <div class="flex gap-2 mb-3">
-          <button type="button" class="flex-1 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 text-xs font-bold py-1.5 rounded-lg border border-green-200 dark:border-green-800 hover:bg-green-100 dark:hover:bg-green-900/40 transition-colors" onclick="marcarTudo('${p}')">Marcar</button>
-          <button type="button" class="flex-1 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 text-xs font-bold py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors" onclick="limparTudo('${p}')">Limpar</button>
+          <button type="button" class="flex-1 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 text-xs font-bold py-1.5 rounded-lg border border-green-200 dark:border-green-800 hover:bg-green-100 dark:hover:bg-green-900/40 transition-colors" onclick="marcarTudo('${escapeHTML(p)}')">Marcar</button>
+          <button type="button" class="flex-1 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 text-xs font-bold py-1.5 rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors" onclick="limparTudo('${escapeHTML(p)}')">Limpar</button>
         </div>
         ${list.map(createSubjectCardHTML).join('')}
       </div>
@@ -677,11 +731,6 @@ function getLockedSubjects(codigo) {
       const pb = parseInt(b.periodo, 10) || 99;
       return pa - pb;
     });
-}
-
-function isApta(m, concluidas) {
-  if (!m) return false;
-  return checkReqs(m.pre, concluidas) && checkReqs(m.co, concluidas);
 }
 
 function checkReqs(reqsString, concluidas) {
@@ -713,9 +762,8 @@ function applySelectedVisualization(concluidas) {
   });
 }
 
-// ----------------------------------------------------
-// PLANEJAR GRADE LOGIC
-// ----------------------------------------------------
+
+// --- PLANEJADOR ---
 function openPlanner() {
   renderPlanner();
   openModal('modal-planner');
@@ -732,52 +780,39 @@ function renderPlanner() {
   const obrig = disponiveis.filter(d => !periodIsCond(d.periodo));
   const cond = disponiveis.filter(d => periodIsCond(d.periodo));
 
-  if (obrig.length > 0) {
-    containerObrig.innerHTML = obrig.map(m => createPlannerCard(m)).join('');
-  } else {
-    containerObrig.innerHTML = '<p class="text-gray-500 text-sm italic py-2">Nenhuma obrigatória disponível para puxar.</p>';
-  }
+  const emptyStateHTML = (msg) => `
+    <div class="flex flex-col items-center justify-center p-6 text-gray-400 bg-gray-50/50 dark:bg-darkCard/50 rounded-xl border border-dashed border-gray-300 dark:border-gray-700">
+      <svg class="w-10 h-10 mb-2 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"></path></svg>
+      <p class="text-sm font-medium">${msg}</p>
+    </div>`;
 
-  if (cond.length > 0) {
-    containerCond.innerHTML = cond.map(m => createPlannerCard(m)).join('');
-  } else {
-    containerCond.innerHTML = '<p class="text-gray-500 text-sm italic py-2">Nenhuma condicionada disponível para puxar.</p>';
-  }
+  containerObrig.innerHTML = obrig.length > 0 ? obrig.map(m => createPlannerCard(m)).join('') : emptyStateHTML('Nenhuma obrigatória disponível');
+  containerCond.innerHTML = cond.length > 0 ? cond.map(m => createPlannerCard(m)).join('') : emptyStateHTML('Nenhuma condicionada disponível');
   
   restorePlannerCheckedState();
 }
 
 function createPlannerCard(mat) {
   const coreqBtn = mat.co
-    ? `<button type="button" class="planner-coreq-button" onclick="showCoreqInfo(event, '${mat.codigo}')" title="Ver co-requisito" aria-label="Ver co-requisito">C</button>`
+    ? `<button type="button" class="ml-2 px-1 text-[0.65rem] font-bold text-yellowTheme-600 bg-yellow-100 dark:bg-yellow-900/30 rounded" onclick="showCoreqInfo(event, '${escapeHTML(mat.codigo)}')" title="Ver co-requisito">CO</button>`
     : '';
 
   return `
   <div class="planner-card block p-3 rounded-xl relative mb-2 select-none bg-white dark:bg-darkCard border border-gray-200 dark:border-darkBorder transition-all duration-200"
-         data-codigo="${mat.codigo}"
-         onpointerdown="startPlannerLongPress('${mat.codigo}', event)"
+         data-codigo="${escapeHTML(mat.codigo)}"
+         onpointerdown="startPlannerLongPress('${escapeHTML(mat.codigo)}', event)"
          onpointermove="handlePlannerLongPressMove(event)"
          onpointerup="cancelPlannerLongPress()"
          onpointercancel="cancelPlannerLongPress()"
          onpointerleave="cancelPlannerLongPress()">
     <div class="flex items-center justify-between gap-2">
       <div class="flex-1 min-w-0">
-        <div class="flex items-center flex-wrap gap-1.5">
-          <span class="planner-subject-name text-sm md:text-base font-bold leading-tight text-gray-800 dark:text-gray-100">${formatName(mat)}</span>
+        <div class="flex items-center flex-wrap gap-1">
+          <span class="text-sm md:text-base font-bold text-gray-800 dark:text-gray-100">${escapeHTML(formatName(mat))}</span>
           ${coreqBtn}
-          <button type="button"
-                  onclick="copyCodeToClipboard('${mat.codigo}', event)"
-                  title="Copiar código"
-                  aria-label="Copiar código"
-                  class="p-1 text-gray-400 hover:text-yellowTheme-600 dark:hover:text-yellowTheme-400 transition-colors bg-black/5 dark:bg-white/5 rounded-md shrink-0">
-            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="9" y="9" width="13" height="13" rx="2"></rect>
-              <path d="M5 15H4a2 2 0 0 0-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-            </svg>
-          </button>
         </div>
         <div class="flex items-center gap-2 mt-1 flex-wrap">
-          <span class="text-[0.75rem] font-semibold text-yellowTheme-600 dark:text-yellowTheme-400">${mat.codigo}</span>
+          <span class="text-[0.75rem] font-semibold text-yellowTheme-600 dark:text-yellowTheme-400">${escapeHTML(mat.codigo)}</span>
           <span class="text-gray-300 dark:text-gray-600">|</span>
           <span class="text-[0.75rem] font-medium text-gray-500">${creditsOf(mat)} Créd.</span>
           <span class="text-gray-300 dark:text-gray-600">|</span>
@@ -785,7 +820,7 @@ function createPlannerCard(mat) {
         </div>
       </div>
       <div class="flex items-center">
-        <input type="checkbox" value="${mat.codigo}" onchange="togglePlannerCard(this)" class="w-5 h-5 rounded border-gray-300 text-yellowTheme-500 focus:ring-yellowTheme-500 dark:border-gray-600 dark:bg-gray-700">
+        <input type="checkbox" value="${escapeHTML(mat.codigo)}" onchange="togglePlannerCard(this)" class="w-5 h-5 rounded border-gray-300 text-yellowTheme-500 focus:ring-yellowTheme-500 dark:border-gray-600 dark:bg-gray-700">
       </div>
     </div>
   </div>`;
@@ -793,11 +828,8 @@ function createPlannerCard(mat) {
 
 function togglePlannerCard(checkbox) {
   const card = checkbox.closest('.planner-card');
-  if (checkbox.checked) {
-    card.classList.add('line-through', 'opacity-50');
-  } else {
-    card.classList.remove('line-through', 'opacity-50');
-  }
+  if (checkbox.checked) card.classList.add('opacity-40');
+  else card.classList.remove('opacity-40');
   persistPlannerCheckedState();
 }
 
@@ -820,8 +852,10 @@ let plannerLongPressStartX = 0;
 let plannerLongPressStartY = 0;
 
 function startPlannerLongPress(cod, event) {
+  if (event && event.button !== undefined && event.button !== 0) return;
   if (event && event.target?.closest && (event.target.closest('button') || event.target.closest('input'))) return;
   cancelPlannerLongPress();
+  
   plannerLongPressPointer = event?.pointerId ?? null;
   plannerLongPressStartX = event?.clientX ?? 0;
   plannerLongPressStartY = event?.clientY ?? 0;
@@ -834,14 +868,14 @@ function startPlannerLongPress(cod, event) {
     const listEl = document.getElementById('planner-det-list');
     if (!titleEl || !listEl) return;
     if (trancadas.length === 0) {
-      titleEl.textContent = `A matéria ${m.nome} não tranca nenhuma matéria!`;
+      titleEl.textContent = `A matéria ${m.nome} não tranca nenhuma disciplina!`;
       listEl.innerHTML = '';
     } else if (trancadas.length === 1) {
-      titleEl.textContent = `A matéria ${m.nome} tranca a seguinte matéria:`;
-      listEl.innerHTML = `<li class="mt-2 text-sm text-gray-600 dark:text-gray-300">- ${trancadas[0].nome} (${trancadas[0].codigo})</li>`;
+      titleEl.textContent = `A matéria ${m.nome} tranca a seguinte disciplina:`;
+      listEl.innerHTML = `<li class="mt-2 text-sm text-gray-600 dark:text-gray-300">- ${escapeHTML(trancadas[0].nome)} (${escapeHTML(trancadas[0].codigo)})</li>`;
     } else {
       titleEl.textContent = `A matéria ${m.nome} tranca as seguintes matérias:`;
-      listEl.innerHTML = trancadas.map(t => `<li class="mt-2 text-sm text-gray-600 dark:text-gray-300">- ${t.nome} (${t.codigo})</li>`).join('');
+      listEl.innerHTML = trancadas.map(t => `<li class="mt-2 text-sm text-gray-600 dark:text-gray-300">- ${escapeHTML(t.nome)} (${escapeHTML(t.codigo)})</li>`).join('');
     }
     openModal('modal-planner-details');
     timerPlannerLongPress = null;
@@ -863,9 +897,7 @@ function cancelPlannerLongPress() {
 }
 
 
-// ----------------------------------------------------
-// CONTATOS SEARCH LOGIC
-// ----------------------------------------------------
+// --- CONTATOS SEARCH LOGIC ---
 function renderContatos() {
   if (typeof contatosImportantes === 'undefined') return;
   renderContatosFiltered(contatosImportantes);
@@ -876,37 +908,41 @@ function renderContatosFiltered(dataToRender) {
   if (!container || typeof contatosImportantes === 'undefined') return;
 
   if (Array.isArray(dataToRender) && dataToRender.length === 0) {
-      container.innerHTML = '<p class="text-center text-gray-500 mt-4">Nenhum professor encontrado.</p>';
-      return;
+    container.innerHTML = `
+      <div class="flex flex-col items-center justify-center py-10 text-gray-400">
+        <svg class="w-12 h-12 mb-3 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+        <p class="font-medium">Nenhum professor encontrado.</p>
+      </div>`;
+    return;
   }
 
-  // Identifica se os dados passados já estão no formato original agrupado ou se é uma lista linear de professores do filtro
   let htmlResult = '';
   if (dataToRender[0] && dataToRender[0].professores) {
-      // Formato original (agrupado)
-      htmlResult = dataToRender.map(grupo => buildContatoCard(grupo.nome, grupo.chefe, grupo.local, grupo.professores)).join('');
+    htmlResult = dataToRender.map(grupo => buildContatoCard(grupo.nome, grupo.chefe, grupo.local, grupo.professores)).join('');
   } else {
-      // Formato de lista filtrada
-      const grouped = {};
-      dataToRender.forEach(p => {
-          if(!grouped[p.grupo]) grouped[p.grupo] = [];
-          grouped[p.grupo].push(p);
-      });
-      htmlResult = Object.keys(grouped).map(grupoNome => buildContatoCard(grupoNome, '', '', grouped[grupoNome])).join('');
+    const grouped = {};
+    dataToRender.forEach(p => {
+      if(!grouped[p.grupo]) grouped[p.grupo] = [];
+      grouped[p.grupo].push(p);
+    });
+    htmlResult = Object.keys(grouped).map(grupoNome => buildContatoCard(grupoNome, '', '', grouped[grupoNome])).join('');
   }
-
   container.innerHTML = htmlResult;
 }
 
 function buildContatoCard(nomeGrupo, chefe, local, professores) {
   return `
-    <div class="bg-gray-50 dark:bg-[#15171b] p-4 rounded-xl border border-gray-100 dark:border-darkBorder">
-      <h4 class="font-bold text-lg text-yellowTheme-600 dark:text-yellowTheme-400 ${chefe ? 'mb-1' : 'mb-2'}">${nomeGrupo}</h4>
-      ${chefe ? `<p class="text-sm font-semibold ${local ? 'mb-1' : 'mb-3'}">${chefe}</p>` : ''}
-      ${local ? `<p class="text-xs text-gray-500 mb-3">${local}</p>` : ''}
+    <div class="bg-gray-50 dark:bg-[#15171b] p-4 rounded-xl border border-gray-100 dark:border-darkBorder mb-4">
+      <h4 class="font-bold text-lg text-yellowTheme-600 dark:text-yellowTheme-400 ${chefe ? 'mb-1' : 'mb-2'}">${escapeHTML(nomeGrupo)}</h4>
+      ${chefe ? `<p class="text-sm font-semibold text-gray-700 dark:text-gray-300 ${local ? 'mb-1' : 'mb-3'}">${escapeHTML(chefe)}</p>` : ''}
+      ${local ? `<p class="text-xs text-gray-500 mb-3">${escapeHTML(local)}</p>` : ''}
       <ul class="text-xs space-y-2 text-left flex-wrap">
         ${professores.map(p => `
-          <li><b>${p.nome}</b> - <a href="mailto:${p.email}" class="text-blue-500 hover:underline">${p.email}</a>${p.extras && p.extras.length ? ` | ${p.extras.join(' | ')}` : ''}${p.cargo ? ` ${p.cargo}` : ''}</li>
+          <li class="border-b border-gray-200 dark:border-gray-800 pb-2 last:border-0 last:pb-0">
+            <b class="text-gray-800 dark:text-gray-200">${escapeHTML(p.nome)}</b><br>
+            <a href="mailto:${escapeHTML(p.email)}" class="text-blue-500 hover:underline break-all">${escapeHTML(p.email)}</a>${p.extras && p.extras.length ? `<br><span class="text-gray-500">Alt: ${escapeHTML(p.extras.join(' | '))}</span>` : ''}
+            ${p.cargo ? `<span class="bg-gray-200 dark:bg-gray-700 px-1.5 py-0.5 rounded text-[0.60rem] ml-1">${escapeHTML(p.cargo)}</span>` : ''}
+          </li>
         `).join('')}
       </ul>
     </div>
@@ -915,57 +951,51 @@ function buildContatoCard(nomeGrupo, chefe, local, professores) {
 
 function initContatosSearch() {
   if (typeof contatosImportantes === 'undefined') return;
-
   const input = document.getElementById('contatos-search-input');
   const suggestions = document.getElementById('contatos-search-suggestions');
-  
   if(!input || !suggestions) return;
   
-  input.addEventListener('input', (e) => {
-      const val = normalizeStr(e.target.value);
-      if(!val) {
-          suggestions.classList.add('hidden');
-          renderContatos(); 
-          return;
-      }
-      
-      let allProfs = [];
-      contatosImportantes.forEach(g => {
-          g.professores.forEach(p => {
-              allProfs.push({ ...p, grupo: g.nome });
-          });
-      });
-      
-      const matched = allProfs
-          .map(p => ({ p, score: Math.max(scoreSearchText(val, p.nome), scoreSearchText(val, p.email)) }))
-          .filter(item => item.score >= (val.length <= 2 ? 430 : 300))
-          .sort((a, b) => b.score - a.score || a.p.nome.localeCompare(b.p.nome, 'pt-BR'))
-          .map(item => item.p);
-      
-      if (matched.length > 0) {
-          suggestions.innerHTML = matched.slice(0, 5).map(p => `
-              <div class="p-3 border-b border-gray-100 dark:border-darkBorder cursor-pointer hover:bg-gray-50 dark:hover:bg-[#1a1c22]" onclick="selectContatoSearch('${p.nome}')">
-                  <p class="font-bold text-sm text-gray-800 dark:text-gray-100">${p.nome}</p>
-                  <p class="text-[0.65rem] text-gray-500">${p.email}</p>
-              </div>
-          `).join('');
-          suggestions.classList.remove('hidden');
-      } else {
-          suggestions.innerHTML = '<div class="p-3 text-sm text-gray-500">Nenhum professor encontrado.</div>';
-          suggestions.classList.remove('hidden');
-      }
-      
-      renderContatosFiltered(matched);
-  });
+  // Debounce implementado
+  input.addEventListener('input', debounce((e) => {
+    const val = normalizeStr(e.target.value);
+    if(!val) {
+      suggestions.classList.add('hidden');
+      renderContatos(); 
+      return;
+    }
+    
+    let allProfs = [];
+    contatosImportantes.forEach(g => {
+      g.professores.forEach(p => { allProfs.push({ ...p, grupo: g.nome }); });
+    });
+    
+    const matched = allProfs
+      .map(p => ({ p, score: Math.max(scoreSearchText(val, p.nome), scoreSearchText(val, p.email)) }))
+      .filter(item => item.score >= (val.length <= 2 ? 430 : 300))
+      .sort((a, b) => b.score - a.score || a.p.nome.localeCompare(b.p.nome, 'pt-BR'))
+      .map(item => item.p);
+    
+    if (matched.length > 0) {
+      suggestions.innerHTML = matched.slice(0, 5).map(p => `
+        <div class="p-3 border-b border-gray-100 dark:border-darkBorder cursor-pointer hover:bg-gray-50 dark:hover:bg-[#1a1c22]" onclick="selectContatoSearch('${escapeHTML(p.nome)}')">
+          <p class="font-bold text-sm text-gray-800 dark:text-gray-100">${escapeHTML(p.nome)}</p>
+          <p class="text-[0.65rem] text-gray-500">${escapeHTML(p.email)}</p>
+        </div>
+      `).join('');
+      suggestions.classList.remove('hidden');
+    } else {
+      suggestions.innerHTML = '<div class="p-3 text-sm text-gray-500 font-medium">Nenhum professor encontrado.</div>';
+      suggestions.classList.remove('hidden');
+    }
+    renderContatosFiltered(matched);
+  }, 250));
   
   document.addEventListener('click', (e) => {
-      if(!input.contains(e.target) && !suggestions.contains(e.target)) {
-          suggestions.classList.add('hidden');
-      }
+    if(!input.contains(e.target) && !suggestions.contains(e.target)) suggestions.classList.add('hidden');
   });
 }
 
-function selectContatoSearch(nome) {
+window.selectContatoSearch = function(nome) {
   const input = document.getElementById('contatos-search-input');
   if(input) input.value = nome;
   document.getElementById('contatos-search-suggestions').classList.add('hidden');
@@ -977,24 +1007,11 @@ function selectContatoSearch(nome) {
 }
 
 
-// ----------------------------------------------------
-// MAIN SEARCH LOGIC — BUSCA INTELIGENTE 2.0
-// ----------------------------------------------------
-function escapeHTML(value = '') {
-  return String(value).replace(/[&<>"']/g, ch => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-  }[ch]));
-}
-
+// --- MAIN SEARCH LOGIC ---
 function buildSearchIndex(mat) {
   if (!mat) return '';
   if (buscaIndexPorCodigo.has(mat.codigo)) return buscaIndexPorCodigo.get(mat.codigo);
-  const value = normalizeStr([
-    formatName(mat),
-    mat.codigo,
-    displayPeriod(mat),
-    `${mat.periodo} periodo`
-  ].join(' '));
+  const value = normalizeStr([formatName(mat), mat.codigo, displayPeriod(mat), `${mat.periodo} periodo`].join(' '));
   buscaIndexPorCodigo.set(mat.codigo, value);
   return value;
 }
@@ -1002,7 +1019,6 @@ function buildSearchIndex(mat) {
 function expandSearchAliases(rawText) {
   let r = String(rawText || '').trim().toLowerCase();
   let norm = normalizeStr(r);
-
   if (typeof aliasesPesquisaDisciplinas === 'object' && aliasesPesquisaDisciplinas) {
     Object.entries(aliasesPesquisaDisciplinas).forEach(([alias, target]) => {
       const normalizedAlias = normalizeStr(alias);
@@ -1011,13 +1027,11 @@ function expandSearchAliases(rawText) {
       }
     });
   }
-
   return norm;
 }
 
 function levenshteinDistance(a, b) {
-  a = String(a || '');
-  b = String(b || '');
+  a = String(a || ''); b = String(b || '');
   if (a === b) return 0;
   if (!a) return b.length;
   if (!b) return a.length;
@@ -1070,16 +1084,8 @@ function parseSearchIntent(rawQuery) {
   const raw = String(rawQuery || '').trim();
   let text = raw;
   const normalized = normalizeStr(raw);
-  const filters = {
-    periodo: null,
-    creditos: null,
-    horas: null,
-    status: null,
-    condicionada: false,
-    semPre: false
-  };
+  const filters = { periodo: null, creditos: null, horas: null, status: null, condicionada: false, semPre: false };
 
-  // Período: "4 período", "4º período", "periodo 4" e formas sem espaço.
   let match = normalized.match(/(?:^|[^0-9])(\d{1,2})(?:o|º|°)?periodo/);
   if (!match) match = normalized.match(/periodo(?:o|º|°)?(\d{1,2})/);
   if (match) {
@@ -1094,7 +1100,6 @@ function parseSearchIntent(rawQuery) {
     }
   }
 
-  // Créditos: "2 cred", "2 créditos", "2cr".
   match = normalized.match(/(\d+(?:[.,]\d+)?)cr(?:ed(?:ito)?s?)/);
   if (!match) match = normalized.match(/(\d+(?:[.,]\d+)?)creditos?/);
   if (match) {
@@ -1102,7 +1107,6 @@ function parseSearchIntent(rawQuery) {
     text = text.replace(new RegExp(`${match[1].replace('.', '[.,]')}\\s*(?:cr(?:é|e)?d(?:ito)?s?|créditos?)`, 'i'), ' ');
   }
 
-  // Carga horária: "30h", "30 horas".
   match = normalized.match(/(\d+)h(?:oras)?/);
   if (!match) match = normalized.match(/(\d+)horas?/);
   if (match) {
@@ -1132,15 +1136,8 @@ function parseSearchIntent(rawQuery) {
     text = text.replace(/escolha\s*condicionada|condicionadas?/gi, ' ');
   }
 
-  // Limpa pontuação usada só como separador, preservando o texto real.
   text = text.replace(/[|,;]+/g, ' ').trim();
-
-  return {
-    raw,
-    text,
-    normalizedText: expandSearchAliases(text),
-    filters
-  };
+  return { raw, text, normalizedText: expandSearchAliases(text), filters };
 }
 
 function isDisciplineAvailable(mat, concluidas) {
@@ -1149,7 +1146,6 @@ function isDisciplineAvailable(mat, concluidas) {
 
 function rankDisciplineSearch(query) {
   if (!query || typeof disciplinas === 'undefined') return [];
-
   const intent = parseSearchIntent(query);
   const q = intent.normalizedText;
   const concluidas = getConcludedCodes();
@@ -1169,16 +1165,9 @@ function rankDisciplineSearch(query) {
       if (intent.filters.semPre && hasPre) return null;
       if (intent.filters.condicionada && !isCond) return null;
 
-      // Se a busca é só um filtro (ex.: "3 período"), todas as correspondentes entram.
       if (!q) return { mat, score: 700, available, hasPre, intent };
 
-      const candidates = [
-        formatName(mat),
-        mat.codigo,
-        displayPeriod(mat),
-        `${mat.periodo} periodo`,
-        buildSearchIndex(mat)
-      ];
+      const candidates = [formatName(mat), mat.codigo, displayPeriod(mat), `${mat.periodo} periodo`, buildSearchIndex(mat)];
       const score = Math.max(
         ...candidates.map(candidate => scoreSearchText(q, candidate)),
         scoreSearchText(intent.text, formatName(mat)),
@@ -1190,10 +1179,6 @@ function rankDisciplineSearch(query) {
     .filter(Boolean)
     .filter(item => item.score >= (q.length <= 2 ? 430 : 300))
     .sort((a, b) => b.score - a.score || formatName(a.mat).localeCompare(formatName(b.mat), 'pt-BR'));
-}
-
-function getSearchText(mat) {
-  return buildSearchIndex(mat);
 }
 
 function filterMainSearch(query) {
@@ -1229,7 +1214,7 @@ function filterMainSearch(query) {
   accordions.forEach(details => {
     const hasVisibleCard = Array.from(details.querySelectorAll('.subject-card')).some(card => !card.hidden);
     details.hidden = !hasVisibleCard;
-    if (hasVisibleCard) details.open = true;
+    if (hasVisibleCard) details.open = true; // Abre se tiver matches
   });
 
   const intent = parseSearchIntent(raw);
@@ -1241,20 +1226,24 @@ function filterMainSearch(query) {
   results.textContent = `${ranked.length} ${ranked.length === 1 ? 'resultado' : 'resultados'}${filterOnly ? ' com esse filtro' : ''}`;
 
   if (!ranked.length) {
-    suggestions.innerHTML = '<div class="p-3 text-sm text-gray-500 dark:text-gray-400">Nenhuma disciplina encontrada.</div>';
+    suggestions.innerHTML = `
+      <div class="flex flex-col items-center justify-center py-8 text-gray-400">
+        <svg class="w-10 h-10 mb-2 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+        <p class="text-sm font-medium">Nenhuma disciplina encontrada.</p>
+      </div>`;
     suggestions.classList.remove('hidden');
     return;
   }
 
   suggestions.innerHTML = ranked.slice(0, 6).map((item, index) => {
     const mat = item.mat;
-    const badge = index === 0 && intent.normalizedText ? '<span class="search-closest-badge">Mais próxima</span>' : '';
+    const badge = index === 0 && intent.normalizedText ? '<span class="ml-2 text-[0.6rem] bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded font-bold">Mais próxima</span>' : '';
     const status = intent.filters.status ? (item.available ? 'Disponível agora' : 'Bloqueada agora') : '';
     return `
-      <button id="search-option-${index}" type="button" class="search-suggestion text-left" data-search-code="${escapeHTML(mat.codigo)}" role="option" aria-selected="false">
-        <div class="search-suggestion-main">
-          <div class="search-suggestion-name">${escapeHTML(formatName(mat))} ${badge}</div>
-          <div class="search-suggestion-meta">${escapeHTML(mat.codigo)} • ${escapeHTML(displayPeriod(mat))}${status ? ` • ${status}` : ''}</div>
+      <button id="search-option-${index}" type="button" class="w-full text-left p-3 border-b border-gray-100 dark:border-darkBorder hover:bg-gray-50 dark:hover:bg-gray-800 transition" data-search-code="${escapeHTML(mat.codigo)}" role="option" aria-selected="false">
+        <div class="flex flex-col">
+          <div class="font-bold text-sm text-gray-800 dark:text-gray-100 flex items-center">${escapeHTML(formatName(mat))} ${badge}</div>
+          <div class="text-[0.65rem] text-gray-500 font-medium">${escapeHTML(mat.codigo)} • ${escapeHTML(displayPeriod(mat))}${status ? ` • ${status}` : ''}</div>
         </div>
       </button>
     `;
@@ -1286,6 +1275,10 @@ function jumpToSubject(codigo) {
   if (suggestions) suggestions.classList.add('hidden');
   if (results) results.textContent = '1 resultado';
 
+  // Highlight temporário para facilitar que o usuário encontre
+  card.classList.add('ring-2', 'ring-yellowTheme-500', 'bg-yellow-50/50', 'dark:bg-yellow-900/10');
+  setTimeout(() => card.classList.remove('ring-2', 'ring-yellowTheme-500', 'bg-yellow-50/50', 'dark:bg-yellow-900/10'), 1500);
+
   requestAnimationFrame(() => card.scrollIntoView({ behavior: 'smooth', block: 'center' }));
 }
 
@@ -1310,7 +1303,8 @@ function initMainSearch() {
   input.setAttribute('aria-controls', 'search-suggestions');
   window.__searchActiveIndex = -1;
 
-  input.addEventListener('input', e => filterMainSearch(e.target.value));
+  // Debounce na busca principal também
+  input.addEventListener('input', debounce(e => filterMainSearch(e.target.value), 250));
 
   input.addEventListener('keydown', e => {
     const options = Array.from(suggestions.querySelectorAll('[data-search-code]'));
@@ -1332,7 +1326,8 @@ function initMainSearch() {
 
       options.forEach((option, index) => {
         const active = index === next;
-        option.classList.toggle('search-suggestion-active', active);
+        option.classList.toggle('bg-gray-100', active);
+        option.classList.toggle('dark:bg-gray-800', active);
         option.setAttribute('aria-selected', active ? 'true' : 'false');
       });
       input.setAttribute('aria-activedescendant', `search-option-${next}`);
@@ -1369,30 +1364,7 @@ function initMainSearch() {
   });
 }
 
-// ----------------------------------------------------
-// SETTINGS MODAL SUPPORT
-// ----------------------------------------------------
-function initSettings() {
-  const media = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
-  const storedTheme = localStorage.getItem('theme');
-
-  // Sem preferência manual, a página acompanha o tema do navegador/SO.
-  if (storedTheme === 'dark' || storedTheme === 'light') {
-    setTheme(storedTheme === 'dark');
-  } else {
-    setTheme(Boolean(media?.matches), false);
-  }
-
-  // Se o usuário estiver usando o tema automático (sem escolha manual),
-  // acompanha alterações posteriores do tema do navegador.
-  media?.addEventListener?.('change', event => {
-    if (!localStorage.getItem('theme')) setTheme(event.matches, false);
-  });
-}
-
-// ----------------------------------------------------
-// CORE INIT
-// ----------------------------------------------------
+// --- INIT ---
 document.addEventListener('DOMContentLoaded', () => {
   renderContatos();
   initContatosSearch();
