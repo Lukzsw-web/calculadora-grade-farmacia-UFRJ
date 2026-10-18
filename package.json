@@ -1,0 +1,11 @@
+{
+  "name": "planejador-academico-farmacia",
+  "private": true,
+  "version": "1.1.0",
+  "description": "Planejador Acadêmico - Farmácia (UFRJ)",
+  "scripts": {
+    "test": "node --test tests/logic.test.js",
+    "check:data": "node tools/validate-disciplinas.js --verify",
+    "lock:data": "node tools/validate-disciplinas.js --lock"
+  }
+}
