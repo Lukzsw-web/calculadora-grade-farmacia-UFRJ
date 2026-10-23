@@ -1,0 +1,19 @@
+{
+  "id": "./",
+  "name": "Planejador Acadêmico - Farmácia",
+  "short_name": "Planejador",
+  "description": "Acompanhe as disciplinas cursadas e planeje o próximo período do curso de Farmácia.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#f6f5ef",
+  "theme_color": "#24564b",
+  "lang": "pt-BR",
+  "categories": ["education", "productivity"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
