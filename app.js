@@ -7,7 +7,7 @@ const STORAGE_KEYS = {
   onboarded: 'planejador_onboarded_v1'
 };
 const PERIODO_COND = 'Escolha Condicionada';
-const APP_VERSION = '1.8.3';
+const APP_VERSION = '1.8.6';
 const T = (key, params) => (window.I18N ? window.I18N.t(key, params) : String(key).replace(/\{(\w+)\}/g, (m, k) => (params && k in params ? params[k] : m)));
 const META_COND_CRED = 12;
 const META_COND_HORAS = 180;
@@ -661,10 +661,11 @@ function getTopActiveModal() {
   return null;
 }
 
-const bottomTabIds = ['home-page', 'modal-planner', 'modal-contatos', 'modal-settings'];
+const bottomTabIds = ['home-page', 'modal-planner', 'modal-farmacia', 'modal-contatos', 'modal-settings'];
 const bottomTabNavIds = {
   'home-page': 'bottom-nav-home',
   'modal-planner': 'bottom-nav-planner',
+  'modal-farmacia': 'bottom-nav-farmacia',
   'modal-contatos': 'bottom-nav-contacts',
   'modal-settings': 'bottom-nav-settings'
 };
@@ -699,8 +700,13 @@ function getBottomTabIndex(id) {
   return bottomTabIds.indexOf(id);
 }
 
+function getViewportWidth() {
+  // No iPhone (app instalado) innerWidth pode vir defasado na primeira pintura; clientWidth é estável.
+  return Math.max(1, document.documentElement.clientWidth || window.innerWidth || 1);
+}
+
 function setBottomTrackPosition(activeIndex, dragX = 0, transition = false) {
-  const width = Math.max(1, window.innerWidth);
+  const width = getViewportWidth();
   bottomTabIds.forEach((id, index) => {
     const tab = getBottomTabElement(id);
     if (!tab) return;
@@ -760,6 +766,7 @@ function beginBottomSwipe(direction) {
   if (!current || !target) return false;
 
   if (target.id === 'modal-planner') renderPlanner();
+  if (target.id === 'modal-farmacia') window.FarmacIA?.show();
   if (target.id === 'modal-contatos') renderContatos();
 
   bottomSwipeStartIndex = currentIndex;
@@ -970,6 +977,7 @@ function activateBottomTab(id, instant = false) {
   if (currentIndex < 0 || targetIndex < 0) return;
 
   if (id === 'modal-planner') renderPlanner();
+  if (id === 'modal-farmacia') window.FarmacIA?.show();
   if (id === 'modal-contatos') renderContatos();
 
   // O clique também usa o mesmo trilho do swipe. As quatro telas ficam
@@ -1018,6 +1026,9 @@ function goToHome() {
 }
 function openBottomPlanner() {
   activateBottomTab('modal-planner');
+}
+function openBottomFarmacia() {
+  activateBottomTab('modal-farmacia');
 }
 function openBottomContacts() {
   activateBottomTab('modal-contatos');
@@ -1829,6 +1840,45 @@ function getPlannerAvailableSubjects() {
   return disciplinas.filter(d => !concluidas.has(d.codigo) && checkReqs(d.pre, concluidas));
 }
 
+// ---- Filtro da aba "O que puxar?" ----
+const PLANNER_FILTER_KEY = 'planejador_planner_filter_v1';
+const plannerFilter = { types: { obrig: true, cond: true }, periods: new Set(), group: false };
+
+function loadPlannerFilter() {
+  const raw = loadJSON(PLANNER_FILTER_KEY, null);
+  if (!raw || typeof raw !== 'object') return;
+  const types = raw.types && typeof raw.types === 'object' ? raw.types : {};
+  plannerFilter.types.obrig = types.obrig !== false;
+  plannerFilter.types.cond = types.cond !== false;
+  if (!plannerFilter.types.obrig && !plannerFilter.types.cond) plannerFilter.types.obrig = plannerFilter.types.cond = true;
+  plannerFilter.periods = new Set((Array.isArray(raw.periods) ? raw.periods : []).map(Number).filter(n => Number.isInteger(n) && n >= 1 && n <= 10));
+  plannerFilter.group = raw.group === true;
+}
+
+function savePlannerFilter() {
+  try {
+    localStorage.setItem(PLANNER_FILTER_KEY, JSON.stringify({
+      types: plannerFilter.types,
+      periods: Array.from(plannerFilter.periods).sort((a, b) => a - b),
+      group: plannerFilter.group
+    }));
+  } catch (_) {}
+}
+
+function plannerFilterIsActive() {
+  return !plannerFilter.types.obrig || !plannerFilter.types.cond || plannerFilter.periods.size > 0;
+}
+
+function plannerFilterCount() {
+  return (plannerFilter.types.obrig && plannerFilter.types.cond ? 0 : 1) + (plannerFilter.periods.size > 0 ? 1 : 0);
+}
+
+function passesPlannerFilter(mat) {
+  if (periodIsCond(mat.periodo)) return plannerFilter.types.cond;
+  if (!plannerFilter.types.obrig) return false;
+  return plannerFilter.periods.size === 0 || plannerFilter.periods.has(parseInt(mat.periodo, 10));
+}
+
 function getNextPlanningPeriod() {
   const mandatoryPeriods = [...new Set(
     disciplinas
@@ -1894,6 +1944,54 @@ function updatePlannerSummary(availableSubjects = null) {
   if (changed) persistPlannerCheckedState();
 }
 
+function plannerGroupedCardsHTML(list) {
+  let html = '';
+  let current = null;
+  list.forEach(m => {
+    const per = parseInt(m.periodo, 10);
+    if (per !== current) {
+      current = per;
+      html += `<div class="planner-period-head" role="heading" aria-level="4">${escapeHTML(T('{n}º Período', { n: per }))}</div>`;
+    }
+    html += createPlannerCard(m);
+  });
+  return html;
+}
+
+function updatePlannerFilterUI(disponiveis, visiveis) {
+  const btn = document.getElementById('planner-filter-btn');
+  const badge = document.getElementById('planner-filter-badge');
+  const note = document.getElementById('planner-filter-note');
+  const active = plannerFilterIsActive();
+  const n = plannerFilterCount();
+  if (btn) btn.classList.toggle('is-active', active);
+  if (badge) { badge.textContent = String(n); badge.hidden = !active; }
+
+  const obrigGroup = document.getElementById('planner-obrig-container')?.closest('details');
+  const condGroup = document.getElementById('planner-cond-container')?.closest('details');
+  if (obrigGroup) obrigGroup.hidden = !plannerFilter.types.obrig;
+  if (condGroup) condGroup.hidden = !plannerFilter.types.cond;
+  // Só um grupo à mostra: já abre, sem exigir um toque a mais.
+  if (plannerFilter.types.obrig !== plannerFilter.types.cond) {
+    (plannerFilter.types.obrig ? obrigGroup : condGroup)?.setAttribute('open', '');
+  }
+
+  if (!note) return;
+  if (!active) { note.hidden = true; note.textContent = ''; return; }
+  const parts = [];
+  if (!plannerFilter.types.cond) parts.push(T('só obrigatórias'));
+  else if (!plannerFilter.types.obrig) parts.push(T('só escolha condicionada'));
+  if (plannerFilter.periods.size && plannerFilter.types.obrig) {
+    parts.push(T('períodos: {lista}', { lista: Array.from(plannerFilter.periods).sort((a, b) => a - b).map(p => `${p}º`).join(', ') }));
+  }
+  const hidden = disponiveis.length - visiveis.length;
+  const hiddenSelected = disponiveis.filter(d => !passesPlannerFilter(d) && appState.plannerCheckedCodes.has(d.codigo)).length;
+  let text = T('Filtro ativo ({detalhes}) • {n} fora da lista', { detalhes: parts.join('; '), n: hidden });
+  if (hiddenSelected) text += ' • ' + (hiddenSelected === 1 ? T('1 selecionada fora do filtro continua contando nos créditos') : T('{n} selecionadas fora do filtro continuam contando nos créditos', { n: hiddenSelected }));
+  note.textContent = text;
+  note.hidden = false;
+}
+
 function renderPlanner() {
   const containerObrig = document.getElementById('planner-obrig-container');
   const containerCond = document.getElementById('planner-cond-container');
@@ -1901,11 +1999,15 @@ function renderPlanner() {
   ensurePlannerTools();
 
   const disponiveis = getPlannerAvailableSubjects();
-  const obrig = disponiveis.filter(d => !periodIsCond(d.periodo));
-  const cond = disponiveis.filter(d => periodIsCond(d.periodo));
+  const visiveis = disponiveis.filter(passesPlannerFilter);
+  const obrig = visiveis.filter(d => !periodIsCond(d.periodo)).sort((a, b) => parseInt(a.periodo, 10) - parseInt(b.periodo, 10));
+  const cond = visiveis.filter(d => periodIsCond(d.periodo));
+  const filtered = plannerFilterIsActive();
 
   if (obrig.length > 0) {
-    containerObrig.innerHTML = obrig.map(m => createPlannerCard(m)).join('');
+    containerObrig.innerHTML = plannerFilter.group ? plannerGroupedCardsHTML(obrig) : obrig.map(m => createPlannerCard(m)).join('');
+  } else if (filtered && disponiveis.some(d => !periodIsCond(d.periodo))) {
+    containerObrig.innerHTML = emptyStateHTML(T('Nenhuma obrigatória com esse filtro.'), T('Ajuste os períodos no ícone de filtro para ver mais.'), 'planner');
   } else {
     containerObrig.innerHTML = emptyStateHTML(T('Nenhuma obrigatória disponível para puxar.'), T('Quando você concluir os pré-requisitos de uma matéria, ela aparecerá aqui.'), 'planner');
   }
@@ -1915,9 +2017,10 @@ function renderPlanner() {
   } else {
     containerCond.innerHTML = emptyStateHTML(T('Nenhuma condicionada disponível para puxar.'), T('As condicionadas aparecem aqui assim que seus pré-requisitos forem cumpridos.'), 'planner');
   }
-  
+
   restorePlannerCheckedState();
   updatePlannerSummary(disponiveis);
+  updatePlannerFilterUI(disponiveis, visiveis);
 }
 
 function emptyStateHTML(title, description, icon = 'search') {
@@ -2114,6 +2217,100 @@ function pinfoRowHTML(t) {
     </div>
     <span class="pinfo-row-period">${escapeHTML(displayPeriod(t))}</span>
   </li>`;
+}
+
+function renderPlannerFilterSheet() {
+  const disponiveis = getPlannerAvailableSubjects();
+  const obrig = disponiveis.filter(d => !periodIsCond(d.periodo));
+  const cond = disponiveis.filter(d => periodIsCond(d.periodo));
+  const sheet = document.getElementById('modal-planner-filter');
+  if (!sheet) return;
+
+  const onlyOne = plannerFilter.types.obrig !== plannerFilter.types.cond;
+  sheet.querySelectorAll('[data-pfilter-type]').forEach(btn => {
+    const key = btn.dataset.pfilterType;
+    const on = plannerFilter.types[key];
+    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+    btn.classList.toggle('is-on', on);
+    btn.setAttribute('aria-disabled', onlyOne && on ? 'true' : 'false');
+  });
+  const setCount = (key, n) => { const el = sheet.querySelector(`[data-pfilter-count="${key}"]`); if (el) el.textContent = String(n); };
+  setCount('obrig', obrig.length);
+  setCount('cond', cond.length);
+
+  const counts = new Map();
+  obrig.forEach(d => { const p = parseInt(d.periodo, 10); counts.set(p, (counts.get(p) || 0) + 1); });
+  plannerFilter.periods.forEach(p => { if (!counts.has(p)) counts.set(p, 0); });
+  const box = document.getElementById('pfilter-periods');
+  if (box) {
+    const periods = Array.from(counts.keys()).sort((a, b) => a - b);
+    box.innerHTML = periods.length
+      ? periods.map(p => {
+        const on = plannerFilter.periods.has(p);
+        return `<button type="button" class="pfilter-chip pfilter-period${on ? ' is-on' : ''}" data-pfilter-period="${p}" aria-pressed="${on}" aria-label="${escapeHTML(T('{n}º Período', { n: p }))}">${p}º<span class="pfilter-count">${counts.get(p)}</span></button>`;
+      }).join('')
+      : `<span class="pfilter-hint">${escapeHTML(T('Nenhuma obrigatória disponível agora.'))}</span>`;
+  }
+  const periodsSection = document.getElementById('pfilter-periods-section');
+  if (periodsSection) periodsSection.classList.toggle('is-muted', !plannerFilter.types.obrig);
+
+  const sw = document.getElementById('pfilter-group');
+  if (sw) { sw.setAttribute('aria-checked', plannerFilter.group ? 'true' : 'false'); sw.classList.toggle('is-on', plannerFilter.group); }
+
+  const visiveis = disponiveis.filter(passesPlannerFilter).length;
+  const sub = document.getElementById('pfilter-sub');
+  if (sub) sub.textContent = visiveis === 1 ? T('1 disciplina na lista') : T('{n} disciplinas na lista', { n: visiveis });
+  const clearBtn = document.getElementById('pfilter-clear');
+  if (clearBtn) clearBtn.disabled = !plannerFilterIsActive() && !plannerFilter.group;
+}
+
+function openPlannerFilter() {
+  renderPlannerFilterSheet();
+  openModal('modal-planner-filter');
+}
+
+function applyPlannerFilterChange() {
+  savePlannerFilter();
+  renderPlanner();
+  renderPlannerFilterSheet();
+  const input = document.getElementById('planner-search-input');
+  if (input && input.value) input.dispatchEvent(new Event('input', { bubbles: true }));
+}
+
+function initPlannerFilter() {
+  loadPlannerFilter();
+  // O cartão interno tem onclick="event.stopPropagation()"; por isso o ouvinte fica nele, não no fundo.
+  const sheet = document.querySelector('#modal-planner-filter .pfilter-card');
+  if (!sheet) return;
+  sheet.addEventListener('click', event => {
+    const typeBtn = event.target.closest('[data-pfilter-type]');
+    if (typeBtn) {
+      const key = typeBtn.dataset.pfilterType;
+      const other = key === 'obrig' ? 'cond' : 'obrig';
+      if (plannerFilter.types[key] && !plannerFilter.types[other]) return; // sempre fica ao menos um tipo
+      plannerFilter.types[key] = !plannerFilter.types[key];
+      applyPlannerFilterChange();
+      return;
+    }
+    const periodBtn = event.target.closest('[data-pfilter-period]');
+    if (periodBtn) {
+      const p = Number(periodBtn.dataset.pfilterPeriod);
+      if (plannerFilter.periods.has(p)) plannerFilter.periods.delete(p); else plannerFilter.periods.add(p);
+      applyPlannerFilterChange();
+      return;
+    }
+    if (event.target.closest('#pfilter-group')) {
+      plannerFilter.group = !plannerFilter.group;
+      applyPlannerFilterChange();
+      return;
+    }
+    if (event.target.closest('#pfilter-clear')) {
+      plannerFilter.types.obrig = plannerFilter.types.cond = true;
+      plannerFilter.periods.clear();
+      plannerFilter.group = false;
+      applyPlannerFilterChange();
+    }
+  });
 }
 
 function openPlannerDetails(cod) {
@@ -2593,7 +2790,7 @@ function rankDisciplineSearch(query) {
 // Mesmo motor da pesquisa principal (abreviações, apelidos, filtros), restrito às
 // disciplinas que a pessoa pode puxar agora. Devolve os códigos em ordem de relevância.
 function getPlannerSearchMatches(query) {
-  const allowed = new Set(getPlannerAvailableSubjects().map(d => d.codigo));
+  const allowed = new Set(getPlannerAvailableSubjects().filter(passesPlannerFilter).map(d => d.codigo));
   return rankDisciplineSearch(String(query || '').trim())
     .filter(item => allowed.has(item.mat.codigo))
     .map(item => item.mat.codigo);
@@ -3393,14 +3590,54 @@ document.addEventListener('DOMContentLoaded', () => {
   initAccordionAnimation();
   initAccessibilityHelpers();
   initStorageSync();
+  initPlannerFilter();
   try {
     const savedTab = localStorage.getItem('planejador_active_tab_v1');
     if (savedTab && bottomTabIds.includes(savedTab)) {
       activeBottomTabId = savedTab;
       if (savedTab === 'modal-planner') renderPlanner();
+      if (savedTab === 'modal-farmacia') window.FarmacIA?.show();
     }
   } catch (_) {}
   normalizeBottomTabs(activeBottomTabId, true);
   maybeShowOnboarding();
   window.setTimeout(() => html.classList.add('app-ready'), 700);
+  initIOSStandaloneFix();
 });
+
+// ----------------------------------------------------
+// iPhone: app instalado na tela de início
+// Sintoma: ao abrir, a tela não rolava nem respondia até trocar de aba e voltar.
+// Causa provável: as telas são camadas fixas com rolagem própria; o WebKit só "ativa" essa
+// rolagem depois de uma nova composição (o que a troca de aba provoca) e, na primeira pintura,
+// 100vw/100dvh podem vir defasados. A correção refaz layout e composição da aba atual ao abrir,
+// ao voltar para o app e ao girar o aparelho.
+// ----------------------------------------------------
+function refreshActiveTabLayout() {
+  if (bottomTabTransitionTimer !== null || bottomSwipeDirection) return;
+  const page = getBottomTabElement(activeBottomTabId);
+  if (!page) return;
+  normalizeBottomTabs(activeBottomTabId, true);
+  // Força um ciclo de layout no contêiner rolável...
+  page.style.setProperty('overflow-y', 'hidden', 'important');
+  void page.offsetHeight;
+  page.style.removeProperty('overflow-y');
+  // ...e uma nova composição (deslocamento de meio pixel por um quadro, imperceptível).
+  const index = getBottomTabIndex(activeBottomTabId);
+  page.style.setProperty('transform', 'translate3d(0.5px, 0, 0)', 'important');
+  requestAnimationFrame(() => {
+    if (bottomTabTransitionTimer === null && !bottomSwipeDirection) setBottomTrackPosition(index, 0, false);
+  });
+}
+
+function initIOSStandaloneFix() {
+  const kick = () => refreshActiveTabLayout();
+  [0, 120, 450, 1200].forEach(ms => window.setTimeout(kick, ms));
+  window.addEventListener('load', kick, { once: true });
+  window.addEventListener('pageshow', kick);
+  window.addEventListener('orientationchange', () => window.setTimeout(kick, 150));
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') kick(); });
+  window.visualViewport?.addEventListener('resize', () => {
+    if (!document.documentElement.classList.contains('farma-typing')) kick();
+  });
+}
