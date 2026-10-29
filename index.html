@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Planejador Acadêmico - Farmácia</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <meta id="theme-color-meta" name="theme-color" content="#24564b">
+  <meta id="color-scheme-meta" name="color-scheme" content="light dark">
+  <meta name="darkreader-lock">
+  
+  <link rel="preload" href="fonts/inter-regular.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="fonts/inter-bold.woff2" as="font" type="font/woff2" crossorigin>
+  
+  <script>
+    try {
+      const savedTheme = localStorage.getItem('theme');
+      const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? false;
+      const useDark = savedTheme === 'dark' || (!savedTheme && prefersDark);
+      document.documentElement.classList.toggle('dark', useDark);
+      document.documentElement.classList.toggle('light', !useDark);
+      const ts = localStorage.getItem('planejador_textsize_v1');
+      document.documentElement.dataset.textSize = ['sm', 'md', 'lg', 'xl'].includes(ts) ? ts : 'md';
+      if (localStorage.getItem('planejador_noanim_v1') === '1') document.documentElement.classList.add('no-anim');
+      document.documentElement.style.colorScheme = useDark ? 'dark' : 'only light';
+      const csMeta = document.getElementById('color-scheme-meta');
+      if (csMeta) csMeta.content = useDark ? 'dark' : 'only light';
+      const tcMeta = document.getElementById('theme-color-meta');
+      if (tcMeta) tcMeta.content = useDark ? '#0f1115' : '#24564b';
+    } catch (_) {
+      document.documentElement.classList.add('light');
+      document.documentElement.classList.remove('dark');
+    }
+  </script>
+
+  <link rel="stylesheet" href="tailwind.css?v=20261009-static">
+  <link rel="stylesheet" href="styles.css?v=1.8.7">
+</head>
+<body class="bg-gray-50 text-gray-800 dark:bg-darkBg dark:text-gray-200 font-sans antialiased selection:bg-yellowTheme-500 selection:text-white transition-colors duration-200">
+  
+  <div id="toast-copy" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 px-5 py-3 rounded-full font-bold text-sm shadow-2xl z-[9999] transition-all duration-300 opacity-0 pointer-events-none translate-y-4 flex items-center gap-2">
+    <svg class="w-5 h-5 text-green-400 dark:text-green-600" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>
+    <span id="toast-message"></span>
+  </div>
+
+  <div id="home-page" class="home-tab-page bottom-tab-current" role="tabpanel" aria-hidden="false">
+  <header class="bg-[#fce98a] dark:bg-[#c99522] text-gray-800 dark:text-white pt-8 pb-10 px-6 shadow-xl rounded-b-[2.5rem] mb-10 relative flex flex-col items-center overflow-hidden">
+    <div class="absolute top-0 left-0 w-full h-full bg-white opacity-5 pointer-events-none" style="background-image: radial-gradient(circle at 50% 0%, #fff 0%, transparent 70%);"></div>
+    
+    <h1 class="text-3xl font-black text-center mt-10 tracking-tight z-10 drop-shadow-sm">Planejador Acadêmico</h1>
+    <p class="text-center font-bold text-sm mt-3 tracking-wide uppercase z-10 opacity-80">Farmácia - UFRJ</p>
+    <p id="home-greeting" class="text-center font-bold text-base mt-4 z-10" data-no-i18n hidden></p>
+  </header>
+
+  <main class="max-w-3xl mx-auto px-4 sm:px-6 pb-10">
+    <div id="search-wrapper" class="search-wrapper relative -mt-16 mb-8 z-[60] transition-all duration-300">
+      <div class="search-bar-shell relative flex items-center shadow-xl shadow-yellowTheme-900/10 dark:shadow-black/40 rounded-full bg-white dark:bg-darkCard transition-transform hover:scale-[1.01] duration-200">
+        <button id="search-button" class="search-button absolute left-5 text-yellowTheme-500" type="button" aria-label="Pesquisar">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path>
+          </svg>
+        </button>
+        <input type="text" id="search-input" placeholder="Buscar disciplina, código ou período..." inputmode="search" autocomplete="off" class="search-input w-full pl-14 pr-14 py-4 bg-transparent border-none rounded-full text-gray-800 dark:text-gray-100 font-medium focus:outline-none focus:ring-0 transition-all placeholder-gray-400 dark:placeholder-gray-500">
+        <button id="clear-search-button" class="absolute right-5 text-gray-400 hover:text-red-500 transition-colors hidden" type="button" aria-label="Limpar texto">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+      <div id="search-suggestions" class="search-suggestions hidden" role="listbox"></div>
+    </div>
+
+    <div class="flex justify-between items-center mb-6 px-2 text-sm font-semibold">
+      <span id="search-results" class="text-gray-500 dark:text-gray-400" aria-live="polite"></span>
+      <span id="save-status" class="flex items-center gap-1 text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-500/10 px-3 py-1 rounded-full opacity-0 transition-all duration-300 transform scale-95 shadow-sm">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+        Salvo
+      </span>
+    </div>
+
+    <div class="dashboard-panel bg-white dark:bg-darkCard p-6 md:p-8 rounded-[2rem] shadow-xl shadow-gray-200/50 dark:shadow-none border border-gray-100 dark:border-darkBorder mb-8 relative overflow-hidden">
+      <div class="absolute top-0 right-0 w-64 h-64 bg-yellowTheme-100/50 dark:bg-yellowTheme-900/10 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none"></div>
+
+      <div class="grid grid-cols-2 gap-6 mb-8 text-center border-b border-gray-100 dark:border-darkBorder pb-8 relative z-10">
+        <div class="flex flex-col gap-1">
+          <p class="text-gray-500 dark:text-gray-400 text-[0.65rem] md:text-xs font-bold uppercase tracking-wider">Créditos</p>
+          <p class="text-2xl md:text-3xl font-black text-gray-800 dark:text-gray-100"><span id="total-creditos" aria-live="polite">0</span> <span class="text-sm font-medium text-gray-400">/ 161</span></p>
+        </div>
+        <div class="flex flex-col gap-1">
+          <p class="text-gray-500 dark:text-gray-400 text-[0.65rem] md:text-xs font-bold uppercase tracking-wider">Carga Horária</p>
+          <p class="text-2xl md:text-3xl font-black text-gray-800 dark:text-gray-100"><span id="total-horas" aria-live="polite">0</span> <span class="text-sm font-medium text-gray-400">/ 3250</span></p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-4 mb-8 text-center relative z-10">
+        <div class="p-4 rounded-2xl bg-gray-50 dark:bg-[#15171b] border border-gray-100/80 dark:border-darkBorder/50 transition-colors hover:border-yellowTheme-300 dark:hover:border-yellowTheme-700">
+          <p class="text-yellowTheme-600 dark:text-yellowTheme-500 text-xs font-bold uppercase tracking-wide mb-1">Disciplinas</p>
+          <p class="text-xl font-extrabold text-gray-800 dark:text-white"><span id="count-obrig-feitas-painel" aria-live="polite">0</span> <span class="text-sm font-medium text-gray-400">/</span> <span id="count-obrig-total-painel" class="text-sm font-medium text-gray-400">0</span></p>
+        </div>
+        <div class="p-4 rounded-2xl bg-gray-50 dark:bg-[#15171b] border border-gray-100/80 dark:border-darkBorder/50 transition-colors hover:border-yellowTheme-300 dark:hover:border-yellowTheme-700">
+          <p class="text-yellowTheme-600 dark:text-yellowTheme-500 text-xs font-bold uppercase tracking-wide mb-1">Graduação</p>
+          <p class="text-xl font-extrabold text-gray-800 dark:text-white" id="percent-total" aria-live="polite">0%</p>
+        </div>
+      </div>
+
+      <div class="space-y-6 relative z-10">
+        <div>
+          <div class="flex justify-between text-sm font-bold mb-2">
+            <span class="text-gray-700 dark:text-gray-300">Obrigatórias <span class="text-gray-400 text-xs font-medium ml-1">(<span id="count-obrig-feitas" aria-live="polite">0</span> / <span id="count-obrig-faltam" aria-live="polite">0</span> restam)</span></span>
+            <span id="percent-obrig" class="text-yellowTheme-600 dark:text-yellowTheme-400" aria-live="polite">0%</span>
+          </div>
+          <div class="progress-track w-full bg-gray-100 dark:bg-gray-800 rounded-full h-3 shadow-inner overflow-hidden">
+            <div id="bar-obrig" class="progress-bar progress-bar-obrig h-full rounded-full transition-all duration-700 ease-out" style="width: 0%;"></div>
+          </div>
+        </div>
+
+        <div>
+          <div class="flex justify-between items-end text-sm font-bold mb-2 gap-3 flex-wrap">
+            <span class="text-gray-700 dark:text-gray-300">Condicionadas <span class="text-gray-400 text-xs font-medium ml-1">(<span id="count-cond-feitas" aria-live="polite">0</span> / <span id="count-cond-faltam" aria-live="polite">0</span> restam)</span></span>
+            <div id="text-cond-meta-container" class="flex items-center gap-2">
+              <span id="text-cond-meta" class="text-[0.65rem] px-2 py-0.5 bg-yellow-100 text-yellow-800 border border-yellow-300 dark:bg-yellow-900/60 dark:border-yellow-600/50 dark:text-yellow-100 rounded-md font-bold uppercase">Meta: 12 créd. / 180h</span>
+              <span id="text-cond-progress" class="text-xs text-gray-500 font-semibold" aria-live="polite">0 créd. • 0h</span>
+              <svg id="icon-cond-exclamation" onclick="openModal('modal-cond-done')" class="w-5 h-5 text-green-500 hidden cursor-pointer hover:scale-125 transition-transform drop-shadow-sm" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+              </svg>
+            </div>
+          </div>
+          <div class="progress-track w-full bg-gray-100 dark:bg-gray-800 rounded-full h-3 shadow-inner overflow-hidden">
+            <div id="bar-cond" class="progress-bar progress-bar-cond h-full rounded-full transition-all duration-700 ease-out" style="width: 0%;"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="dashboard-after-progress relative z-10">
+        <button id="clear-all-button" type="button" class="dashboard-clear-button" onclick="clearAllConcluded()" aria-label="Limpar tudo: desmarcar todas as disciplinas concluídas">
+          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 7h16"></path>
+            <path d="M9 7V4h6v3"></path>
+            <path d="M7 7l1 13h8l1-13"></path>
+            <path d="M10 11v5M14 11v5"></path>
+          </svg>
+          <span>Limpar tudo</span>
+        </button>
+
+        <div class="status-legend" aria-label="Legenda dos estados das disciplinas">
+          <div class="status-legend-item">
+            <span class="status-legend-dot status-legend-passed" aria-hidden="true"></span>
+            <span>Cursada</span>
+          </div>
+          <div class="status-legend-item">
+            <span class="status-legend-dot status-legend-eligible" aria-hidden="true"></span>
+            <span>Disponível</span>
+          </div>
+          <div class="status-legend-item">
+            <span class="status-legend-dot status-legend-blocked" aria-hidden="true"></span>
+            <span>Bloqueada</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="accordions-container" class="space-y-4"></div>
+    
+    <footer class="site-footer text-center text-xs text-gray-500 mt-12 mb-4 px-4 font-medium">
+      Ferramenta de caráter auxiliar, sua utilização não substitui a consulta do BOA. Site feito de aluno para aluno, sem relação com a UFRJ.
+    </footer>
+  </main>
+  </div>
+
+  <!-- Navegação inferior estilo Liquid Glass -->
+  <nav id="bottom-nav" class="bottom-liquid-nav" role="tablist" aria-label="Navegação principal">
+    <div class="bottom-liquid-nav-inner">
+      <button id="bottom-nav-home" class="bottom-nav-item active" type="button" role="tab" onclick="goToHome()" aria-label="Planejador Acadêmico" aria-selected="true" aria-current="page" aria-controls="home-page">
+        <span class="bottom-nav-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3.5" y="4" width="17" height="16" rx="3"></rect>
+            <path d="M7.5 8h9M7.5 12h5M7.5 16h3"></path>
+            <path d="M16 12.5v4M14 14.5h4"></path>
+          </svg>
+        </span>
+        <span class="bottom-nav-label">Planejador</span>
+      </button>
+
+      <button id="bottom-nav-planner" class="bottom-nav-item" type="button" role="tab" onclick="openBottomPlanner()" aria-label="O que puxar?" aria-selected="false" aria-controls="modal-planner">
+        <span class="bottom-nav-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.15" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"></path>
+            <rect x="9" y="3" width="6" height="4" rx="1.5"></rect>
+            <path d="M9 12h6M9 16h6M7.5 12h.01M7.5 16h.01"></path>
+          </svg>
+        </span>
+        <span class="bottom-nav-label">O que puxar?</span>
+      </button>
+
+      <button id="bottom-nav-farmacia" class="bottom-nav-item" type="button" role="tab" onclick="openBottomFarmacia()" aria-label="FarmacIA" aria-selected="false" aria-controls="modal-farmacia">
+        <span class="bottom-nav-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5.5 3.5h13v5.2a6.5 6.5 0 0 1-13 0z"></path>
+            <path d="M12 15.2V19M8.2 20.5h7.6"></path>
+            <path class="farma-spark" d="M12 5.4l.95 2.35 2.35.95-2.35.95L12 12l-.95-2.35-2.35-.95 2.35-.95z" fill="currentColor" stroke-width="1"></path>
+          </svg>
+        </span>
+        <span class="bottom-nav-text"><span class="bottom-nav-label">FarmacIA</span><span class="bottom-nav-beta" data-no-i18n>(beta)</span></span>
+      </button>
+
+      <button id="bottom-nav-contacts" class="bottom-nav-item" type="button" role="tab" onclick="openBottomContacts()" aria-label="Contatos Importantes" aria-selected="false" aria-controls="modal-contatos">
+        <span class="bottom-nav-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.15" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 8l7.89 5.26a2 2 0 0 0 2.22 0L21 8"></path>
+            <rect x="3" y="5" width="18" height="14" rx="2"></rect>
+          </svg>
+        </span>
+        <span class="bottom-nav-label">Contatos</span>
+      </button>
+
+      <button id="bottom-nav-settings" class="bottom-nav-item" type="button" role="tab" onclick="openBottomSettings()" aria-label="Configurações" aria-selected="false" aria-controls="modal-settings">
+        <span class="bottom-nav-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+        </span>
+        <span class="bottom-nav-label">Configurações</span>
+      </button>
+    </div>
+  </nav>
+
+
+  <!-- Modal Escolha Condicionada -->
+  <div id="modal-period-info" class="fixed inset-0 modal-overlay justify-center items-center z-[100] transition-opacity opacity-0 pointer-events-none" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="choice-info-modal" onclick="event.stopPropagation()">
+      <button aria-label="Fechar" onclick="closeModal('modal-period-info')" class="choice-info-close" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M6 6l12 12M18 6L6 18"></path>
+        </svg>
+      </button>
+      <h3 id="period-info-title" class="choice-info-title">Escolha Condicionada</h3>
+      <p id="period-info-desc" class="choice-info-text">Disciplinas de Escolha Condicionada são as eletivas do currículo novo. Basicamente você precisa ter 12 créditos e 180 horas dessas matérias para se formar.</p>
+      <div class="choice-info-note">
+        <svg class="choice-info-note-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="9"></circle>
+          <path d="M12 10v6"></path>
+          <path d="M12 7h.01"></path>
+        </svg>
+        <p>O uso desse site é puramente de caráter auxiliar e não substitui a consulta do BOA.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Contatos Importantes (Com Barra de Pesquisa) -->
+  <div id="modal-contatos" class="bottom-tab-page" role="tabpanel" aria-hidden="true">
+    <div class="bg-white dark:bg-darkCard w-[92%] max-w-lg rounded-[2rem] p-6 shadow-2xl relative border border-gray-100 dark:border-darkBorder modal-content transform scale-95 transition-all duration-300 max-h-[90vh] flex flex-col" onclick="event.stopPropagation()">
+      <button aria-label="Fechar" onclick="closeModal('modal-contatos')" class="absolute top-5 right-5 text-gray-400 hover:text-red-500 bg-gray-50 dark:bg-gray-800 hover:bg-red-50 p-2 rounded-full transition-colors z-10" type="button">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
+      </button>
+      <div class="flex items-center gap-3 mb-4 pr-10">
+        <div class="p-2 bg-green-100 dark:bg-green-900/30 rounded-xl text-green-500 flex-shrink-0">
+           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+        </div>
+        <h3 class="text-2xl font-black text-gray-800 dark:text-white leading-tight">Contatos Importantes</h3>
+      </div>
+      
+      <!-- Nova Barra de Pesquisa de Contatos -->
+      <div class="relative mb-4 z-20">
+        <div class="relative flex items-center shadow-sm rounded-full bg-gray-50 dark:bg-[#1a1c22] border border-gray-200 dark:border-darkBorder">
+          <svg class="w-5 h-5 absolute left-4 text-gray-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path>
+          </svg>
+          <input type="text" id="contatos-search-input" placeholder="Buscar por nome ou e-mail..." class="w-full pl-11 pr-4 py-3 bg-transparent border-none rounded-full text-gray-800 dark:text-gray-100 font-medium focus:outline-none focus:ring-0 text-sm">
+        </div>
+        <div id="contatos-search-suggestions" class="hidden absolute top-full left-0 w-full mt-2 bg-white dark:bg-darkCard rounded-xl shadow-xl border border-gray-100 dark:border-darkBorder max-h-60 overflow-y-auto z-50"></div>
+      </div>
+      
+      <div id="contatos-content" class="overflow-y-auto pr-2 scrollbar-thin space-y-6 flex-1 text-gray-700 dark:text-gray-300" aria-live="polite"></div>
+    </div>
+  </div>
+
+  <!-- Modal Como Usar -->
+  <div id="modal-info" class="fixed inset-0 modal-overlay justify-center items-center z-[90] transition-opacity opacity-0 pointer-events-none" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="bg-white dark:bg-darkCard w-[90%] max-w-sm rounded-[2rem] p-8 shadow-2xl relative border border-gray-100 dark:border-darkBorder text-center modal-content transform scale-95 transition-all duration-300" onclick="event.stopPropagation()">
+      <button aria-label="Fechar" onclick="closeModal('modal-info')" class="absolute top-5 right-5 text-gray-400 hover:text-red-500 bg-gray-50 dark:bg-gray-800 hover:bg-red-50 p-2 rounded-full transition-colors" type="button">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
+      </button>
+      <div class="mx-auto w-12 h-12 bg-blue-100 dark:bg-blue-900/30 text-blue-500 rounded-full flex items-center justify-center mb-5">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+      </div>
+      <h3 class="text-2xl font-black text-gray-800 dark:text-white mb-6">Como Usar</h3>
+      <div class="space-y-3 font-medium text-sm text-left">
+        <div class="bg-gray-50 dark:bg-[#15171b] p-4 rounded-2xl border border-gray-100 dark:border-darkBorder flex gap-3 items-start">
+          <svg class="w-6 h-6 text-yellowTheme-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+          <p class="text-gray-600 dark:text-gray-300">Marque as disciplinas concluídas. O sistema calcula progresso e desbloqueia as próximas automaticamente.</p>
+        </div>
+        <div class="bg-gray-50 dark:bg-[#15171b] p-4 rounded-2xl border border-gray-100 dark:border-darkBorder flex gap-3 items-start">
+          <svg class="w-6 h-6 text-yellowTheme-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122"></path></svg>
+          <p class="text-gray-600 dark:text-gray-300">Clique e segure no nome de qualquer matéria para ver pré-requisitos e detalhes detalhados.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Detalhes (Card longo) -->
+  <div id="modal-details" class="fixed inset-0 modal-overlay justify-center items-center z-[100] transition-opacity opacity-0 pointer-events-none" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="bg-white dark:bg-darkCard w-[92%] max-w-md rounded-[2rem] p-7 shadow-2xl relative border border-gray-100 dark:border-darkBorder modal-content transform scale-95 transition-all duration-300" onclick="event.stopPropagation()">
+      <button aria-label="Fechar" onclick="closeModal('modal-details')" class="absolute top-5 right-5 text-gray-400 hover:text-red-500 bg-gray-50 dark:bg-gray-800 hover:bg-red-50 p-2 rounded-full transition-colors" type="button">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
+      </button>
+      <h3 id="det-nome" class="text-2xl font-black text-gray-800 dark:text-white mb-5 pr-8 leading-tight"></h3>
+      
+      <div class="space-y-4 text-sm">
+        <div class="flex justify-between items-center py-2 border-b border-gray-100 dark:border-darkBorder">
+          <span class="text-gray-500 font-semibold">Código</span>
+          <div class="flex items-center gap-2">
+             <span id="det-cod" class="subject-code font-bold"></span>
+             <button id="det-copy-btn" class="text-yellowTheme-600 hover:text-yellowTheme-800"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2-2v1"></path></svg></button>
+          </div>
+        </div>
+        <div class="flex justify-between items-center py-2 border-b border-gray-100 dark:border-darkBorder">
+          <span class="text-gray-500 font-semibold">Período</span>
+          <span id="det-per" class="font-bold text-gray-800 dark:text-gray-200"></span>
+        </div>
+        <div class="flex justify-between items-center py-2 border-b border-gray-100 dark:border-darkBorder">
+          <span class="text-gray-500 font-semibold">Créditos</span>
+          <span id="det-cred" class="font-bold text-gray-800 dark:text-gray-200"></span>
+        </div>
+        <div class="flex justify-between items-center py-2 border-b border-gray-100 dark:border-darkBorder">
+          <span class="text-gray-500 font-semibold">Carga Horária</span>
+          <span id="det-ch" class="font-bold text-gray-800 dark:text-gray-200"></span>
+        </div>
+        
+        <div class="pt-2">
+          <span class="text-gray-500 font-semibold block mb-2">Pré-requisitos:</span>
+          <div id="det-pre" class="text-sm"></div>
+        </div>
+        <div class="pt-2">
+          <span class="text-gray-500 font-semibold block mb-2">Co-requisitos:</span>
+          <div id="det-co" class="text-sm"></div>
+        </div>
+        <div class="pt-2">
+          <span class="text-gray-500 font-semibold block mb-2">Tranca:</span>
+          <div id="det-tranca" class="text-sm"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Co-requisito -->
+  <div id="modal-coreq" class="fixed inset-0 modal-overlay justify-center items-center z-[120]" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="info-modal-content" onclick="event.stopPropagation()">
+      <button aria-label="Fechar" onclick="closeModal('modal-coreq')" class="info-modal-close" type="button">
+        <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M6 6l12 12M18 6L6 18"></path>
+        </svg>
+      </button>
+
+      <h3 id="coreq-title" class="info-modal-title"></h3>
+      <p id="coreq-desc" class="info-modal-text"></p>
+
+      <div class="info-modal-note">
+        <svg class="info-modal-note-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="9"></circle>
+          <path d="M12 10v6"></path>
+          <path d="M12 7h.01"></path>
+        </svg>
+        <p>O uso desse site é puramente de caráter auxiliar e não substitui a consulta do BOA.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Aba O que puxar? — planejador de período -->
+  <div id="modal-planner" class="bottom-tab-page planner-page" role="tabpanel" aria-hidden="true">
+    <div class="planner-screen" onclick="event.stopPropagation()">
+      <header class="planner-topbar">
+        <div class="planner-heading-copy">
+          <div class="tab-title-row"><div class="tab-title-icon p-2 bg-green-100 dark:bg-green-900/30 rounded-xl text-green-500 flex-shrink-0"><svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.15" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"></path><rect x="9" y="3" width="6" height="4" rx="1.5"></rect><path d="M9 12h6M9 16h6M7.5 12h.01M7.5 16h.01"></path></svg></div><h2 class="planner-page-title">O que puxar?</h2></div>
+          <p class="planner-page-subtitle">Exibe apenas as matérias que você já pode puxar.</p>
+        </div>
+      </header>
+
+      <section class="planner-summary-panel" aria-label="Resumo do período planejado">
+        <div class="planner-summary-header">
+          <div>
+            <span class="planner-summary-kicker">RESUMO DA SUA GRADE</span>
+            <p id="planner-period-label" class="planner-period-label">Próximo período</p>
+          </div>
+          <span id="planner-period-number" class="planner-period-badge" aria-hidden="true">1º</span>
+        </div>
+
+        <div class="planner-summary-primary">
+          <div class="planner-summary-stat planner-stat-primary">
+            <span>Créditos selecionados</span>
+            <strong><span id="planner-selected-credits">0</span><small>créd.</small></strong>
+          </div>
+          <div class="planner-summary-stat planner-stat-primary">
+            <span>Carga horária</span>
+            <strong><span id="planner-selected-hours">0</span><small>h</small></strong>
+          </div>
+        </div>
+
+        <div class="planner-summary-secondary">
+          <div class="planner-summary-stat planner-stat-tile">
+            <span>Matérias puxadas</span>
+            <strong id="planner-total-selected">0</strong>
+          </div>
+          <div class="planner-summary-stat planner-stat-tile">
+            <span>Matérias disponíveis</span>
+            <strong id="planner-total-available">0</strong>
+          </div>
+        </div>
+
+        <!-- Contagens por categoria preservadas para a lógica existente. -->
+        <div class="planner-legacy-counts" aria-hidden="true">
+          <span id="planner-obrig-selected">0</span><span id="planner-obrig-available">0</span>
+          <span id="planner-cond-selected">0</span><span id="planner-cond-available">0</span>
+        </div>
+        <div id="planner-limit-warnings" class="planner-limit-warnings" aria-live="polite"></div>
+      </section>
+
+      <div class="planner-search-section">
+        <label class="planner-search-label" for="planner-search-input">ENCONTRE UMA DISCIPLINA</label>
+        <div class="planner-search-field" style="position:relative">
+        <div class="planner-search-shell">
+          <svg class="planner-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path></svg>
+          <input id="planner-search-input" type="search" inputmode="search" autocomplete="off" placeholder="Nome ou código da disciplina" aria-label="Buscar entre as disciplinas disponíveis">
+          <button id="planner-search-clear" type="button" aria-label="Limpar pesquisa" hidden>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg>
+          </button>
+        </div>
+        <div id="planner-search-suggestions" class="search-suggestions hidden" role="listbox" aria-label="Sugestões de disciplinas disponíveis"></div>
+        </div>
+        <p id="planner-search-results" class="planner-search-results" aria-live="polite">Todas as disciplinas disponíveis</p>
+      </div>
+
+      <div class="planner-list-heading">
+        <div class="planner-list-heading-copy">
+          <h3>Disciplinas disponíveis</h3>
+          <span>Toque para selecionar</span>
+        </div>
+        <button id="planner-filter-btn" class="planner-filter-btn" type="button" aria-haspopup="dialog" aria-label="Filtrar disciplinas" title="Filtrar disciplinas" onclick="openPlannerFilter()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4.5h16L14.2 12v5.6l-3.9 2.2V12z"></path></svg>
+          <span id="planner-filter-badge" class="planner-filter-badge" hidden>0</span>
+        </button>
+      </div>
+      <p id="planner-filter-note" class="planner-filter-note" role="status" hidden></p>
+
+      <div class="planner-lists-scroll">
+        <details class="planner-group" open>
+          <summary class="planner-group-summary">
+            <span class="planner-group-title">Obrigatórias</span>
+            <span class="planner-group-end"><span id="planner-obrig-group-count" class="planner-group-count">0</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></span>
+          </summary>
+          <div id="planner-obrig-container" class="planner-group-content accordion-content"></div>
+        </details>
+
+        <details class="planner-group">
+          <summary class="planner-group-summary">
+            <span class="planner-group-title">Escolha condicionada</span>
+            <span class="planner-group-end"><span id="planner-cond-group-count" class="planner-group-count">0</span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"></path></svg></span>
+          </summary>
+          <div id="planner-cond-container" class="planner-group-content accordion-content"></div>
+        </details>
+        <div id="planner-search-empty" class="planner-search-empty" hidden>
+          <span class="planner-empty-symbol" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path></svg></span>
+          <strong>Nenhuma disciplina encontrada</strong>
+          <span>Tente outro nome ou código.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FarmacIA: assistente de perguntas sobre a grade (sem IA generativa) -->
+  <div id="modal-farmacia" class="bottom-tab-page farma-page" role="tabpanel" aria-hidden="true" aria-labelledby="farma-title">
+    <div class="farma-screen" onclick="event.stopPropagation()">
+      <header class="farma-header">
+        <div class="farma-header-main">
+          <div class="tab-title-row"><div class="tab-title-icon p-2 bg-green-100 dark:bg-green-900/30 rounded-xl text-green-500 flex-shrink-0">
+            <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5.5 3.5h13v5.2a6.5 6.5 0 0 1-13 0z"></path><path d="M12 15.2V19M8.2 20.5h7.6"></path><path d="M12 5.4l.95 2.35 2.35.95-2.35.95L12 12l-.95-2.35-2.35-.95 2.35-.95z" fill="currentColor" stroke-width="1"></path></svg>
+          </div><h2 id="farma-title" class="farma-title">FarmacIA</h2></div>
+        </div>
+        <button id="farma-reset" class="farma-reset" type="button" aria-label="Nova conversa" title="Nova conversa">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"></path><path d="M3 4v5h5"></path></svg>
+        </button>
+      </header>
+      <p id="farma-lang-note" class="farma-lang-note" hidden>A FarmacIA entende perguntas em português.</p>
+      <div id="farma-messages" class="farma-messages" role="log" aria-live="polite" aria-relevant="additions" tabindex="0"></div>
+      <div id="farma-chips" class="farma-chips" data-no-i18n data-no-tab-swipe="true"></div>
+      <form id="farma-form" class="farma-composer" autocomplete="off">
+        <div class="farma-composer-box">
+        <input id="farma-input" class="farma-input" type="text" enterkeyhint="send" autocomplete="off" autocapitalize="sentences" spellcheck="false" placeholder="Pergunte qualquer coisa sobre a sua grade..." aria-label="Pergunte qualquer coisa sobre a sua grade">
+        <button id="farma-send" class="farma-send" type="submit" aria-label="Enviar" title="Enviar" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"></path></svg>
+        </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal Detalhes Planejamento (Tranca) -->
+  <div id="modal-planner-details" class="fixed inset-0 modal-overlay justify-center items-center z-[110] transition-opacity opacity-0 pointer-events-none" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="bg-white dark:bg-darkCard w-[92%] max-w-md rounded-[2rem] p-6 shadow-2xl relative border border-gray-100 dark:border-darkBorder modal-content pinfo-card transform scale-95 transition-all duration-300" onclick="event.stopPropagation()">
+      <button aria-label="Fechar" onclick="closeModal('modal-planner-details')" class="absolute top-5 right-5 text-gray-400 hover:text-red-500 bg-gray-50 dark:bg-gray-800 hover:bg-red-50 p-2 rounded-full transition-colors" type="button">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
+      </button>
+      <div id="planner-det-icon" class="pinfo-icon" data-state="locked" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"></rect><path class="pinfo-shackle" d="M8 11V8a4 4 0 018 0v3"></path></svg>
+      </div>
+      <h3 id="planner-det-title" class="pinfo-title"></h3>
+      <p id="planner-det-sub" class="pinfo-sub"></p>
+      <div id="planner-det-list" class="pinfo-body"></div>
+    </div>
+  </div>
+
+
+  <!-- Filtro da aba "O que puxar?" -->
+  <div id="modal-planner-filter" class="fixed inset-0 modal-overlay justify-center items-center z-[110] transition-opacity opacity-0 pointer-events-none" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="pfilter-title">
+    <div class="bg-white dark:bg-darkCard w-[92%] max-w-md rounded-[2rem] p-6 shadow-2xl relative border border-gray-100 dark:border-darkBorder modal-content pfilter-card transform scale-95 transition-all duration-300" onclick="event.stopPropagation()">
+      <button aria-label="Fechar" onclick="closeModal('modal-planner-filter')" class="absolute top-5 right-5 text-gray-400 hover:text-red-500 bg-gray-50 dark:bg-gray-800 hover:bg-red-50 p-2 rounded-full transition-colors" type="button">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
+      </button>
+      <div class="pinfo-icon pfilter-icon" data-state="free" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4.5h16L14.2 12v5.6l-3.9 2.2V12z"></path></svg>
+      </div>
+      <h3 id="pfilter-title" class="pinfo-title">Filtrar disciplinas</h3>
+      <p id="pfilter-sub" class="pinfo-sub" role="status"></p>
+      <div class="pfilter-body">
+        <section class="pfilter-section">
+          <h4 class="pfilter-section-title">Mostrar</h4>
+          <div class="pfilter-chips" role="group" aria-label="Mostrar">
+            <button type="button" class="pfilter-chip" data-pfilter-type="obrig" aria-pressed="true">Obrigatórias <span class="pfilter-count" data-pfilter-count="obrig"></span></button>
+            <button type="button" class="pfilter-chip" data-pfilter-type="cond" aria-pressed="true">Escolha condicionada <span class="pfilter-count" data-pfilter-count="cond"></span></button>
+          </div>
+        </section>
+        <section class="pfilter-section" id="pfilter-periods-section">
+          <h4 class="pfilter-section-title">Períodos das obrigatórias</h4>
+          <div id="pfilter-periods" class="pfilter-chips pfilter-periods" role="group" aria-label="Períodos das obrigatórias"></div>
+          <p class="pfilter-hint">Sem nenhum período marcado, todos aparecem.</p>
+        </section>
+        <section class="pfilter-section">
+          <button type="button" id="pfilter-group" class="pfilter-switch" role="switch" aria-checked="false">
+            <span class="pfilter-switch-text"><strong>Separar por período</strong><small>Mostra um título de período antes de cada grupo de obrigatórias.</small></span>
+            <span class="pfilter-switch-track" aria-hidden="true"><span class="pfilter-switch-thumb"></span></span>
+          </button>
+        </section>
+      </div>
+      <div class="pfilter-actions">
+        <button type="button" id="pfilter-clear" class="pa-btn">Limpar filtros</button>
+        <button type="button" class="pa-btn pa-btn-primary" onclick="closeModal('modal-planner-filter')">Concluir</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Modal de confirmação reutilizável -->
+  <div id="system-alert" class="system-alert-backdrop" hidden>
+    <div class="system-alert" role="alertdialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-message" tabindex="-1">
+      <h2 id="confirm-title" class="system-alert-title"></h2>
+      <p id="confirm-message" class="system-alert-message"></p>
+      <div class="system-alert-actions">
+        <button id="confirm-ok-btn" type="button" class="system-alert-btn system-alert-yes">Sim</button>
+        <button id="confirm-cancel-btn" type="button" class="system-alert-btn system-alert-no" onclick="closeConfirmationModal()">Não</button>
+      </div>
+    </div>
+  </div>
+  <!-- Modal de conclusão da meta de Escolha Condicionada -->
+  <div id="modal-cond-done" class="fixed inset-0 modal-overlay justify-center items-center z-[130] transition-opacity opacity-0 pointer-events-none" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="bg-white dark:bg-darkCard w-[90%] max-w-sm rounded-[2rem] p-8 shadow-2xl relative border border-gray-100 dark:border-darkBorder modal-content transform scale-95 transition-all duration-300 text-center" onclick="event.stopPropagation()">
+      <button aria-label="Fechar" onclick="closeModal('modal-cond-done')" class="absolute top-5 right-5 text-gray-400 hover:text-red-500 bg-gray-50 dark:bg-gray-800 hover:bg-red-50 p-2 rounded-full transition-colors" type="button">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"></path></svg>
+      </button>
+      <div class="mx-auto w-14 h-14 rounded-full bg-green-100 dark:bg-green-900/30 text-green-500 flex items-center justify-center mb-5">
+        <svg class="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 13l4 4L19 7"></path></svg>
+      </div>
+      <h3 class="text-2xl font-black text-gray-800 dark:text-white mb-3">Meta concluída</h3>
+      <p data-i18n-html class="text-sm leading-relaxed text-gray-600 dark:text-gray-300">Você atingiu os <strong>12 créditos</strong> e <strong>180 horas</strong> necessários de Escolha Condicionada.</p>
+    </div>
+  </div>
+
+  <!-- Configurações -->
+  <div id="modal-settings" class="bottom-tab-page settings-page" role="tabpanel" aria-hidden="true">
+    <div class="settings-screen" onclick="event.stopPropagation()">
+      <div id="settings-view-hub" class="settings-view is-hub">
+      <header class="settings-header">
+        <div class="tab-title-row"><div class="tab-title-icon p-2 bg-green-100 dark:bg-green-900/30 rounded-xl text-green-500 flex-shrink-0"><svg class="w-6 h-6" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg></div><h2 class="settings-title">Configurações</h2></div>
+        <p class="settings-subtitle">Personalize o Planejador Acadêmico.</p>
+      </header>
+      <p id="settings-hub-greeting" class="settings-greeting" data-no-i18n hidden></p>
+      <nav class="settings-hub" aria-label="Categorias de configurações">
+        <div class="settings-card settings-hub-list">
+          <button type="button" class="settings-hub-item" data-pa-action="settings-open" data-value="profile" aria-controls="settings-view-profile"><span class="settings-hub-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"></circle><path d="M4.5 20.5a7.5 7.5 0 0 1 15 0"></path></svg></span><span class="settings-hub-text"><span class="settings-hub-title">Usuário</span><span class="settings-hub-desc">Seu nome, pronomes e período.</span></span><svg class="settings-hub-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"></path></svg></button>
+          <button type="button" class="settings-hub-item" data-pa-action="settings-open" data-value="appearance" aria-controls="settings-view-appearance"><span class="settings-hub-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18c1.2 0 1.9-.9 1.6-1.9-.3-1 .3-2.1 1.4-2.1H17a4 4 0 0 0 4-4c0-5-4-10-9-10z"></path><circle cx="7.6" cy="11" r="1.1" fill="currentColor"></circle><circle cx="10.4" cy="7.2" r="1.1" fill="currentColor"></circle><circle cx="15" cy="7.6" r="1.1" fill="currentColor"></circle></svg></span><span class="settings-hub-text"><span class="settings-hub-title">Aparência</span><span class="settings-hub-desc">Tema, barra dock e tamanho da fonte.</span></span><svg class="settings-hub-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"></path></svg></button>
+          <button type="button" class="settings-hub-item" data-pa-action="settings-open" data-value="access" aria-controls="settings-view-access"><span class="settings-hub-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="7.6" r="1.1" fill="currentColor"></circle><path d="M7.5 10.4l4.5.8 4.5-.8M12 11.2v3.3M12 14.5l-2.2 3.6M12 14.5l2.2 3.6"></path></svg></span><span class="settings-hub-text"><span class="settings-hub-title">Acessibilidade</span><span class="settings-hub-desc">Avisos, cores, animações e busca fixa.</span></span><svg class="settings-hub-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"></path></svg></button>
+          <button type="button" class="settings-hub-item" data-pa-action="settings-open" data-value="language" aria-controls="settings-view-language"><span class="settings-hub-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18"></path></svg></span><span class="settings-hub-text"><span class="settings-hub-title">Linguagem</span><span class="settings-hub-desc">Idiomas do site.</span></span><svg class="settings-hub-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"></path></svg></button>
+          <button type="button" class="settings-hub-item" data-pa-action="settings-open" data-value="updates" aria-controls="settings-view-updates"><span class="settings-hub-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16M3 12a9 9 0 0 1 15.5-6.2L21 8M21 3v5h-5M3 21v-5h5"></path></svg></span><span class="settings-hub-text"><span class="settings-hub-title">Atualizações</span><span class="settings-hub-desc">Versão e novidades.</span></span><svg class="settings-hub-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"></path></svg></button>
+          <button type="button" class="settings-hub-item" data-pa-action="settings-open" data-value="support" aria-controls="settings-view-support"><span class="settings-hub-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="3.5"></circle><path d="M5.6 5.6l3.9 3.9M14.5 14.5l3.9 3.9M18.4 5.6l-3.9 3.9M9.5 14.5l-3.9 3.9"></path></svg></span><span class="settings-hub-text"><span class="settings-hub-title">Suporte</span><span class="settings-hub-desc">Sugestões e relato de problemas.</span></span><svg class="settings-hub-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 6 6 6-6 6"></path></svg></button>
+        </div>
+      </nav>
+      </div>
+      <div id="settings-view-profile" class="settings-view" role="region" aria-labelledby="settings-view-profile-title" hidden>
+        <div class="settings-subheader">
+          <button type="button" class="settings-back" data-pa-action="settings-back" aria-label="Voltar para Configurações"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 6-6 6 6 6"></path></svg></button>
+          <span class="settings-hub-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"></circle><path d="M4.5 20.5a7.5 7.5 0 0 1 15 0"></path></svg></span><h2 id="settings-view-profile-title" class="settings-subtitle-h">Usuário</h2>
+        </div>
+      <form class="profile-form" onsubmit="return false" autocomplete="off">
+        <label class="profile-field"><span class="profile-label">Nome</span>
+          <input id="profile-name" class="profile-input" type="text" maxlength="24" autocomplete="given-name" autocapitalize="words" spellcheck="false" placeholder="Como você quer ser chamado(a)"></label>
+        <label class="profile-field"><span class="profile-label">Pronomes</span>
+          <input id="profile-pronouns" class="profile-input" type="text" maxlength="24" autocomplete="off" spellcheck="false" placeholder="Ex.: ele/dele, ela/dela, elu/delu"></label>
+        <label class="profile-field"><span class="profile-label">Período atual</span>
+          <select id="profile-period" class="profile-input"><option value="">Não informar</option><option value="1">1º período</option><option value="2">2º período</option><option value="3">3º período</option><option value="4">4º período</option><option value="5">5º período</option><option value="6">6º período</option><option value="7">7º período</option><option value="8">8º período</option><option value="9">9º período</option><option value="10">10º período</option><option value="11">11º período</option></select></label>
+        <div class="profile-field"><span class="profile-label">Turno</span>
+          <div class="settings-segment settings-segment-3" role="radiogroup" aria-label="Turno"><button type="button" role="radio" aria-checked="false" class="settings-option" data-pa-action="set-shift" data-value="integral"><span>Integral</span></button><button type="button" role="radio" aria-checked="false" class="settings-option" data-pa-action="set-shift" data-value="noturno"><span>Noturno</span></button><button type="button" role="radio" aria-checked="false" class="settings-option" data-pa-action="set-shift" data-value=""><span>Não informar</span></button></div></div>
+        <button id="profile-clear" type="button" class="profile-clear" data-pa-action="profile-clear">Limpar perfil</button>
+      </form>
+      </div>
+      <div id="settings-view-appearance" class="settings-view" role="region" aria-labelledby="settings-view-appearance-title" hidden>
+        <div class="settings-subheader">
+          <button type="button" class="settings-back" data-pa-action="settings-back" aria-label="Voltar para Configurações"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 6-6 6 6 6"></path></svg></button>
+          <span class="settings-hub-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a9 9 0 1 0 0 18c1.2 0 1.9-.9 1.6-1.9-.3-1 .3-2.1 1.4-2.1H17a4 4 0 0 0 4-4c0-5-4-10-9-10z"></path><circle cx="7.6" cy="11" r="1.1" fill="currentColor"></circle><circle cx="10.4" cy="7.2" r="1.1" fill="currentColor"></circle><circle cx="15" cy="7.6" r="1.1" fill="currentColor"></circle></svg></span><h2 id="settings-view-appearance-title" class="settings-subtitle-h">Aparência</h2>
+        </div>
+      <section class="settings-section" aria-labelledby="settings-appearance-title">
+        <h3 id="settings-appearance-title" class="settings-section-title">Aparência</h3>
+        <div class="settings-card">
+          <div class="settings-row">
+            <div class="settings-row-head"><span class="settings-row-title">Tema</span><span class="settings-row-desc" id="settings-theme-hint">Escolha o visual do aplicativo.</span></div>
+            <div class="settings-segment settings-segment-3" role="radiogroup" aria-label="Tema"><button type="button" role="radio" aria-checked="false" class="settings-option" data-pa-action="set-theme" data-value="light"><span class="settings-option-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg></span><span>Claro</span></button><button type="button" role="radio" aria-checked="false" class="settings-option" data-pa-action="set-theme" data-value="auto"><span class="settings-option-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="5"/><path d="M12 7a5 5 0 0 1 0 10z" fill="currentColor"/><path d="M2 12h2M4.93 4.93l1.41 1.41M4.93 19.07l1.41-1.41M12 2v1.6M12 20.4V22"/></svg></span><span>Automático</span></button><button type="button" role="radio" aria-checked="false" class="settings-option" data-pa-action="set-theme" data-value="dark"><span class="settings-option-icon"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M21 12.8A8.5 8.5 0 0 1 11.2 3a7.5 7.5 0 1 0 9.8 9.8Z"/></svg></span><span>Escuro</span></button></div>
+          </div>
+          <div class="settings-row">
+            <div class="settings-row-head"><span class="settings-row-title">Tamanho do texto</span><span class="settings-row-desc">Aumente ou diminua as letras de todo o site.</span></div>
+            <div class="settings-segment settings-segment-4" role="radiogroup" aria-label="Tamanho do texto"><button type="button" role="radio" aria-checked="false" class="settings-option" data-pa-action="set-text-size" data-value="sm"><span class="settings-aa settings-aa-sm" aria-hidden="true">Aa</span><span>Pequeno</span></button><button type="button" role="radio" aria-checked="false" class="settings-option" data-pa-action="set-text-size" data-value="md"><span class="settings-aa settings-aa-md" aria-hidden="true">Aa</span><span>Normal</span></button><button type="button" role="radio" aria-checked="false" class="settings-option" data-pa-action="set-text-size" data-value="lg"><span class="settings-aa settings-aa-lg" aria-hidden="true">Aa</span><span>Grande</span></button><button type="button" role="radio" aria-checked="false" class="settings-option" data-pa-action="set-text-size" data-value="xl"><span class="settings-aa settings-aa-xl" aria-hidden="true">Aa</span><span>Extragrande</span></button></div>
+          </div>
+        </div>
+      </section>
+      <section class="settings-section" aria-labelledby="settings-dock-title">
+        <h3 id="settings-dock-title" class="settings-section-title">Barra Dock</h3>
+        <div class="settings-card dockpref" data-no-tab-swipe="true">
+          <div class="dockpref-stage" aria-hidden="true"><div id="dockpref-preview" class="dockpref-dock" data-no-i18n></div></div>
+          <div class="settings-row dockpref-row">
+            <div class="settings-row-head"><span class="settings-row-title">Arredondamento</span><span class="settings-row-desc">Quanto as bordas da barra são curvas.</span></div>
+            <div class="dockpref-slider"><input id="dockpref-radius" type="range" min="8" max="36" step="1" aria-label="Arredondamento"><output id="dockpref-radius-val" for="dockpref-radius" data-no-i18n></output></div>
+          </div>
+          <div class="settings-row dockpref-row">
+            <div class="settings-row-head"><span class="settings-row-title">Tamanho</span><span class="settings-row-desc">Aumenta ou diminui os ícones e a altura da barra.</span></div>
+            <div class="dockpref-slider"><input id="dockpref-size" type="range" min="85" max="120" step="5" aria-label="Tamanho"><output id="dockpref-size-val" for="dockpref-size" data-no-i18n></output></div>
+          </div>
+          <div class="settings-row dockpref-row">
+            <div class="settings-row-head"><span class="settings-row-title">Altura</span><span class="settings-row-desc">Distância entre a barra e a borda inferior da tela.</span></div>
+            <div class="dockpref-slider"><input id="dockpref-lift" type="range" min="0" max="40" step="1" aria-label="Altura"><output id="dockpref-lift-val" for="dockpref-lift" data-no-i18n></output></div>
+          </div>
+          <div class="settings-row dockpref-row">
+            <div class="settings-row-head"><span class="settings-row-title">Organizar apps</span><span class="settings-row-desc">Arraste pela alça ou use as setas. A ordem da barra também define a ordem das telas ao deslizar.</span></div>
+            <ul id="dockpref-order" class="dockpref-order" data-no-i18n></ul>
+          </div>
+          <div class="settings-row settings-row-inline dockpref-row">
+            <span class="settings-row-desc">Volte ao visual original da barra.</span>
+            <button id="dockpref-reset" type="button" class="settings-action" data-pa-action="dock-reset"><span>Restaurar padrão</span></button>
+          </div>
+        </div>
+      </section>
+      </div>
+      <div id="settings-view-access" class="settings-view" role="region" aria-labelledby="settings-view-access-title" hidden>
+        <div class="settings-subheader">
+          <button type="button" class="settings-back" data-pa-action="settings-back" aria-label="Voltar para Configurações"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 6-6 6 6 6"></path></svg></button>
+          <span class="settings-hub-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="7.6" r="1.1" fill="currentColor"></circle><path d="M7.5 10.4l4.5.8 4.5-.8M12 11.2v3.3M12 14.5l-2.2 3.6M12 14.5l2.2 3.6"></path></svg></span><h2 id="settings-view-access-title" class="settings-subtitle-h">Acessibilidade</h2>
+        </div>
+      <section class="settings-section" aria-labelledby="settings-notices-title">
+        <h3 id="settings-notices-title" class="settings-section-title">Avisos</h3>
+        <div class="settings-card">
+          <div class="settings-row">
+            <div class="settings-row-head"><span class="settings-row-title">Duração dos avisos</span><span class="settings-row-desc">Tempo que os balões de informação ficam na tela.</span></div>
+            <div class="settings-segment settings-segment-5" role="radiogroup" aria-label="Duração dos avisos"><button type="button" role="radio" aria-checked="false" class="settings-option" data-pa-action="set-toast-ms" data-value="2000"><span>2 s</span></button><button type="button" role="radio" aria-checked="false" class="settings-option" data-pa-action="set-toast-ms" data-value="4000"><span>4 s</span></button><button type="button" role="radio" aria-checked="false" class="settings-option" data-pa-action="set-toast-ms" data-value="6000"><span>6 s</span></button><button type="button" role="radio" aria-checked="false" class="settings-option" data-pa-action="set-toast-ms" data-value="8000"><span>8 s</span></button><button type="button" role="radio" aria-checked="false" class="settings-option" data-pa-action="set-toast-ms" data-value="10000"><span>10 s</span></button></div>
+          </div>
+        </div>
+      </section>
+      <section class="settings-section" aria-labelledby="settings-colors-title">
+        <h3 id="settings-colors-title" class="settings-section-title">Cores do tema</h3>
+        <div class="settings-card">
+          <div class="settings-row">
+            <div class="settings-row-head"><span class="settings-row-desc">Escolha a cor de destaque do aplicativo.</span></div>
+            <div class="theme-swatches" role="radiogroup" aria-label="Cores do tema"><button type="button" role="radio" aria-checked="false" class="theme-swatch" data-pa-action="theme-color" data-value="blue" style="--sw-a:#2f6bb3;--sw-b:#d9e6f5"><span class="theme-swatch-dot" aria-hidden="true"></span><span class="theme-swatch-name">Azul</span></button><button type="button" role="radio" aria-checked="true" class="theme-swatch is-selected" data-pa-action="theme-color" data-value="green" style="--sw-a:#24564b;--sw-b:#e3eee8"><span class="theme-swatch-dot" aria-hidden="true"></span><span class="theme-swatch-name">Verde</span></button><button type="button" role="radio" aria-checked="false" class="theme-swatch" data-pa-action="theme-color" data-value="yellow" style="--sw-a:#c99a1e;--sw-b:#f6ecc9"><span class="theme-swatch-dot" aria-hidden="true"></span><span class="theme-swatch-name">Amarelo</span></button><button type="button" role="radio" aria-checked="false" class="theme-swatch" data-pa-action="theme-color" data-value="wine" style="--sw-a:#7d2a3d;--sw-b:#f1dde1"><span class="theme-swatch-dot" aria-hidden="true"></span><span class="theme-swatch-name">Vinho</span></button><button type="button" role="radio" aria-checked="false" class="theme-swatch" data-pa-action="theme-color" data-value="orange" style="--sw-a:#c4621f;--sw-b:#f7e2d1"><span class="theme-swatch-dot" aria-hidden="true"></span><span class="theme-swatch-name">Laranja</span></button></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-section" aria-labelledby="settings-motion-title">
+        <h3 id="settings-motion-title" class="settings-section-title">Movimento</h3>
+        <div class="settings-card">
+          <div class="settings-row settings-row-inline">
+            <div class="settings-row-head"><span class="settings-row-title">Desativar animações</span><span class="settings-row-desc">Remove movimentos e transições em todo o site.</span></div>
+            <button id="switch-no-anim" type="button" role="switch" aria-checked="false" class="settings-switch" data-pa-action="toggle-no-anim" aria-label="Desativar animações"><span class="settings-switch-track"><span class="settings-switch-thumb"></span></span></button>
+          </div>
+        </div>
+      </section>
+
+      <section class="settings-section" aria-labelledby="settings-fsearch-title">
+        <h3 id="settings-fsearch-title" class="settings-section-title">Busca</h3>
+        <div class="settings-card">
+          <div class="settings-row settings-row-inline">
+            <div class="settings-row-head"><span class="settings-row-title">Barra de pesquisa fixa</span><span class="settings-row-desc">Mantém uma busca no centro do topo de todas as telas.</span></div>
+            <button id="switch-fixed-search" type="button" role="switch" aria-checked="false" class="settings-switch" data-pa-action="toggle-fixed-search" aria-label="Barra de pesquisa fixa"><span class="settings-switch-track"><span class="settings-switch-thumb"></span></span></button>
+          </div>
+          <div id="fsearch-scope-row" class="settings-row" hidden>
+            <div class="settings-row-head"><span class="settings-row-title">O que pesquisar</span><span class="settings-row-desc">Escolha onde a barra fixa procura.</span></div>
+            <div class="settings-stack" role="radiogroup" aria-label="O que pesquisar"><button type="button" role="radio" aria-checked="false" class="settings-option" data-pa-action="set-fsearch-scope" data-value="all"><span>Todas as disciplinas</span></button><button type="button" role="radio" aria-checked="false" class="settings-option" data-pa-action="set-fsearch-scope" data-value="available"><span>Disciplinas puxáveis</span></button><button type="button" role="radio" aria-checked="false" class="settings-option" data-pa-action="set-fsearch-scope" data-value="contacts"><span>Contatos importantes</span></button></div>
+          </div>
+        </div>
+      </section>
+      </div>
+      <div id="settings-view-language" class="settings-view" role="region" aria-labelledby="settings-view-language-title" hidden>
+        <div class="settings-subheader">
+          <button type="button" class="settings-back" data-pa-action="settings-back" aria-label="Voltar para Configurações"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 6-6 6 6 6"></path></svg></button>
+          <span class="settings-hub-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M3 12h18M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18"></path></svg></span><h2 id="settings-view-language-title" class="settings-subtitle-h">Linguagem</h2>
+        </div>
+      <section class="settings-section" aria-labelledby="settings-lang-title">
+        <h3 id="settings-lang-title" class="settings-section-title">Idioma</h3>
+        <div class="settings-card">
+          <div class="settings-row">
+            <div class="settings-row-head"><span class="settings-row-desc">Escolha o idioma de todo o site.</span></div>
+            <div class="settings-lang-list" role="radiogroup" aria-label="Idioma"><button type="button" role="radio" aria-checked="false" class="settings-option settings-lang" data-pa-action="set-lang" data-value="pt"><span class="settings-lang-flag"><svg class="flag-icon" viewBox="0 0 28 20" aria-hidden="true"><defs><clipPath id="flag-clip-br"><rect width="28" height="20" rx="3"/></clipPath></defs><g clip-path="url(#flag-clip-br)"><rect width="28" height="20" fill="#009c3b"/><path d="M14 2.6 25.2 10 14 17.4 2.8 10z" fill="#ffdf00"/><circle cx="14" cy="10" r="4.4" fill="#002776"/><path d="M9.8 9.1c2.9-.7 6.2-.2 8.6 1.5" stroke="#fff" stroke-width=".9" fill="none"/></g></svg></span><span class="settings-lang-name" data-no-i18n>Português (Brasil)</span><svg class="settings-lang-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg></button><button type="button" role="radio" aria-checked="false" class="settings-option settings-lang" data-pa-action="set-lang" data-value="es"><span class="settings-lang-flag"><svg class="flag-icon" viewBox="0 0 28 20" aria-hidden="true"><defs><clipPath id="flag-clip-es"><rect width="28" height="20" rx="3"/></clipPath></defs><g clip-path="url(#flag-clip-es)"><rect width="28" height="20" fill="#aa151b"/><rect y="5" width="28" height="10" fill="#f1bf00"/></g></svg></span><span class="settings-lang-name" data-no-i18n>Español</span><svg class="settings-lang-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg></button><button type="button" role="radio" aria-checked="false" class="settings-option settings-lang" data-pa-action="set-lang" data-value="en"><span class="settings-lang-flag"><svg class="flag-icon" viewBox="0 0 28 20" aria-hidden="true"><defs><clipPath id="flag-clip-en"><rect width="28" height="20" rx="3"/></clipPath></defs><g clip-path="url(#flag-clip-en)"><rect width="28" height="20" fill="#012169"/><path d="M0 0l28 20M28 0L0 20" stroke="#fff" stroke-width="4"/><path d="M0 0l28 20M28 0L0 20" stroke="#c8102e" stroke-width="1.6"/><path d="M14 0v20M0 10h28" stroke="#fff" stroke-width="6"/><path d="M14 0v20M0 10h28" stroke="#c8102e" stroke-width="3.4"/></g></svg></span><span class="settings-lang-name" data-no-i18n>English</span><svg class="settings-lang-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg></button></div>
+          </div>
+        </div>
+      </section>
+      </div>
+      <div id="settings-view-updates" class="settings-view" role="region" aria-labelledby="settings-view-updates-title" hidden>
+        <div class="settings-subheader">
+          <button type="button" class="settings-back" data-pa-action="settings-back" aria-label="Voltar para Configurações"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 6-6 6 6 6"></path></svg></button>
+          <span class="settings-hub-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16M3 12a9 9 0 0 1 15.5-6.2L21 8M21 3v5h-5M3 21v-5h5"></path></svg></span><h2 id="settings-view-updates-title" class="settings-subtitle-h">Atualizações</h2>
+        </div>
+      <section class="settings-section" aria-labelledby="settings-app-title">
+        <h3 id="settings-app-title" class="settings-section-title">Aplicativo</h3>
+        <div class="settings-card">
+          <div class="settings-row settings-row-inline">
+            <div class="settings-row-head"><span class="settings-row-title">Verificar atualização</span><span class="settings-row-desc">Busca a versão mais nova e recarrega o aplicativo se houver.</span></div>
+            <button id="check-update-button" type="button" class="settings-action" data-pa-action="check-update">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg>
+              <span>Verificar atualização</span>
+            </button>
+          </div>
+          <p id="update-status" class="settings-status" role="status" aria-live="polite"></p>
+          <div class="settings-row settings-row-inline settings-row-version">
+            <span class="settings-row-title">Versão</span>
+            <span class="settings-version" data-no-i18n>1.8.7</span>
+          </div>
+        </div>
+      </section>
+      <section class="settings-section" aria-labelledby="settings-notes-title">
+        <h3 id="settings-notes-title" class="settings-section-title">Novidades desta versão</h3>
+        <div class="settings-card release-notes">
+          <p class="release-lead">Um resumo, em linguagem simples, do que chegou nesta versão. Texto escrito com apoio de IA.</p>
+          <div class="release-group"><span class="release-tag">Novo</span><h4 class="release-title">FarmacIA (beta)</h4><ul class="release-list"><li>Uma nova aba com um assistente que responde dúvidas sobre a sua grade: o que você pode puxar, o que cada matéria tranca, quantos créditos faltam e quais são os pré e co-requisitos.</li><li>Ela também explica regras da UFRJ, como trancamento, frequência mínima, bolsas, prazo máximo e carga horária do curso.</li></ul></div>
+          <div class="release-group"><span class="release-tag">Novo</span><h4 class="release-title">Mais controle sobre o aplicativo</h4><ul class="release-list"><li>A barra de navegação agora pode ser ajustada: arredondamento, tamanho, altura e a ordem dos apps. A ordem escolhida também vale para as telas ao deslizar.</li><li>Na aba "O que puxar?" há um filtro para ver só obrigatórias ou eletivas, escolher períodos e agrupar por período.</li><li>Em Acessibilidade você pode desativar todas as animações e manter uma barra de pesquisa fixa no topo.</li><li>No perfil, informe seu nome, pronome, período e turno para que o site fale com você do jeito certo.</li></ul></div>
+          <div class="release-group"><span class="release-tag">Melhorias</span><h4 class="release-title">O que ficou mais confortável</h4><ul class="release-list"><li>Ao atualizar a página, você continua exatamente no ponto em que estava.</li><li>As configurações foram organizadas em páginas por assunto.</li><li>A barra de navegação ficou mais alta e mais arredondada, para facilitar o toque no iPhone.</li><li>Foram feitos ajustes para a tela abrir e rolar normalmente no iPhone com o aplicativo instalado.</li></ul></div>
+          <div class="release-group"><span class="release-tag">Em breve</span><h4 class="release-title">Cores do tema</h4><ul class="release-list"><li>O painel de cores já aparece em Acessibilidade como uma prévia. Ele ainda está em produção: por enquanto, escolher outra cor não muda o visual.</li></ul></div>
+        </div>
+      </section>
+      </div>
+      <div id="settings-view-support" class="settings-view" role="region" aria-labelledby="settings-view-support-title" hidden>
+        <div class="settings-subheader">
+          <button type="button" class="settings-back" data-pa-action="settings-back" aria-label="Voltar para Configurações"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 6-6 6 6 6"></path></svg></button>
+          <span class="settings-hub-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="3.5"></circle><path d="M5.6 5.6l3.9 3.9M14.5 14.5l3.9 3.9M18.4 5.6l-3.9 3.9M9.5 14.5l-3.9 3.9"></path></svg></span><h2 id="settings-view-support-title" class="settings-subtitle-h">Suporte</h2>
+        </div>
+      <section class="settings-section" aria-labelledby="settings-feedback-title">
+        <h3 id="settings-feedback-title" class="settings-section-title">Sugestões</h3>
+        <div class="settings-card settings-feedback">
+          <p>Possui alguma sugestão ou deseja reportar um bug? Por favor mande sua ideia para o e-mail:</p>
+          <div class="settings-email-row">
+            <a class="settings-email" href="mailto:lucas.vambora1@gmail.com" data-no-i18n>lucas.vambora1@gmail.com</a>
+            <button type="button" class="settings-email-copy copy-code-button" data-pa-action="copy-email" aria-label="Copiar e-mail" title="Copiar e-mail">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+            </button>
+          </div>
+        </div>
+      </section>
+      </div>
+    </div>
+  </div>
+
+  <script src="i18n.js?v=1.8.7"></script>
+  <script src="disciplinas.js?v=20261009-offline"></script>
+  <script src="app.js?v=1.8.7"></script>
+  <script src="farmacia-regras.js?v=1.8.7"></script>
+  <script src="farmacia.js?v=1.8.7"></script>
+  <script>
+    (() => {
+      const input = document.getElementById('planner-search-input');
+      const clear = document.getElementById('planner-search-clear');
+      const results = document.getElementById('planner-search-results');
+      const empty = document.getElementById('planner-search-empty');
+      const planner = document.getElementById('modal-planner');
+      if (!input || !planner) return;
+
+      const normalize = value => String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('pt-BR').trim();
+      const containers = () => ['planner-obrig-container', 'planner-cond-container'].map(id => document.getElementById(id)).filter(Boolean);
+
+      function updatePlannerMetrics() {
+        const cards = planner.querySelectorAll('.planner-card');
+        const selected = planner.querySelectorAll('.planner-card input[type="checkbox"]:checked').length;
+        const totalSelected = document.getElementById('planner-total-selected');
+        const totalAvailable = document.getElementById('planner-total-available');
+        if (totalSelected) totalSelected.textContent = String(selected);
+        if (totalAvailable) totalAvailable.textContent = String(cards.length);
+        const obrigCount = document.getElementById('planner-obrig-group-count');
+        const condCount = document.getElementById('planner-cond-group-count');
+        if (obrigCount) obrigCount.textContent = String(document.querySelectorAll('#planner-obrig-container .planner-card').length);
+        if (condCount) condCount.textContent = String(document.querySelectorAll('#planner-cond-container .planner-card').length);
+      }
+
+      function filterPlanner() {
+        const query = normalize(input.value);
+        const cards = [...planner.querySelectorAll('.planner-card')];
+        const ordered = query && typeof window.getPlannerSearchMatches === 'function' ? window.getPlannerSearchMatches(input.value) : [];
+        const matchSet = new Set(ordered);
+        planner._plannerMatchOrder = ordered;
+        let matches = 0;
+        cards.forEach(card => {
+          const matched = Boolean(query && matchSet.has(card.dataset.codigo));
+          card.hidden = false;
+          card.classList.toggle('planner-search-match', matched);
+          if (matched) matches++;
+        });
+        containers().forEach(container => {
+          const group = container.closest('details');
+          const groupHasMatch = [...container.querySelectorAll('.planner-card')].some(card => card.classList.contains('planner-search-match'));
+          if (query && groupHasMatch && group) group.open = true;
+          container.querySelectorAll(':scope > div:not(.planner-card)').forEach(state => { state.hidden = Boolean(query); });
+        });
+        clear.hidden = !input.value;
+        empty.hidden = !(query && matches === 0);
+        results.textContent = query
+          ? T(matches === 1 ? '{n} disciplina encontrada' : '{n} disciplinas encontradas', { n: matches })
+          : T(cards.length === 1 ? '{n} disciplina disponível' : '{n} disciplinas disponíveis', { n: cards.length });
+        updatePlannerMetrics();
+      }
+
+      input.addEventListener('input', filterPlanner);
+      clear.addEventListener('click', () => {
+        input.value = '';
+        filterPlanner();
+        input.focus();
+      });
+      planner.addEventListener('change', event => {
+        if (event.target.matches('.planner-card input[type="checkbox"]')) updatePlannerMetrics();
+      });
+      function focusPlannerCard(card) {
+        if (!card) return;
+        card.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'center' });
+        planner.querySelectorAll('.planner-search-highlight').forEach(item => item.classList.remove('planner-search-highlight'));
+        card.classList.add('planner-search-highlight');
+        window.clearTimeout(card._plannerHighlightTimer);
+        card._plannerHighlightTimer = window.setTimeout(() => card.classList.remove('planner-search-highlight'), 1500);
+      }
+      input.addEventListener('keydown', event => {
+        if (event.key !== 'Enter') return;
+        const bestCode = (planner._plannerMatchOrder || [])[0];
+        const firstMatch = [...planner.querySelectorAll('.planner-card')].find(card => card.dataset.codigo === bestCode)
+          || [...planner.querySelectorAll('.planner-card')].find(card => card.classList.contains('planner-search-match'));
+        if (firstMatch) { event.preventDefault(); focusPlannerCard(firstMatch); }
+      });
+      planner.addEventListener('click', event => {
+        const card = event.target.closest('.planner-card');
+        if (card && event.target.closest('.planner-subject-name')) focusPlannerCard(card);
+      });
+
+      // ---- Sugestões em tempo real (mesma lógica da pesquisa principal, só disciplinas puxáveis) ----
+      const sugg = document.getElementById('planner-search-suggestions');
+      let suggIndex = -1;
+      const hideSugg = () => { sugg.classList.add('hidden'); suggIndex = -1; input.setAttribute('aria-expanded', 'false'); };
+      function renderSugg() {
+        const raw = input.value.trim();
+        if (!raw) { hideSugg(); return; }
+        const codes = typeof window.getPlannerSearchMatches === 'function' ? window.getPlannerSearchMatches(raw) : [];
+        suggIndex = -1;
+        if (!codes.length) {
+          sugg.innerHTML = '<p class="search-more-note">' + T('Nenhuma disciplina disponível com esse nome.') + '</p>';
+        } else {
+          sugg.innerHTML = '<div class="search-result-list">' + codes.slice(0, 6).map((code, i) => {
+            const mat = getDisciplinaByCode(code);
+            return `<button id="planner-option-${i}" type="button" class="search-suggestion text-left" role="option" aria-selected="false" data-planner-code="${escapeHTML(code)}">
+              <div class="search-suggestion-main">
+                <div class="search-suggestion-name"><span>${highlightSearchText(formatName(mat), raw)}</span></div>
+                <div class="search-suggestion-meta">${escapeHTML(mat.codigo)} • ${escapeHTML(displayPeriod(mat))} • ${escapeHTML(creditsOf(mat))} ${T('créditos')} • ${escapeHTML(hoursOf(mat))}h</div>
+              </div></button>`;
+          }).join('') + '</div>' + (codes.length > 6 ? `<p class="search-more-note">${T('Mostrando {shown} de {total}. Continue digitando para refinar.', { shown: 6, total: codes.length })}</p>` : '');
+        }
+        sugg.classList.remove('hidden');
+        input.setAttribute('aria-expanded', 'true');
+      }
+      function pickSugg(code) {
+        const mat = getDisciplinaByCode(code);
+        if (!mat) return;
+        input.value = formatName(mat);
+        filterPlanner();
+        hideSugg();
+        const card = planner.querySelector(`.planner-card[data-codigo="${code}"]`);
+        const group = card?.closest('details');
+        if (group) group.open = true;
+        window.setTimeout(() => focusPlannerCard(card), 60);
+      }
+      input.addEventListener('input', renderSugg);
+      input.addEventListener('focus', () => {
+        input.closest('.planner-search-section')?.scrollIntoView({ block: 'start', behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+        if (input.value.trim()) renderSugg();
+      });
+      sugg.addEventListener('pointerdown', event => { if (event.target.closest('.search-suggestion')) event.preventDefault(); });
+      sugg.addEventListener('click', event => {
+        const btn = event.target.closest('[data-planner-code]');
+        if (btn) pickSugg(btn.dataset.plannerCode);
+      });
+      input.addEventListener('keydown', event => {
+        const opts = [...sugg.querySelectorAll('.search-suggestion')];
+        if (sugg.classList.contains('hidden') || !opts.length) { if (event.key === 'Escape') hideSugg(); return; }
+        if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+          event.preventDefault();
+          suggIndex = (suggIndex + (event.key === 'ArrowDown' ? 1 : -1) + opts.length) % opts.length;
+          opts.forEach((o, i) => { o.classList.toggle('search-suggestion-active', i === suggIndex); o.setAttribute('aria-selected', String(i === suggIndex)); });
+          opts[suggIndex].scrollIntoView({ block: 'nearest' });
+        } else if (event.key === 'Enter') {
+          event.preventDefault(); event.stopImmediatePropagation();
+          pickSugg((opts[suggIndex >= 0 ? suggIndex : 0]).dataset.plannerCode);
+        } else if (event.key === 'Escape') hideSugg();
+      }, true);
+      clear.addEventListener('click', hideSugg);
+      document.addEventListener('click', event => { if (!sugg.contains(event.target) && event.target !== input) hideSugg(); });
+
+      const observer = new MutationObserver(() => {
+        updatePlannerMetrics();
+        filterPlanner();
+      });
+      containers().forEach(container => observer.observe(container, { childList: true, subtree: true }));
+
+      // Recalcula depois da renderização acionada pela navegação original.
+      document.getElementById('bottom-nav-planner')?.addEventListener('click', () => setTimeout(() => {
+        updatePlannerMetrics();
+        filterPlanner();
+      }, 0));
+      updatePlannerMetrics();
+    })();
+  </script>
+
+
+
+
+  <script>
+    (() => {
+      if (!('serviceWorker' in navigator)) return;
+      const secureContext = window.isSecureContext || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+      if (!secureContext) return;
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').catch(() => {
+          // O aplicativo continua funcionando normalmente mesmo se o cache offline não puder ser ativado.
+        });
+      }, { once: true });
+    })();
+  </script>
+
+</body>
+</html>
